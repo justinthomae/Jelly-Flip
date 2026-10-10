@@ -580,17 +580,64 @@ function bindToggles(root){
   if(hb) hb.onclick=()=>{PREFS.haptics=!PREFS.haptics;savePrefs();buzz(20);const t=document.createElement('div');t.innerHTML=toggleHTML();hb.replaceWith(t.querySelector('#hapBtn'));bindToggles(root)};
 }
 
+// Firebase settings for the stand-alone site (the claude.ai version uses claude.ai's own live room instead).
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDLVtNfjOTYy9_Fl3_X45plld08udcGh5k",
+  authDomain: "jelly-flip.firebaseapp.com",
+  databaseURL: "https://jelly-flip-default-rtdb.firebaseio.com",
+  projectId: "jelly-flip",
+  storageBucket: "jelly-flip.firebasestorage.app",
+  messagingSenderId: "790326695298",
+  appId: "1:790326695298:web:fb983b84ae5e33c3f82b9b"
+};
+const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
+
+// The same calls as claude.ai's room, backed by Firebase Realtime Database:
+// each open page writes one record per room with its presence, removed automatically when the page closes.
+async function firebaseRoom(cfg){
+  const [{initializeApp},{getAuth,signInAnonymously},{getDatabase,ref,set,onValue,onDisconnect,remove,serverTimestamp}] =
+    await Promise.all(['firebase-app.js','firebase-auth.js','firebase-database.js'].map(f=>import(FIREBASE_SDK+f)));
+  const app=initializeApp(cfg), uid=(await signInAnonymously(getAuth(app))).user.uid, db=getDatabase(app);
+  const me=Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+  const rooms={};
+  function make(name){
+    const all=ref(db,`jf/rooms/${name}/peers`), mine=ref(db,`jf/rooms/${name}/peers/${me}`);
+    let pres={}, peers=[], gone=false, unsub=null;
+    const listeners=new Set();
+    const self=()=>Object.freeze({peer:me,by:null,isMe:true,sameTab:true,kind:'viewer',guest:false,presence:pres,updatedAt:Date.now()});
+    const write=()=>set(mine,{uid,p:JSON.stringify(pres),t:serverTimestamp()});
+    onDisconnect(mine).remove(); write().catch(e=>console.warn('firebase write',e&&e.code));
+    unsub=onValue(all,snap=>{
+      const v=snap.val()||{};
+      peers=Object.entries(v).map(([peer,d])=>{let p={};try{p=JSON.parse(d&&d.p||'{}')}catch(e){}
+        return Object.freeze({peer,by:null,isMe:peer===me,sameTab:peer===me,kind:'viewer',guest:false,presence:Object.freeze(p),updatedAt:Date.now()})});
+      if(!peers.some(p=>p.sameTab)) peers.push(self());
+      listeners.forEach(f=>f({peers,joined:[],left:[],updated:[]}));
+    },e=>console.warn('firebase read',e&&e.code));
+    return {name,
+      presence:async patch=>{ if(gone) return; pres={...pres}; for(const k in patch){ if(patch[k]===null) delete pres[k]; else pres[k]=patch[k] } await write() },
+      onPeers:f=>{ listeners.add(f); if(peers.length) setTimeout(()=>f({peers,joined:peers,left:[],updated:[]}),0); return ()=>listeners.delete(f) },
+      peers:()=>peers, connected:()=>true, onConnection:f=>{setTimeout(()=>f(true),0);return()=>{}},
+      emit:async()=>{}, on:()=>()=>{},
+      leave:async()=>{ if(gone) return; gone=true; delete rooms[name]; unsub&&unsub(); listeners.clear(); try{ await onDisconnect(mine).cancel(); await remove(mine) }catch(e){} },
+      join:async n=>rooms[n]||(rooms[n]=make(n))};
+  }
+  return rooms.lobby=make('lobby');
+}
+
 // ---------- online play ----------
 // Lockstep: the host keeps the official list of moves and every device replays it with the same random seed,
 // so everyone sees the same table and the same animations. Everything travels as room presence:
 // the host's presence holds the game (seed, seats, move list); a remote player's presence holds their seat claim and their next move.
-const NET={lobby:null, room:null, role:null, code:null, g:null, peers:[], hosts:[], me:null, log:[], applied:0, ffUntil:0, ff:false, pending:null, reqN:0, hostHere:true, myName:'', setup:null};
+const NET={kind:null, lobby:null, room:null, role:null, code:null, g:null, peers:[], hosts:[], me:null, log:[], applied:0, ffUntil:0, ff:false, pending:null, reqN:0, hostHere:true, myName:'', setup:null};
 let pumping=false;
 const cleanName = v => String(v||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,16);
 
 (async()=>{
   try{
-    const r = window.claude&&window.claude.use ? await window.claude.use('room') : null;
+    let r=null;
+    if(window.claude&&window.claude.use){ r=await window.claude.use('room'); if(r) NET.kind='claude' }
+    else if(FIREBASE_CONFIG){ r=await firebaseRoom(FIREBASE_CONFIG); if(r) NET.kind='firebase' }
     if(!r) return;
     NET.lobby=r;
     r.onPeers(ch=>{
@@ -785,7 +832,9 @@ function renderWait(){
     const mine=Object.keys(g.seats).find(k=>g.seats[k]===NET.me);
     const allIn=g.kinds.every((k,i)=>k!=='remote'||(g.seats[i]&&here.has(g.seats[i])));
     head.innerHTML=host
-      ? `<h2>Waiting for players</h2><p class="muted">Ask your remote players to open this same Jelly Flip link while signed in to claude.ai. Your game appears for them under <b>Online games</b>. They need to be invited to this page from its Share menu.</p>`
+      ? `<h2>Waiting for players</h2><p class="muted">${NET.kind==='firebase'
+          ?`Send your remote players this link: <b>${esc(location.origin+location.pathname)}</b>. Your game appears for them under <b>Online games</b> as “${esc(hostName(g))}’s game”.`
+          :'Ask your remote players to open this same Jelly Flip link while signed in to claude.ai. Your game appears for them under <b>Online games</b>. They need to be invited to this page from its Share menu.'}</p>`
       : mine!=null ? `<h2>You’re in!</h2><p class="muted">Waiting for ${esc(hostName(g))} to start${g.st==='play'?'… the game is already going, so you’ll jump straight in.':'.'}</p>`
       : `<h2>${esc(hostName(g))}’s game</h2><p class="muted">Type your name, then pick an open seat.</p>`;
     seats.innerHTML=g.names.map((n,i)=>{
@@ -1150,7 +1199,7 @@ function renderSetup(){
   app.querySelector('#plus').onclick=()=>{sync();st.count=Math.min(8,st.count+1);render()};
   app.querySelector('#start').onclick=()=>{
     sync();
-    if(st.kinds.slice(0,st.count).includes('remote')){ if(NET.lobby) return hostOpen(st); NET.err='Online play isn’t available here. Open this page on claude.ai while signed in.'; return render() }
+    if(st.kinds.slice(0,st.count).includes('remote')){ if(NET.lobby) return hostOpen(st); NET.err='Online play isn’t connected right now. Check your internet connection and reload the page.'; return render() }
     newGame(st);render();
   };
   renderLobby();
