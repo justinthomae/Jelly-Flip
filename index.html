@@ -159,11 +159,14 @@ p{margin:0}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
   font-family:'Rubik',var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
 .credit b{font-weight:400;color:var(--ink)}
-.iconbtn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--panel-2);background:transparent;display:grid;place-items:center;color:var(--ink-2);padding:0}
+.iconbtn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--panel-2);background:transparent;display:grid;place-items:center;color:var(--ink-2);padding:0}
 .iconbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .iconbtn[aria-pressed="true"]{color:var(--ink)}
+.hbtn svg{display:none;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hbtn.armed{color:var(--bust);border-color:var(--bust)}
 .top .tools{align-items:center}
-@media (max-width:420px){ .top h1{font-size:2rem} .top .tools{gap:6px} .top .btn.small{padding:.45em .75em} }
+@media (max-width:440px){ .top h1{font-size:1.9rem} .top .tools{gap:5px} .iconbtn{width:32px;height:32px}
+  .hbtn{width:32px;height:32px;padding:0;display:grid;place-items:center;border-radius:50%} .hbtn svg{display:block} .hbtn .lbl{display:none} .hbtn.armed{width:auto;padding:0 .7em;border-radius:999px} }
 .foot{font-size:.75rem;color:var(--ink-2);text-align:center;letter-spacing:.02em}
 .splash .foot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;z-index:2}
 .bar .foot{margin-top:6px}
@@ -511,7 +514,7 @@ async function swirl(){
 // ---------- sound & haptics ----------
 // Every sound is synthesized with Web Audio, so nothing needs to download. Audio starts on the first tap.
 const PREFS_KEY='jellyflip.prefs';
-const PREFS=(()=>{try{return {sound:true,haptics:true,...JSON.parse(localStorage.getItem(PREFS_KEY)||'{}')}}catch(e){return {sound:true,haptics:true}}})();
+const PREFS=(()=>{const d={music:true,sound:true,haptics:true};try{return {...d,...JSON.parse(localStorage.getItem(PREFS_KEY)||'{}')}}catch(e){return d}})();
 function savePrefs(){try{localStorage.setItem(PREFS_KEY,JSON.stringify(PREFS))}catch(e){}}
 let actx=null, master=null, noiseBuf=null;
 function audio(){
@@ -519,7 +522,8 @@ function audio(){
   if(actx.state==='suspended') actx.resume().catch(()=>{});
   return actx;
 }
-addEventListener('pointerdown',()=>{ if(PREFS.sound) audio() },{passive:true});
+// the first tap anywhere unlocks audio; music starts then, unless the loading screen is still up
+addEventListener('pointerdown',()=>{ if(PREFS.sound||PREFS.music) audio(); if(!document.getElementById('splash')) musicStart() },{passive:true});
 function tone(f0,f1,dur,{type='sine',vol=.15,delay=0,vib=0,lp=0}={}){
   const a=audio(); if(!a) return;
   const t=a.currentTime+delay+.005, o=a.createOscillator(), g=a.createGain();
@@ -570,17 +574,98 @@ function sfx(name,...args){
   buzz(HAPTIC[name]);
 }
 const ICONS={
+  music:'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>',
+  musicOff:'<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/><path d="M3 3l18 18"/>',
   sound:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11"/>',
   soundOff:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
   haptics:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/>',
   hapticsOff:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M3 3l18 18"/>',
 };
-const toggleHTML=()=>`<button class="iconbtn" id="sndBtn" aria-pressed="${PREFS.sound}" aria-label="Sound effects" title="Sound effects"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[PREFS.sound?'sound':'soundOff']}</svg></button><button class="iconbtn" id="hapBtn" aria-pressed="${PREFS.haptics}" aria-label="Haptics" title="Haptics"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[PREFS.haptics?'haptics':'hapticsOff']}</svg></button>`;
+const TOGGLES=[['music','Music','music','musicOff'],['sound','Sound effects','sound','soundOff'],['haptics','Haptics','haptics','hapticsOff']];
+const toggleHTML=()=>TOGGLES.map(([k,label,on,off])=>`<button class="iconbtn" data-pref="${k}" aria-pressed="${PREFS[k]}" aria-label="${label}" title="${label}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[PREFS[k]?on:off]}</svg></button>`).join('');
 function bindToggles(root){
-  const sb=root.querySelector('#sndBtn'), hb=root.querySelector('#hapBtn');
-  if(sb) sb.onclick=()=>{PREFS.sound=!PREFS.sound;savePrefs();if(PREFS.sound){audio();sfx('chime')}sb.outerHTML=toggleHTML().split('</button>')[0]+'</button>';bindToggles(root)};
-  if(hb) hb.onclick=()=>{PREFS.haptics=!PREFS.haptics;savePrefs();buzz(20);const t=document.createElement('div');t.innerHTML=toggleHTML();hb.replaceWith(t.querySelector('#hapBtn'));bindToggles(root)};
+  root.querySelectorAll('[data-pref]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.pref, [,, on, off]=TOGGLES.find(t=>t[0]===k);
+    PREFS[k]=!PREFS[k]; savePrefs();
+    if(k==='music') PREFS.music?musicStart():musicStop();
+    if(k==='sound'&&PREFS.sound){ audio(); sfx('chime') }
+    if(k==='haptics') buzz(20);
+    b.setAttribute('aria-pressed',PREFS[k]); b.querySelector('svg').innerHTML=ICONS[PREFS[k]?on:off];
+  });
 }
+
+// ---------- background music ----------
+// A slow, quiet loop made on the fly: a warm pad under soft kalimba notes from a pentatonic scale, with an echo.
+const mtof = m => 440*Math.pow(2,(m-69)/12);
+const MUSIC={bus:null, timer:null, next:0, step:0, last:67, playing:false};
+const CHORDS=[[48,55,64,71],[45,52,60,67],[41,48,57,64],[43,50,59,64]];  // Cmaj7 · Am7 · Fmaj7 · G6
+const MELODY=[60,62,64,67,69,72,74,76];
+const BEAT=60/68;
+function musicBus(){
+  const a=audio(); if(!a) return null;
+  if(!MUSIC.bus){
+    const bus=a.createGain(); bus.gain.value=0;
+    const dl=a.createDelay(1), fb=a.createGain(), lp=a.createBiquadFilter();
+    dl.delayTime.value=BEAT*.75; fb.gain.value=.32; lp.type='lowpass'; lp.frequency.value=1800;
+    bus.connect(master); bus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master);
+    MUSIC.bus=bus;
+  }
+  return MUSIC.bus;
+}
+function padChord(notes,t,dur){
+  const a=actx, f=a.createBiquadFilter(), g=a.createGain();
+  f.type='lowpass'; f.frequency.value=850;
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.05,t+2.2); g.gain.setValueAtTime(.05,t+dur-1); g.gain.exponentialRampToValueAtTime(.0001,t+dur+1.6);
+  f.connect(g).connect(MUSIC.bus);
+  for(const n of notes) for(const [type,det] of [['sine',0],['triangle',6]]){
+    const o=a.createOscillator(); o.type=type; o.frequency.value=mtof(n); o.detune.value=det; o.connect(f); o.start(t); o.stop(t+dur+1.8);
+  }
+}
+function pluck(n,t,vel){
+  const a=actx, g=a.createGain(), o=a.createOscillator(), o2=a.createOscillator(), g2=a.createGain();
+  o.type='sine'; o.frequency.value=mtof(n); o2.type='sine'; o2.frequency.value=mtof(n)*3.01; g2.gain.value=.18;
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vel,t+.006); g.gain.exponentialRampToValueAtTime(.0001,t+1.4);
+  o.connect(g); o2.connect(g2).connect(g); g.connect(MUSIC.bus);
+  o.start(t); o2.start(t); o.stop(t+1.5); o2.stop(t+1.5);
+}
+function musicTick(){
+  if(!actx||!MUSIC.playing) return;
+  while(MUSIC.next<actx.currentTime+.5){
+    const t=MUSIC.next, s=MUSIC.step, chord=CHORDS[Math.floor(s/16)%CHORDS.length];
+    if(s%16===0) padChord(chord,t,BEAT*8);
+    if(s%4===0) pluck(chord[0]+12,t,.035);
+    if(s%2===0&&Math.random()<.55||s%2===1&&Math.random()<.15){
+      const near=MELODY.filter(m=>Math.abs(m-MUSIC.last)<=5);
+      const n=near[Math.floor(Math.random()*near.length)]; MUSIC.last=n;
+      pluck(n,t,.045+Math.random()*.03);
+    }
+    if(Math.random()<.04) bubble(t,.025);
+    MUSIC.next+=BEAT/2; MUSIC.step++;
+  }
+}
+function musicStart(){
+  if(!PREFS.music||MUSIC.playing) return;
+  const a=audio(); if(!a||!musicBus()) return;
+  MUSIC.playing=true; MUSIC.next=a.currentTime+.15; MUSIC.step=0;
+  MUSIC.bus.gain.cancelScheduledValues(a.currentTime);
+  MUSIC.bus.gain.setValueAtTime(MUSIC.bus.gain.value,a.currentTime); MUSIC.bus.gain.linearRampToValueAtTime(.55,a.currentTime+4);
+  clearInterval(MUSIC.timer); MUSIC.timer=setInterval(musicTick,120); musicTick();
+}
+function musicStop(){
+  if(!MUSIC.playing) return; MUSIC.playing=false;
+  const a=actx; if(a&&MUSIC.bus){ MUSIC.bus.gain.cancelScheduledValues(a.currentTime); MUSIC.bus.gain.setValueAtTime(MUSIC.bus.gain.value,a.currentTime); MUSIC.bus.gain.linearRampToValueAtTime(0,a.currentTime+.8) }
+  setTimeout(()=>{ if(!MUSIC.playing) clearInterval(MUSIC.timer) },900);
+}
+// one soft bubble: a quick upward blip
+function bubble(t,vol=.05){
+  const a=actx; if(!a) return;
+  const f=380+Math.random()*520, o=a.createOscillator(), g=a.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*2.2,t+.07);
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.008); g.gain.exponentialRampToValueAtTime(.0001,t+.09);
+  o.connect(g).connect(master); o.start(t); o.stop(t+.1);
+}
+// pause everything while the page is hidden
+document.addEventListener('visibilitychange',()=>{ if(!actx) return; if(document.hidden) actx.suspend().catch(()=>{}); else actx.resume().catch(()=>{}) });
 
 // Firebase settings for the stand-alone site (the claude.ai version uses claude.ai's own live room instead).
 const FIREBASE_CONFIG = {
@@ -1257,7 +1342,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1>Jelly Flip</h1><div class="tools">${toggleHTML()}<button class="btn small ghost" id="rulesBtn">Rules</button><button class="btn small ghost" id="quitBtn">Quit</button></div></header>
+      <header class="top"><h1>Jelly Flip</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button><button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
@@ -1271,7 +1356,8 @@ function renderGame(){
       S.quitArm=true;render();setTimeout(()=>{if(S.quitArm){S.quitArm=false;render()}},3000);
     };
   }
-  app.querySelector('#quitBtn').textContent=S.quitArm?'Tap again to quit':'Quit';
+  app.querySelector('#quitBtn').innerHTML=S.quitArm?'<span>Quit?</span>':'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h4M15 8l4 4-4 4M19 12H9"/></svg><span class="lbl">Quit</span>';
+  app.querySelector('#quitBtn').classList.toggle('armed',!!S.quitArm);
 
   const pend=turnPts(), pl=pulse&&Date.now()<pulse.until?pulse.p:-1;
   const sc=app.querySelector('#scores'), n=S.players.length;
@@ -1370,11 +1456,22 @@ function startSplash(){
     out.push(`<div class="drift" style="--x:${(x*100).toFixed(0)}%;--y:${(20+Math.random()*60).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="pulse" style="animation-delay:${(-Math.random()*1.6).toFixed(2)}s">${icon('jelly')}</span></div>`);
   });
   sea.innerHTML=out.join('');
-  let gone=false;
-  const close=()=>{ if(gone) return; gone=true; sp.classList.add('out'); setTimeout(()=>sp.remove(),650) };
-  document.getElementById('splashGo').onclick=()=>{audio();sfx('turn');close()};
-  sp.addEventListener('click',close);
-  setTimeout(close,5000);
+  let gone=false, touched=false;
+  // soft bubbles every second or two while the loading screen is up (once the browser allows sound)
+  const bubbles=setInterval(()=>{
+    if(gone||!PREFS.sound||!actx||actx.state!=='running') return;
+    const t=actx.currentTime, n=1+Math.floor(Math.random()*3);
+    for(let k=0;k<n;k++) bubble(t+k*(.08+Math.random()*.12),.035);
+  },1400);
+  try{ if(PREFS.sound) audio() }catch(e){}
+  const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); setTimeout(()=>sp.remove(),650) };
+  document.getElementById('splashGo').onclick=e=>{
+    e.stopPropagation(); audio();
+    if(PREFS.sound&&actx){ const t=actx.currentTime; for(let k=0;k<5;k++) bubble(t+k*.07,.045) }
+    close(); musicStart();
+  };
+  sp.addEventListener('pointerdown',()=>{ touched=true });
+  setTimeout(()=>{ if(!touched){ close() } },8000);
 }
 
 // ---------- boot ----------
