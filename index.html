@@ -185,6 +185,8 @@ p{margin:0}
 
 /* online */
 .err{color:var(--bust);font-size:.9rem}
+.netstat{font-size:.82rem}
+.netstat.ok::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--sea);margin-right:6px;vertical-align:1px}
 .hosts,.seats{display:flex;flex-direction:column;gap:8px}
 .hostrow,.seat{display:flex;align-items:center;gap:10px;background:var(--table-2);border-radius:12px;padding:10px 12px}
 .hostrow > div{flex:1;min-width:0;display:flex;flex-direction:column}
@@ -594,10 +596,14 @@ const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 // The same calls as claude.ai's room, backed by Firebase Realtime Database:
 // each open page writes one record per room with its presence, removed automatically when the page closes.
-async function firebaseRoom(cfg){
+async function firebaseRoom(cfg,report){
   const [{initializeApp},{getAuth,signInAnonymously},{getDatabase,ref,set,onValue,onDisconnect,remove,serverTimestamp}] =
     await Promise.all(['firebase-app.js','firebase-auth.js','firebase-database.js'].map(f=>import(FIREBASE_SDK+f)));
-  const app=initializeApp(cfg), uid=(await signInAnonymously(getAuth(app))).user.uid, db=getDatabase(app);
+  const app=initializeApp(cfg);
+  report('signing-in');
+  const uid=(await signInAnonymously(getAuth(app))).user.uid, db=getDatabase(app);
+  report('connecting');
+  onValue(ref(db,'.info/connected'),snap=>report(snap.val()?'online':'connecting'));
   const me=Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
   const rooms={};
   function make(name){
@@ -606,14 +612,14 @@ async function firebaseRoom(cfg){
     const listeners=new Set();
     const self=()=>Object.freeze({peer:me,by:null,isMe:true,sameTab:true,kind:'viewer',guest:false,presence:pres,updatedAt:Date.now()});
     const write=()=>set(mine,{uid,p:JSON.stringify(pres),t:serverTimestamp()});
-    onDisconnect(mine).remove(); write().catch(e=>console.warn('firebase write',e&&e.code));
+    onDisconnect(mine).remove(); write().catch(e=>report('error',e));
     unsub=onValue(all,snap=>{
       const v=snap.val()||{};
       peers=Object.entries(v).map(([peer,d])=>{let p={};try{p=JSON.parse(d&&d.p||'{}')}catch(e){}
         return Object.freeze({peer,by:null,isMe:peer===me,sameTab:peer===me,kind:'viewer',guest:false,presence:Object.freeze(p),updatedAt:Date.now()})});
       if(!peers.some(p=>p.sameTab)) peers.push(self());
       listeners.forEach(f=>f({peers,joined:[],left:[],updated:[]}));
-    },e=>console.warn('firebase read',e&&e.code));
+    },e=>report('error',e));
     return {name,
       presence:async patch=>{ if(gone) return; pres={...pres}; for(const k in patch){ if(patch[k]===null) delete pres[k]; else pres[k]=patch[k] } await write() },
       onPeers:f=>{ listeners.add(f); if(peers.length) setTimeout(()=>f({peers,joined:peers,left:[],updated:[]}),0); return ()=>listeners.delete(f) },
@@ -637,7 +643,14 @@ const cleanName = v => String(v||'').replace(/[\u0000-\u001f<>]/g,'').trim().sli
   try{
     let r=null;
     if(window.claude&&window.claude.use){ r=await window.claude.use('room'); if(r) NET.kind='claude' }
-    else if(FIREBASE_CONFIG){ r=await firebaseRoom(FIREBASE_CONFIG); if(r) NET.kind='firebase' }
+    else if(FIREBASE_CONFIG){
+      NET.kind='firebase'; NET.status='loading';
+      const report=(st,e)=>{ if(st==='error'){ NET.status='error'; NET.statusMsg=(e&&(e.code||e.message))||'unknown' } else if(NET.status!=='error') NET.status=st; renderLobby() };
+      renderLobby();
+      try{
+        r=await Promise.race([firebaseRoom(FIREBASE_CONFIG,report),new Promise((_,no)=>setTimeout(()=>no({code:'timed out'}),20000))]);
+      }catch(e){ report('error',e); console.warn('firebase',e); return }
+    }
     if(!r) return;
     NET.lobby=r;
     r.onPeers(ch=>{
@@ -796,15 +809,21 @@ async function pump(){
   if(S&&S.screen==='play'){ render(); hostProcessReqs() }
 }
 
+function onlineStatusHTML(){
+  if(NET.kind!=='firebase') return '';
+  const m={loading:'Loading online play…','signing-in':'Signing in to online play…',connecting:'Connecting to online play…',online:'Online play connected.'};
+  if(NET.status==='error') return `<p class="err">Online play couldn’t connect: ${esc(NET.statusMsg)}. Reload to try again.</p>`;
+  return `<p class="muted netstat ${NET.status==='online'?'ok':''}">${m[NET.status]||''}</p>`;
+}
 function renderLobby(){
   const el=document.getElementById('lobby'); if(!el) return;
-  if(!NET.lobby){ el.hidden=true; return }
+  if(!NET.lobby){ el.hidden=!NET.kind; if(NET.kind) el.innerHTML=`<span class="label">Online games</span>${onlineStatusHTML()}`; return }
   el.hidden=false;
   const list=NET.hosts.filter(h=>h.st!=='over');
   el.innerHTML=`<span class="label">Online games</span>
     ${list.length?`<div class="hosts">${list.map(h=>`<div class="hostrow"><div><b>${esc(cleanName(h.name)||'Someone')}’s game</b><small>${h.st==='play'?'In progress':'Waiting for players'} · ${h.open|0} open seat${(h.open|0)===1?'':'s'}</small></div><button class="btn primary small" data-code="${esc(String(h.code).replace(/[^a-z]/g,''))}">Join</button></div>`).join('')}</div>`
       :`<p class="muted">No games open right now. A game shows up here when someone on this link sets a seat to <b>Remote player</b> and starts it.</p>`}
-    ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}`;
+    ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}${onlineStatusHTML()}`;
   el.querySelectorAll('[data-code]').forEach(b=>b.onclick=()=>guestJoin(b.dataset.code));
 }
 
