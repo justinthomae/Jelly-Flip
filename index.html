@@ -1,0 +1,1330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jelly Flip</title>
+<meta name="description" content="Jelly Flip: a push-your-luck memory game. Created by Lydia Lichti in partnership with Grudge Match Games.">
+<meta name="theme-color" content="#2b211b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jelly Flip">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Atkinson+Hyperlegible:wght@400;700&family=Rubik:wght@300;400;500&display=swap">
+<style>
+/* Layout: one column on a dark plank table; wooden tokens scattered at random spots, a sticky action bar at the bottom. Single dark look by design. */
+:root{
+  --table:#2b211b; --table-2:#241b16; --seam:#120c09;
+  --wood:#efdcc0; --wood-2:#dcbb94; --wood-3:#b98a62;
+  --burn:#4b2816;
+  --ink:#f4ebde; --ink-2:#bba997;
+  --sea:#6cc4b6; --sea-ink:#0e2724;
+  --bust:#f08a6e;
+  --panel:#3a2d25; --panel-2:#463830;
+  --display:'Gochi Hand','Comic Sans MS','Chalkboard SE',cursive;
+  --body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{
+  margin:0;font-family:var(--body);font-size:16px;line-height:1.45;color:var(--ink);
+  background-color:var(--table);
+  background-image:
+    repeating-linear-gradient(180deg, transparent 0 158px, var(--seam) 158px 161px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 3px, transparent 3px 11px),
+    linear-gradient(180deg,var(--table),var(--table-2));
+  background-attachment:fixed;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+.app{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:12px 140px;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.05}
+h1{font-size:2.6rem;letter-spacing:.01em}
+h2{font-size:1.9rem}
+h3{font-size:1.35rem}
+p{margin:0}
+.muted{color:var(--ink-2)}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-2);font-weight:700}
+
+/* buttons */
+.btn{border:0;border-radius:999px;padding:.7em 1.3em;font-weight:700;background:var(--panel-2);transition:transform .12s, filter .12s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--sea);color:var(--sea-ink)}
+.btn.ghost{background:transparent;border:1.5px solid var(--panel-2);color:var(--ink-2)}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.btn.small{padding:.45em .95em;font-size:.88rem}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.top .tools{display:flex;gap:8px}
+
+/* setup */
+.card{background:color-mix(in srgb,var(--panel) 92%,transparent);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.stepper{display:flex;align-items:center;gap:14px}
+.stepper button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel-2);font-size:1.4rem;font-weight:700}
+.stepper output{font-family:var(--display);font-size:2.2rem;min-width:1.5ch;text-align:center;font-variant-numeric:tabular-nums}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.name{display:flex;align-items:center;gap:10px;background:var(--table-2);border-radius:12px;padding:6px 6px 6px 12px}
+.name i{width:14px;height:14px;border-radius:50%;flex:none}
+.name input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink);font:inherit;padding:8px 4px}
+.name select{flex:none;background:var(--panel-2);border:0;border-radius:9px;color:var(--ink);font:inherit;font-size:.85rem;padding:8px 6px}
+.name.bot{background:color-mix(in srgb,var(--sea) 10%,var(--table-2))}
+.tray{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px}
+.tray figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:.78rem;color:var(--ink-2)}
+.tray .face{width:56px;height:56px}
+.tray b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* token faces */
+.face{border-radius:50%;color:var(--burn);
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.35), transparent 45%),
+    repeating-radial-gradient(circle at 70% 120%, transparent 0 7px, rgba(120,72,36,.07) 7px 8px),
+    radial-gradient(circle at 50% 50%, var(--wood) 0 55%, var(--wood-2) 100%);
+  box-shadow:inset 0 0 0 1px rgba(80,40,10,.18), 0 2px 0 var(--wood-3), 0 4px 8px rgba(0,0,0,.45);
+  display:grid;place-items:center;overflow:hidden}
+.face svg{width:84%;height:84%}
+.face.bust{box-shadow:inset 0 0 0 3px color-mix(in srgb,var(--bust) 70%,transparent), 0 2px 0 var(--wood-3), 0 4px 8px rgba(0,0,0,.45)}
+
+/* scoreboard */
+/* fixed grid: the scoreboard keeps the same size all game */
+.scores{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:6px}
+.chip{display:flex;align-items:center;gap:6px;padding:5px 9px 5px 5px;border-radius:999px;background:var(--table-2);border:1.5px solid transparent;font-size:.88rem;min-width:0;height:34px;box-sizing:border-box;white-space:nowrap;overflow:hidden}
+.chip i{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-size:.7rem;font-weight:700;color:#1a120d}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.chip b{font-variant-numeric:tabular-nums;flex:none}
+.chip b small{color:var(--sea);font-size:.8em;margin-left:2px}
+.chip i.bot{font-size:.6rem;letter-spacing:.02em}
+/* 5+ players: two-line tiles with a color stripe, so names stay readable */
+.scores.compact .chip{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-content:center;column-gap:4px;row-gap:0;height:42px;border-radius:10px;padding:3px 8px 3px 11px;box-shadow:inset 4px 0 0 var(--c)}
+.scores.compact .chip i{display:none}
+.scores.compact .chip span{grid-column:1 / -1;font-size:.8rem;font-weight:700;line-height:1.2}
+.scores.compact .chip b{grid-column:1;font-size:.85rem;line-height:1.2}
+.scores.compact .chip em{display:block;grid-column:2;grid-row:2;font-style:normal;font-size:.62rem;font-weight:700;letter-spacing:.06em;color:var(--ink-2);align-self:center}
+.chip em{display:none}
+.chip.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--table-2))}
+.info{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.85rem;color:var(--ink-2)}
+.info b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* board: tokens scattered at random spots on the table */
+.boardwrap{width:100%}
+.board{position:relative;margin:0 auto;width:100%;
+  aspect-ratio:1 / var(--h);
+  background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.22), transparent 70%)}
+.tok{position:absolute;aspect-ratio:1;border:0;padding:0;background:none;perspective:600px;border-radius:50%}
+.tok .tilt{position:absolute;inset:0;transform:rotate(var(--r,0deg))}
+.tok .inner,.fly .inner{position:absolute;inset:0;transform-style:preserve-3d}
+.tok .inner{transition:transform .42s cubic-bezier(.3,.7,.3,1.2)}
+.tok.up .inner{transform:rotateY(180deg)}
+.tok .back,.tok .front,.fly .back,.fly .front{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tok .back,.fly .back,.pile .stack i{
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 42%),
+    repeating-radial-gradient(circle at 20% -30%, transparent 0 6px, rgba(110,66,30,.08) 6px 7px),
+    radial-gradient(circle, var(--wood) 0 50%, var(--wood-2) 100%);
+  box-shadow:inset 0 0 0 1px rgba(80,40,10,.2), 0 2px 0 var(--wood-3), 0 4px 7px rgba(0,0,0,.5)}
+.tok .front,.fly .front{transform:rotateY(180deg)}
+.tok .front .face,.fly .front .face{width:100%;height:100%}
+.tok.pick{cursor:pointer}
+.tok.pick:hover .back{filter:brightness(1.08)}
+.tok:not(.pick){cursor:default}
+.tok.rev .front .face{outline:3px solid var(--sea);outline-offset:2px}
+.tok.away{visibility:hidden}
+.tok.aim .back{box-shadow:inset 0 0 0 1px rgba(80,40,10,.2),0 0 0 4px var(--c,var(--sea)),0 8px 14px rgba(0,0,0,.55);filter:brightness(1.08)}
+.tok.aim .tilt{transform:rotate(var(--r,0deg)) scale(1.08) translateY(-2px);transition:transform .25s}
+.board.dim .tok.pick .back{box-shadow:inset 0 0 0 1px rgba(80,40,10,.2),0 0 0 3px color-mix(in srgb,var(--sea) 55%,transparent),0 4px 7px rgba(0,0,0,.5)}
+
+/* whirlpool vortex that hides the churning tokens */
+.vortex{position:absolute;z-index:50;border-radius:50%;pointer-events:none;color:color-mix(in srgb,var(--ink) 30%,transparent);
+  background:radial-gradient(circle,var(--table-2) 0 58%,color-mix(in srgb,var(--table-2) 75%,transparent) 68%,transparent 72%);
+  box-shadow:0 0 30px 6px rgba(0,0,0,.35)}
+.vortex svg{width:100%;height:100%;stroke-width:3.5}
+
+/* splash */
+.splash{position:fixed;inset:0;z-index:60;background:var(--table);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
+  background-image:repeating-linear-gradient(180deg, transparent 0 158px, var(--seam) 158px 161px),linear-gradient(180deg,var(--table),var(--table-2));transition:opacity .6s}
+.splash.out{opacity:0;pointer-events:none}
+.splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
+.logo{font-size:clamp(3.6rem,15vw,6.5rem);color:var(--wood);text-shadow:0 4px 0 var(--wood-3),0 10px 24px rgba(0,0,0,.6);letter-spacing:.02em}
+.credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
+  font-family:'Rubik',var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
+.credit b{font-weight:400;color:var(--ink)}
+.iconbtn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--panel-2);background:transparent;display:grid;place-items:center;color:var(--ink-2);padding:0}
+.iconbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn[aria-pressed="true"]{color:var(--ink)}
+.top .tools{align-items:center}
+@media (max-width:420px){ .top h1{font-size:2rem} .top .tools{gap:6px} .top .btn.small{padding:.45em .75em} }
+.foot{font-size:.75rem;color:var(--ink-2);text-align:center;letter-spacing:.02em}
+.splash .foot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;z-index:2}
+.bar .foot{margin-top:6px}
+.app > .foot{padding-block:8px}
+.sea{position:absolute;inset:0;z-index:1;color:var(--wood);opacity:.7}
+.sea svg{width:100%;height:100%;stroke-width:3.2;overflow:visible}
+.swim{position:absolute;left:0;top:var(--y);width:var(--s);height:var(--s);animation:swimL var(--d) linear infinite;animation-delay:var(--dl)}
+.swim.r{animation-name:swimR}
+.swim.r svg{transform:scaleX(-1)}
+.swim .bob{display:block;width:100%;height:100%;animation:bob 1.5s ease-in-out infinite alternate}
+@keyframes swimL{from{transform:translateX(calc(100vw + 20px))}to{transform:translateX(calc(-1 * var(--s) - 20px))}}
+@keyframes swimR{from{transform:translateX(calc(-1 * var(--s) - 20px))}to{transform:translateX(calc(100vw + 20px))}}
+@keyframes bob{from{transform:translateY(-7px) rotate(-5deg)}to{transform:translateY(7px) rotate(5deg)}}
+.drift{position:absolute;top:0;left:var(--x);width:var(--s);height:var(--s);animation:drift var(--d) linear infinite;animation-delay:var(--dl)}
+.drift .pulse{display:block;width:100%;height:100%;transform-origin:50% 30%;animation:pulse 1.6s ease-in-out infinite}
+@keyframes drift{from{transform:translate(0,calc(100vh + 20px))}to{transform:translate(40px,calc(-1 * var(--s) - 20px))}}
+@keyframes pulse{0%,100%{transform:scale(1.08,.86)}50%{transform:scale(.94,1.06)}}
+@media (prefers-reduced-motion:reduce){ .swim,.drift{animation:none;left:var(--x);transform:none} .swim .bob,.drift .pulse{animation:none} .drift{top:var(--y)} }
+
+/* online */
+.err{color:var(--bust);font-size:.9rem}
+.hosts,.seats{display:flex;flex-direction:column;gap:8px}
+.hostrow,.seat{display:flex;align-items:center;gap:10px;background:var(--table-2);border-radius:12px;padding:10px 12px}
+.hostrow > div{flex:1;min-width:0;display:flex;flex-direction:column}
+.hostrow small,.seat small{color:var(--ink-2);font-size:.82rem}
+.seat i{width:14px;height:14px;border-radius:50%;flex:none}
+.seat b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* flying tokens */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30}
+.fly{position:fixed;perspective:600px;will-change:transform}
+
+/* scrap pile */
+.pile{display:flex;align-items:center;gap:8px}
+.pile .stack{position:relative;width:30px;height:30px}
+.pile .stack i{position:absolute;inset:0}
+.pile .stack i:nth-child(2){transform:translate(3px,-3px)}
+.pile .stack i:nth-child(3){transform:translate(6px,-6px)}
+.pile.empty .stack i{opacity:.18;box-shadow:none}
+.chip.got{animation:got .6s ease-out}
+@keyframes got{30%{transform:scale(1.12)}}
+
+/* action bar */
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 30%);z-index:5}
+/* fixed-height card so the board never sits under it */
+.bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+  display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;height:92px;box-sizing:border-box}
+.bar .msg{grid-area:msg;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bar .msg strong{font-family:var(--display);font-weight:400;font-size:1.35rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .msg span{font-size:.9rem;line-height:1.3;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bar .mini{grid-area:face;width:56px;height:56px}
+.bar .mini .face{width:100%;height:100%}
+.bar .avatar{border-radius:50%;background:var(--c);color:#1a120d;display:grid;place-items:center;font-family:var(--display);font-size:1.6rem;box-shadow:0 3px 8px rgba(0,0,0,.4)}
+.bar .avatar.think{animation:think 1.2s ease-in-out infinite}
+@keyframes think{50%{transform:scale(.9);opacity:.75}}
+@media (max-width:559px){
+  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";height:126px;align-content:center}
+  .bar .acts{justify-content:flex-end}
+}
+.bar .mini.hide{visibility:hidden}
+.bar.bust .in{background:color-mix(in srgb,var(--bust) 22%,var(--panel))}
+.bar .acts{grid-area:acts;display:flex;gap:8px;min-height:38px;align-items:center}
+.bar .acts .btn{padding:.55em 1.2em}
+
+/* overlays */
+.overlay{position:fixed;inset:0;z-index:10;background:rgba(14,9,6,.86);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:grid;place-items:center;padding:16px;overflow:auto}
+.sheet{width:100%;max-width:460px;background:var(--panel);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:14px;text-align:center;align-items:center}
+.sheet.left{text-align:left;align-items:stretch;max-width:560px}
+.who{font-family:var(--display);font-size:2.8rem;line-height:1}
+.peekface{width:min(52vw,220px);height:min(52vw,220px)}
+.rules{display:flex;flex-direction:column;gap:16px}
+.rules section{display:flex;flex-direction:column;gap:8px}
+.rules ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rules li{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:center;font-size:.95rem}
+.rules li .face{width:40px;height:40px}
+.rules p{font-size:.95rem;max-width:62ch}
+.podium{display:flex;flex-direction:column;gap:8px;width:100%}
+.row{display:grid;grid-template-columns:28px 14px 1fr auto;gap:10px;align-items:center;background:var(--table-2);border-radius:12px;padding:10px 14px;text-align:left}
+.row i{width:14px;height:14px;border-radius:50%}
+.row .n{font-family:var(--display);font-size:1.4rem}
+.row .s{font-variant-numeric:tabular-nums;font-weight:700;font-size:1.2rem}
+.row small{display:block;color:var(--ink-2);font-size:.8rem;font-variant-numeric:tabular-nums}
+.row.win{background:color-mix(in srgb,var(--sea) 22%,var(--table-2))}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+
+@media (max-width:420px){ h1{font-size:2.2rem} .bar .msg strong{font-size:1.2rem} }
+@media (prefers-reduced-motion:reduce){ .tok .inner{transition:none} .btn{transition:none} .chip.got{animation:none} .bar .avatar.think{animation:none} }
+</style>
+
+<div class="app" id="app"></div>
+<div class="bar" id="bar" hidden></div>
+<div class="overlay" id="ov" hidden></div>
+<div id="fx"></div>
+<div id="splash" class="splash" role="dialog" aria-label="Jelly Flip">
+  <div class="sea" id="sea" aria-hidden="true"></div>
+  <div class="splash-in">
+    <h1 class="logo">Jelly Flip</h1>
+    <button class="btn primary" id="splashGo">Play</button>
+  </div>
+  <p class="credit">Created by <b>Lydia Lichti</b><br>in partnership with <b>Grudge Match Games</b></p>
+  <footer class="foot">Copyright © 2026 Grudge Match Games</footer>
+</div>
+
+
+<script>
+// ---------- tokens ----------
+const TYPES = {
+  fish:   {name:'Fish', kind:'catch', pts:1, n:20, say:'+1 point. Keep flipping or bank.'},
+  star:   {name:'Starfish', kind:'catch', pts:3, n:5, say:'+3 points. Keep flipping or bank.'},
+  extra:  {name:'Extra Turn', kind:'go', n:2, say:'Bank your catch, scrap it, then take another turn.'},
+  bigeye: {name:'Big-Eyed Fish', kind:'stop', n:2, say:'Bank, scrap it, secretly peek at one token. Turn ends.'},
+  hook:   {name:'Fish Hook', kind:'stop', n:2, say:'Bank, scrap it, then reveal and scrap any face-down token. Turn ends.'},
+  g1:     {name:'Goggles ×1', kind:'stop', n:1, picks:1, say:'Bank, scrap it, reveal 1 token for everyone. Turn ends.'},
+  g2:     {name:'Goggles ×2', kind:'stop', n:1, picks:2, say:'Bank, scrap it, reveal 2 tokens for everyone. Turn ends.'},
+  g3:     {name:'Goggles ×3', kind:'stop', n:1, picks:3, say:'Bank, scrap it, reveal 3 tokens for everyone. Turn ends.'},
+  jelly:  {name:'Jellyfish', kind:'bust', n:5, say:'Bust. You keep it for −1 point.'},
+  shark:  {name:'Shark', kind:'bust', n:1, say:'Bust. The larger half of your banked catch goes back onto the table.'},
+  whirl:  {name:'Whirlpool', kind:'bust', n:1, say:'Bust. Every token on the table moves to a new spot, then the whirlpool is scrapped.'},
+  dolphin:{name:'Dolphin', kind:'bust', n:1, say:'Bust. A random scrapped token returns to the table.'},
+};
+const ORDER = ['fish','star','extra','bigeye','hook','g1','g2','g3','jelly','shark','whirl','dolphin'];
+
+function starPath(){let d='';for(let i=0;i<10;i++){const a=(-90+i*36)*Math.PI/180,r=i%2?13:31;d+=(i?'L':'M')+(50+r*Math.cos(a)).toFixed(1)+' '+(53+r*Math.sin(a)).toFixed(1)}return d+'Z'}
+function starDots(){let s='<circle cx="50" cy="53" r="2.4"/>';for(let i=0;i<5;i++){const a=(-90+i*72)*Math.PI/180;s+=`<circle cx="${(50+19*Math.cos(a)).toFixed(1)}" cy="${(53+19*Math.sin(a)).toFixed(1)}" r="2.2"/>`}return s}
+function spiral(){let d='';for(let k=0;k<=90;k++){const t=k/90,th=t*Math.PI*2*3.1,r=2+t*28;d+=(k?'L':'M')+(50+r*Math.cos(th)).toFixed(1)+' '+(50+r*Math.sin(th)).toFixed(1)}return d}
+const FISH = 'M20 50 C34 30 62 30 72 50 C62 70 34 70 20 50 Z M72 50 L86 37 L83 50 L86 63 Z M40 40 Q35 50 40 60';
+const G = (n)=>`<circle cx="57" cy="44" r="16"/><path d="M46 56 L30 76"/><text x="24" y="38" font-size="24" fill="currentColor" stroke="none" font-family="Gochi Hand, cursive">${n}</text>`;
+const ART = {
+  fish:  `<path d="${FISH}"/><circle cx="31" cy="47" r="2.6" fill="currentColor" stroke="none"/>`,
+  star:  `<path d="${starPath()}"/><g fill="currentColor" stroke="none">${starDots()}</g>`,
+  jelly: `<path d="M27 54 C27 24 73 24 73 54 Z"/><g fill="currentColor" stroke="none"><circle cx="42" cy="43" r="2.6"/><circle cx="58" cy="43" r="2.6"/></g>`+
+         [34,45,56,67].map(x=>`<path d="M${x} 54 q4 6 0 11 q-4 6 0 11 q4 5 0 10"/>`).join(''),
+  shark: `<path d="M12 56 C30 38 62 36 86 50 C70 62 40 68 12 56 Z M44 41 L50 24 L60 40 M12 56 L5 44 M12 56 L5 68 M64 55 l3 4 l3 -4 l3 4 l3 -4"/><circle cx="72" cy="47" r="2.4" fill="currentColor" stroke="none"/><path d="M40 76 v6 M48 76 v6 M56 76 v6" stroke-width="3"/>`,
+  dolphin:`<path d="M14 62 C28 42 58 34 76 46 L91 48 L80 53 C62 64 40 66 14 62 Z M48 41 L55 27 L62 40 M14 62 L6 52 M14 62 L6 72"/><circle cx="72" cy="47" r="2.2" fill="currentColor" stroke="none"/><path d="M80 32 q2 -6 6 -8 M86 36 q4 -4 9 -4"/>`,
+  whirl: `<path d="${spiral()}"/>`,
+  extra: `<path d="M27 44 A24 24 0 0 1 70 34 M70 34 l-10 -1 M70 34 l1 -10 M73 56 A24 24 0 0 1 30 66 M30 66 l10 1 M30 66 l-1 10"/>`,
+  bigeye:`<path d="${FISH}"/><circle cx="36" cy="46" r="8"/><circle cx="37" cy="46" r="3" fill="currentColor" stroke="none"/><path d="M30 34 l-3 -6 M37 32 v-7 M44 34 l3 -6" stroke-width="3"/>`,
+  hook:  `<circle cx="56" cy="17" r="4.5"/><path d="M56 22 L56 64 C56 82 30 82 30 64 L30 57 L37 64"/>`,
+  g1:G(1), g2:G(2), g3:G(3),
+};
+const icon = t => `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ART[t]}</svg>`;
+const face = (t,cls='') => `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${cls}">${icon(t)}</div>`;
+
+
+// ---------- state ----------
+const COLORS = ['#6cc4b6','#f2b65a','#e98aa8','#8fb4f0','#b7d36b','#c99cf0','#f08a6e','#e8e2d4'];
+const KEY = 'jellyflip.v2';
+let S = null;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const plural = (n,w) => `${n} ${w}${n===1?'':'s'}`;
+const pick = a => a[Math.floor(Math.random()*a.length)];
+// Game randomness comes from a seed kept in the game state, so every device in an online game gets the same results.
+function grand(){let a=((S&&S.rs)|0)+0x6D2B79F5|0;S.rs=a;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
+function gshuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(grand()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const gpick = a => a[Math.floor(grand()*a.length)];
+
+// Scatter 42 spots across a board that is 1 wide and h tall: start from a loose grid, then push close spots apart.
+function makeLayout(h){
+  const N=42, D=0.68*Math.sqrt(h/N), minD=D*1.1, pad=D/2+0.008;
+  const cols=Math.max(1,Math.round(Math.sqrt(N/h))), rows=Math.ceil(N/cols);
+  const pts=[];
+  for(let k=0;k<N;k++){const c=k%cols,r=Math.floor(k/cols);pts.push({x:(c+.5+(grand()-.5))/cols,y:(r+.5+(grand()-.5))/rows*h})}
+  for(let it=0;it<400;it++){
+    for(let a=0;a<N;a++)for(let b=a+1;b<N;b++){
+      const A=pts[a],B=pts[b];let dx=B.x-A.x,dy=B.y-A.y,d=Math.hypot(dx,dy);
+      if(d<minD){ if(d<1e-6){dx=grand()-.5;dy=grand()-.5;d=Math.hypot(dx,dy)} const m=(minD-d)/2/d; A.x-=dx*m;A.y-=dy*m;B.x+=dx*m;B.y+=dy*m }
+    }
+    for(const p of pts){p.x=Math.min(1-pad,Math.max(pad,p.x));p.y=Math.min(h-pad,Math.max(pad,p.y))}
+  }
+  return {D, spots:pts.map(p=>({x:p.x,y:p.y,r:Math.round(grand()*50-25)}))};
+}
+
+function setupState(prev){
+  const st = prev || {count:3, names:['Player 1','Player 2','Player 3','Player 4','Player 5','Player 6','Player 7','Player 8']};
+  st.kinds = st.kinds || Array(8).fill('human');
+  return {screen:'setup', setup:st};
+}
+function newGame(setup,seed){
+  const names = setup.names.slice(0,setup.count).map((n,i)=>n.trim()||`Player ${i+1}`);
+  S = {screen:'play', setup, h:null, layout:null, tick:0, turnNo:0, rs:seed??Math.floor(Math.random()*2147483647), net:null,
+    players:names.map((name,i)=>({name,color:COLORS[i],bank:[],jellies:0,kind:setup.kinds[i]||'human',mem:{}})),
+    cur:0, slots:[], nextId:0, scrap:[], turn:freshTurn(),
+    phase:'handoff', summary:null, card:null, quitArm:false, rulesOpen:false};
+  const bag=[]; for(const t of ORDER) for(let i=0;i<TYPES[t].n;i++) bag.push(t);
+  gshuffle(bag); S.slots=bag.map((t,i)=>({id:i,t,up:false})); S.nextId=bag.length;
+  if(isAI(P())||S.players.filter(p=>!isAI(p)).length<2) S.phase='flip';
+  boardEl=null;
+}
+const freshTurn = () => ({rev:[], picks:0, pending:null, banked:0, peek:null, act:null});
+const P = () => S.players[S.cur];
+const score = p => p.bank.reduce((a,t)=>a+TYPES[t].pts,0) - p.jellies;
+const faceDown = () => S.slots.map((s,i)=>s&&!s.up?i:-1).filter(i=>i>=0);
+const empties = () => S.slots.map((s,i)=>s?-1:i).filter(i=>i>=0);
+const onTable = () => S.slots.filter(Boolean).length;
+const isCatch = s => s && s.up && TYPES[s.t].kind==='catch';
+const turnPts = () => S.turn.rev.reduce((a,i)=>a+(isCatch(S.slots[i])?TYPES[S.slots[i].t].pts:0),0);
+const bankedNote = () => S.turn.banked ? `banked ${plural(S.turn.banked,'point')}` : 'banked nothing';
+
+// ---------- animation helpers ----------
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const PACE = () => window.JF_PACE ?? 1;
+const M = () => NET.ff ? 0.001 : RM.matches ? 0.02 : 1;
+const wait = ms => new Promise(r=>setTimeout(r,ms*M()));
+let busy=false, cardHidden=false, pulse=null;
+const away=new Set();
+const tokMap=new Map();
+const fx=document.getElementById('fx');
+
+function centerOf(el){const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,s:el.offsetWidth||r.width}}
+function spotCenter(i){const br=boardEl.getBoundingClientRect(),sp=S.layout.spots[i];return {x:br.left+sp.x*br.width,y:br.top+sp.y*br.width,s:S.layout.D*br.width}}
+const tokEl = i => tokMap.get(S.slots[i].id);
+const chipDot = () => document.querySelector(`.chip[data-p="${S.cur}"] i`);
+const pileEl = () => document.querySelector('#pile .stack');
+const cardFace = () => document.getElementById('cardFace');
+
+// A loose copy of a token that travels in an arc between two points, flipping on the way if asked.
+function fly(from,to,{t=null,up=false,upEnd=up,dur=650,delay=0}={}){
+  const el=document.createElement('div'); el.className='fly';
+  el.style.cssText=`left:${from.x-from.s/2}px;top:${from.y-from.s/2}px;width:${from.s}px;height:${from.s}px`;
+  el.innerHTML=`<span class="inner"><span class="back"></span><span class="front">${t?face(t):''}</span></span>`;
+  fx.appendChild(el);
+  const dx=to.x-from.x, dy=to.y-from.y, sc=to.s/from.s, lift=-Math.min(90,Math.hypot(dx,dy)*.22);
+  const opts={duration:dur*M(),delay:delay*M(),easing:'cubic-bezier(.45,0,.25,1)',fill:'both'};
+  const a=el.animate([
+    {transform:'translate(0,0) scale(1)'},
+    {transform:`translate(${dx/2}px,${dy/2+lift}px) scale(${Math.max(sc,1)*1.12})`,offset:.5},
+    {transform:`translate(${dx}px,${dy}px) scale(${sc})`}],opts);
+  el.firstChild.animate([{transform:`rotateY(${up?180:0}deg)`},{transform:`rotateY(${upEnd?180:0}deg)`}],opts);
+  return a.finished.catch(()=>{}).then(()=>el.remove());
+}
+function bump(p){pulse={p,until:Date.now()+600}}
+
+async function run(fn){
+  if(busy) return; busy=true; render();
+  try{ await fn() } catch(e){ console.error(e) }
+  busy=false; render();
+}
+
+// ---------- moves ----------
+// Fly every fish and starfish revealed this turn to the current player, then bank them.
+async function bankFlights(){
+  const items=S.turn.rev.filter(i=>isCatch(S.slots[i]));
+  if(!items.length) return 0;
+  const from=items.map(i=>centerOf(tokEl(i)));
+  items.forEach(i=>away.add(S.slots[i].id)); render();
+  const dot=centerOf(chipDot()), to={...dot,s:dot.s*1.3};
+  items.forEach((_,k)=>setTimeout(()=>sfx('plip',k),(560+k*130)*M()));
+  await Promise.all(items.map((i,k)=>fly(from[k],to,{t:S.slots[i].t,up:true,dur:620,delay:k*130})));
+  let pts=0;
+  for(const i of items){const s=S.slots[i];P().bank.push(s.t);pts+=TYPES[s.t].pts;away.delete(s.id);S.slots[i]=null;forget(i)}
+  S.turn.rev=S.turn.rev.filter(i=>S.slots[i]); S.turn.banked+=pts; bump(S.cur); render();
+  return pts;
+}
+// Lift a token off the table into the card at the bottom of the screen.
+async function toCard(i,card){
+  const s=S.slots[i], from=centerOf(tokEl(i));
+  S.card=card; cardHidden=true; away.add(s.id); render();
+  await fly(from,centerOf(cardFace()),{t:s.t,up:true,dur:620});
+  cardHidden=false; render();
+}
+// Send the token in the card to the scrap pile.
+async function cardToScrap(i){
+  const s=S.slots[i], from=centerOf(cardFace()); cardHidden=true; render();
+  await fly(from,centerOf(pileEl()),{t:s.t,up:true,upEnd:false,dur:650});
+  sfx('thud'); S.scrap.push(s.t); away.delete(s.id); S.slots[i]=null; forget(i); S.turn.rev=S.turn.rev.filter(j=>j!==i);
+  if(S.turn.act===i) S.turn.act=null;
+  cardHidden=false; render();
+}
+async function cardToSpot(i){
+  const s=S.slots[i], from=centerOf(cardFace()); cardHidden=true; render();
+  await fly(from,spotCenter(i),{t:s.t,up:true,dur:600});
+  away.delete(s.id); S.card=null; cardHidden=false; render();
+}
+async function flipDownAll(){ if(S.slots.some(s=>s&&s.up)){ S.slots.forEach(s=>{if(s) s.up=false}); render(); await wait(480) } }
+
+// Banked tokens return one at a time, face up, then turn face down where they land.
+async function sharkReturn(){
+  const p=P(), lose=Math.ceil(p.bank.length/2); gshuffle(p.bank);
+  for(let k=0;k<lose;k++){
+    const t=p.bank.pop(); bump(S.cur); render();
+    const e=empties(); if(!e.length){S.scrap.push(t);continue}
+    const spot=gpick(e);
+    await fly(centerOf(chipDot()),spotCenter(spot),{t,up:true,dur:1150});
+    S.slots[spot]={id:S.nextId++,t,up:true}; seeAll(spot); sfx('thud'); render(); await wait(900);
+    S.slots[spot].up=false; render(); await wait(550);
+  }
+  return lose;
+}
+async function dolphinReturn(){
+  if(!S.scrap.length) return false;
+  const t=S.scrap.splice(Math.floor(grand()*S.scrap.length),1)[0];
+  const from=centerOf(pileEl()); render();
+  const spot=gpick(empties());
+  sfx('dolphin');
+  await fly(from,spotCenter(spot),{t,dur:1300});
+  sfx('thud'); S.slots[spot]={id:S.nextId++,t,up:false}; forget(spot); render(); await wait(300);
+  return true;
+}
+// The whirlpool pulls every token into the middle, churns them out of sight, then scatters them to brand-new spots.
+async function swirl(){
+  const bw=boardEl.offsetWidth, bh=boardEl.offsetHeight, cx=bw/2, cy=bh/2, m=Math.min(bw,bh);
+  const idx=S.slots.map((s,i)=>s?i:-1).filter(i=>i>=0);
+  const before=new Map(idx.map(i=>[S.slots[i].id,{x:S.layout.spots[i].x*bw,y:S.layout.spots[i].y*bw}]));
+  const toks=gshuffle(idx.map(i=>S.slots[i]));
+  S.layout=makeLayout(S.h);
+  const spots=gshuffle([...Array(S.slots.length).keys()]).slice(0,toks.length);
+  S.slots=S.slots.map(()=>null); spots.forEach((sp,k)=>S.slots[sp]=toks[k]);
+  forgetAll(); render();
+  // put the tokens in a random stacking order so none stays on top
+  shuffle([...tokMap.values()]).forEach(el=>boardEl.appendChild(el));
+  const T=2300*M();
+  const vortex=document.createElement('div'); vortex.className='vortex';
+  vortex.style.cssText=`width:${m*.72}px;height:${m*.72}px;left:${cx-m*.36}px;top:${cy-m*.36}px`;
+  vortex.innerHTML=icon('whirl'); boardEl.appendChild(vortex); sfx('whirl');
+  const va=vortex.animate([
+    {opacity:0,transform:'scale(.3) rotate(0deg)'},
+    {opacity:1,transform:'scale(1) rotate(-300deg)',offset:.22},
+    {opacity:1,transform:'scale(1.05) rotate(-1100deg)',offset:.74},
+    {opacity:0,transform:'scale(.4) rotate(-1500deg)'}],{duration:T,easing:'linear',fill:'both'});
+  const anims=spots.map(sp=>{
+    const s=S.slots[sp], o=before.get(s.id), n={x:S.layout.spots[sp].x*bw,y:S.layout.spots[sp].y*bw};
+    const ao=Math.atan2(o.y-cy,o.x-cx), ro=Math.hypot(o.x-cx,o.y-cy);
+    const r0=m*(.03+Math.random()*.15), w=(5+Math.random()*7)*Math.PI, ph=Math.random()*6.28, amp=m*(.02+Math.random()*.08);
+    const a1=ao+Math.PI*(1+Math.random()), aEnd=a1+w;
+    let an=Math.atan2(n.y-cy,n.x-cx); while(an<aEnd+Math.PI*.6) an+=Math.PI*2;
+    const rn=Math.hypot(n.x-cx,n.y-cy), kf=[], N=48;
+    for(let k=0;k<=N;k++){
+      const t=k/N; let a,r;
+      if(t<.24){const u=t/.24, e=u*u*(3-2*u); a=ao+(a1-ao)*e; r=ro+(r0-ro)*e}
+      else if(t<.72){const u=(t-.24)/.48; a=a1+w*u; r=r0+amp*Math.sin(ph+u*9)}
+      else {const u=(t-.72)/.28, e=u*u*(3-2*u); const rEnd=r0+amp*Math.sin(ph+9); a=aEnd+(an-aEnd)*e; r=rEnd+(rn-rEnd)*e}
+      kf.push({transform:`translate(${(cx+r*Math.cos(a)-n.x).toFixed(1)}px,${(cy+r*Math.sin(a)-n.y).toFixed(1)}px) rotate(${Math.round(t*900)}deg)`});
+    }
+    return tokMap.get(s.id).animate(kf,{duration:T,easing:'linear'}).finished.catch(()=>{});
+  });
+  await Promise.all(anims); await va.finished.catch(()=>{}); vortex.remove();
+}
+
+// ---------- sound & haptics ----------
+// Every sound is synthesized with Web Audio, so nothing needs to download. Audio starts on the first tap.
+const PREFS_KEY='jellyflip.prefs';
+const PREFS=(()=>{try{return {sound:true,haptics:true,...JSON.parse(localStorage.getItem(PREFS_KEY)||'{}')}}catch(e){return {sound:true,haptics:true}}})();
+function savePrefs(){try{localStorage.setItem(PREFS_KEY,JSON.stringify(PREFS))}catch(e){}}
+let actx=null, master=null, noiseBuf=null;
+function audio(){
+  if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); master=actx.createGain(); master.gain.value=.8; master.connect(actx.destination) }catch(e){ return null } }
+  if(actx.state==='suspended') actx.resume().catch(()=>{});
+  return actx;
+}
+addEventListener('pointerdown',()=>{ if(PREFS.sound) audio() },{passive:true});
+function tone(f0,f1,dur,{type='sine',vol=.15,delay=0,vib=0,lp=0}={}){
+  const a=audio(); if(!a) return;
+  const t=a.currentTime+delay+.005, o=a.createOscillator(), g=a.createGain();
+  o.type=type; o.frequency.setValueAtTime(f0,t); if(f1!==f0) o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.012); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  if(vib){const l=a.createOscillator(),lg=a.createGain();l.frequency.value=vib;lg.gain.value=f0*.07;l.connect(lg).connect(o.frequency);l.start(t);l.stop(t+dur)}
+  let out=o; if(lp){const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);out=f}
+  out.connect(g).connect(master); o.start(t); o.stop(t+dur+.03);
+}
+function hiss(dur,{f0=800,f1=f0,q=1,vol=.15,delay=0}={}){
+  const a=audio(); if(!a) return;
+  if(!noiseBuf){noiseBuf=a.createBuffer(1,a.sampleRate*2,a.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  const t=a.currentTime+delay+.005, src=a.createBufferSource(), f=a.createBiquadFilter(), g=a.createGain();
+  src.buffer=noiseBuf; f.type='bandpass'; f.Q.value=q; f.frequency.setValueAtTime(f0,t); f.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+Math.min(.05,dur/3)); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  src.connect(f).connect(g).connect(master); src.start(t); src.stop(t+dur+.03);
+}
+const notes=(list,o={})=>list.forEach(([f,d,len=.18])=>tone(f,f,len,{type:'triangle',vol:.1,...o,delay:d}));
+const SFX={
+  flip:  ()=>{hiss(.05,{f0:2200,f1:1200,q:1.4,vol:.22});tone(380,240,.07,{type:'triangle',vol:.1})},
+  fish:  ()=>{tone(520,900,.11,{vol:.12,delay:.05});tone(900,1150,.07,{vol:.07,delay:.14})},
+  star:  ()=>notes([[784,.05],[988,.12],[1319,.19,.3]]),
+  plip:  (k=0)=>{const f=700*Math.pow(1.122,k%7);tone(f,f*1.5,.09,{vol:.11})},
+  jelly: ()=>tone(340,140,.55,{vol:.15,vib:10,delay:.05}),
+  shark: ()=>{tone(98,94,.3,{type:'sawtooth',vol:.12,lp:500,delay:.05});tone(104,99,.55,{type:'sawtooth',vol:.13,lp:500,delay:.42})},
+  whirl: ()=>{hiss(1.1,{f0:250,f1:1500,q:3,vol:.16});hiss(.9,{f0:1500,f1:220,q:3,vol:.12,delay:1});for(let k=0;k<7;k++){const f=300+Math.random()*500;tone(f,f*1.8,.06,{vol:.05,delay:.2+k*.22})}},
+  dolphin:()=>[0,.11,.22].forEach(d=>tone(1300,2200,.08,{vol:.08,delay:.05+d})),
+  chime: ()=>notes([[880,.03,.25],[1320,.12,.4]],{vol:.09}),
+  extra: ()=>notes([[523,.0],[659,.07],[784,.14],[1047,.21,.3]]),
+  thud:  ()=>{tone(170,85,.12,{vol:.14});hiss(.05,{f0:600,f1:300,vol:.1})},
+  peek:  ()=>tone(480,760,.4,{vol:.07,vib:5}),
+  hook:  ()=>{tone(1300,1700,.05,{vol:.08});tone(420,200,.16,{vol:.1,delay:.06})},
+  turn:  ()=>notes([[660,0,.12],[880,.1,.2]],{vol:.08}),
+  tap:   ()=>tone(950,700,.04,{vol:.05}),
+  fanfare:()=>notes([[523,0],[659,.12],[784,.24],[1047,.4,.25],[784,.6,.12],[1047,.72,.5]],{vol:.12}),
+};
+const HAPTIC={flip:8,fish:14,star:[12,40,12],plip:10,jelly:[40,40,90],shark:[90,60,140],whirl:[20,40,20,40,20,40,20,40,20],dolphin:[15,30,15],chime:[15,30,15],extra:[15,30,15,30,25],thud:12,hook:[10,30,25],turn:[10,40,10],fanfare:[50,60,50,60,120]};
+// iPhones have no vibrate API; Safari gives a light tick when a switch control is toggled, so a hidden one stands in.
+const hapticLabel=(()=>{try{const l=document.createElement('label');l.setAttribute('aria-hidden','true');l.style.cssText='position:fixed;left:-99px;top:0;opacity:0;pointer-events:none';l.innerHTML='<input type="checkbox" switch tabindex="-1">';document.body.appendChild(l);return l}catch(e){return null}})();
+function buzz(p){
+  if(!PREFS.haptics||p==null) return;
+  try{ if(navigator.vibrate){ navigator.vibrate(p); return } }catch(e){}
+  try{ hapticLabel&&hapticLabel.click() }catch(e){}
+}
+function sfx(name,...args){
+  if(NET.ff) return;
+  if(PREFS.sound){ try{ SFX[name]&&SFX[name](...args) }catch(e){} }
+  buzz(HAPTIC[name]);
+}
+const ICONS={
+  sound:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11"/>',
+  soundOff:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+  haptics:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/>',
+  hapticsOff:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M3 3l18 18"/>',
+};
+const toggleHTML=()=>`<button class="iconbtn" id="sndBtn" aria-pressed="${PREFS.sound}" aria-label="Sound effects" title="Sound effects"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[PREFS.sound?'sound':'soundOff']}</svg></button><button class="iconbtn" id="hapBtn" aria-pressed="${PREFS.haptics}" aria-label="Haptics" title="Haptics"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[PREFS.haptics?'haptics':'hapticsOff']}</svg></button>`;
+function bindToggles(root){
+  const sb=root.querySelector('#sndBtn'), hb=root.querySelector('#hapBtn');
+  if(sb) sb.onclick=()=>{PREFS.sound=!PREFS.sound;savePrefs();if(PREFS.sound){audio();sfx('chime')}sb.outerHTML=toggleHTML().split('</button>')[0]+'</button>';bindToggles(root)};
+  if(hb) hb.onclick=()=>{PREFS.haptics=!PREFS.haptics;savePrefs();buzz(20);const t=document.createElement('div');t.innerHTML=toggleHTML();hb.replaceWith(t.querySelector('#hapBtn'));bindToggles(root)};
+}
+
+// ---------- online play ----------
+// Lockstep: the host keeps the official list of moves and every device replays it with the same random seed,
+// so everyone sees the same table and the same animations. Everything travels as room presence:
+// the host's presence holds the game (seed, seats, move list); a remote player's presence holds their seat claim and their next move.
+const NET={lobby:null, room:null, role:null, code:null, g:null, peers:[], hosts:[], me:null, log:[], applied:0, ffUntil:0, ff:false, pending:null, reqN:0, hostHere:true, myName:'', setup:null};
+let pumping=false;
+const cleanName = v => String(v||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,16);
+
+(async()=>{
+  try{
+    const r = window.claude&&window.claude.use ? await window.claude.use('room') : null;
+    if(!r) return;
+    NET.lobby=r;
+    r.onPeers(ch=>{
+      NET.hosts=ch.peers.filter(p=>!p.sameTab&&p.presence&&p.presence.host&&p.presence.host.code).map(p=>({peer:p.peer,...p.presence.host}));
+      renderLobby();
+    },()=>{NET.lobby=null;renderLobby()});
+    if(S&&S.screen==='setup') render();
+  }catch(e){}
+})();
+
+function hostName(g){ const i=g.kinds.indexOf('human'); return i>=0?g.names[i]:'Host' }
+function openSeats(g){ const here=new Set(NET.peers.map(p=>p.peer)); return g.kinds.filter((k,i)=>k==='remote'&&!(g.seats[i]&&here.has(g.seats[i]))).length }
+function publishG(){ if(NET.room&&NET.g) NET.room.presence({g:NET.g}).catch(e=>console.warn('presence',e&&e.code)) }
+function lobbyAnnounce(){
+  if(!NET.lobby) return;
+  const g=NET.g;
+  NET.lobby.presence({host:NET.role==='host'&&g?{code:g.code,name:hostName(g),open:openSeats(g),st:g.st}:null}).catch(()=>{});
+}
+function bindRoom(){
+  NET.room.onPeers(ch=>{
+    NET.peers=ch.peers;
+    const me=ch.peers.find(p=>p.sameTab); if(me) NET.me=me.peer;
+    if(NET.role==='host') hostOnPeers(); else guestOnPeers();
+  },()=>{NET.hostHere=false; render()});
+}
+async function leaveOnline(){
+  try{ if(NET.room) await NET.room.leave() }catch(e){}
+  NET.room=null; NET.role=null; NET.g=null; NET.log=[]; NET.applied=0; NET.pending=null;
+  lobbyAnnounce();
+}
+
+// ----- host -----
+async function hostOpen(st){
+  const code=Array.from({length:4},()=>'abcdefghjkmnpqrstuvwxyz'[Math.floor(Math.random()*23)]).join('');
+  let room; try{ room=await NET.lobby.join('jf-'+code) }catch(e){ NET.err='Couldn’t open an online game right now. Try again in a moment.'; return render() }
+  const n=st.count;
+  NET.room=room; NET.role='host'; NET.code=code; NET.setup=st; NET.err='';
+  NET.g={v:1,code,st:'wait',names:st.names.slice(0,n).map((v,i)=>cleanName(v)||`Player ${i+1}`),kinds:st.kinds.slice(0,n),seats:{},acks:{},seed:0,h:0,log:''};
+  S={screen:'wait',setup:st};
+  bindRoom(); publishG(); lobbyAnnounce(); render();
+}
+function hostOnPeers(){
+  const g=NET.g; if(!g) return;
+  const here=new Set(NET.peers.map(p=>p.peer)); let changed=false;
+  for(const p of NET.peers){
+    if(p.sameTab) continue;
+    const pr=p.presence||{}, s=pr.claim;
+    if(!Number.isInteger(s)||g.kinds[s]!=='remote') continue;
+    const holder=g.seats[s];
+    if(holder===p.peer||(holder&&here.has(holder))||Object.values(g.seats).includes(p.peer)) continue;
+    g.seats[s]=p.peer; g.names[s]=cleanName(pr.name)||g.names[s];
+    if(S.players&&S.players[s]) S.players[s].name=g.names[s];
+    changed=true;
+  }
+  if(changed) publishG();
+  lobbyAnnounce();
+  hostProcessReqs();
+  if(S.screen==='wait') renderWait(); else if(S.screen==='play') render();
+}
+function hostProcessReqs(){
+  if(!S||S.screen!=='play'||!S.net||!S.net.host||busy||NET.applied<NET.log.length) return;
+  const g=NET.g;
+  for(const p of NET.peers){
+    if(p.sameTab) continue;
+    const r=p.presence&&p.presence.req;
+    if(!r||typeof r.a!=='string'||!Number.isInteger(r.n)) continue;
+    const s=Object.keys(g.seats).find(k=>g.seats[k]===p.peer); if(s==null) continue;
+    if(r.n<=(g.acks[s]||0)) continue;
+    g.acks[s]=r.n;
+    if(+s===S.cur&&legal(r.a)) return hostAppend(r.a);
+    publishG();
+  }
+}
+function hostAppend(a){
+  const g=NET.g; g.log+=(g.log?',':'')+a;
+  NET.log=g.log.split(','); publishG(); pump();
+}
+function hostStart(){
+  const g=NET.g, st={count:g.names.length,names:g.names.slice(),kinds:g.kinds.slice()};
+  const seed=Math.floor(Math.random()*2147483647);
+  newGame(st,seed); S.setup=NET.setup||st; S.net={host:true,g,applied:0}; S.phase='flip';
+  g.seed=seed; g.log=''; g.acks={}; g.st='play'; g.h=0;
+  NET.log=[]; NET.applied=0;
+  render();           // sizing the board picks its shape
+  g.h=S.h; publishG(); lobbyAnnounce();
+}
+async function hostResume(saved){
+  let room; try{ room=await NET.lobby.join('jf-'+saved.net.g.code) }catch(e){ return }
+  S=saved; NET.room=room; NET.role='host'; NET.g=S.net.g; NET.code=NET.g.code; NET.setup=S.setup;
+  NET.log=NET.g.log?NET.g.log.split(','):[]; NET.applied=S.net.applied||0; NET.ffUntil=NET.log.length;
+  bindRoom(); publishG(); lobbyAnnounce(); boardEl=null; render(); pump();
+}
+
+// ----- remote player -----
+async function guestJoin(code){
+  let room; try{ room=await NET.lobby.join('jf-'+code) }catch(e){ NET.err='Couldn’t join that game. Ask the host to check it’s still open.'; return render() }
+  NET.room=room; NET.role='guest'; NET.code=code; NET.g=null; NET.err='';
+  NET.myName=NET.myName||cleanName(S.setup&&S.setup.names[0])||'Friend';
+  S={screen:'wait',setup:S.setup};
+  bindRoom(); render();
+}
+function guestOnPeers(){
+  const h=NET.peers.find(p=>!p.sameTab&&p.presence&&p.presence.g&&p.presence.g.code===NET.code);
+  NET.hostHere=!!h;
+  if(!h){ if(S.screen==='wait') renderWait(); else if(S.screen==='play') render(); return }
+  const g=h.presence.g, mySeat=Object.keys(g.seats).find(k=>g.seats[k]===NET.me);
+  NET.g=g;
+  if(NET.pending&&S.net&&(g.acks[S.net.seat]||0)>=NET.reqN){ NET.pending=null; render() }
+  if(S.screen==='wait'){
+    if(g.st==='play'&&mySeat!=null&&g.h) return guestStart(g,+mySeat);
+    return renderWait();
+  }
+  if(S.net&&(S.screen==='play'||S.screen==='over')){
+    if(g.seed!==S.net.seed&&g.st==='play'&&g.h) return guestStart(g,S.net.seat);
+    const log=g.log?g.log.split(','):[];
+    if(log.length>NET.log.length){ NET.log=log; pump() }
+    render();
+  }
+}
+function guestStart(g,seat){
+  newGame({count:g.names.length,names:g.names.slice(),kinds:g.kinds.slice()},g.seed);
+  S.h=g.h; S.net={host:false,seat,seed:g.seed,code:g.code}; S.phase='flip';
+  NET.log=g.log?g.log.split(','):[]; NET.applied=0; NET.ffUntil=NET.log.length; NET.pending=null;
+  NET.reqN=Math.max(NET.reqN,g.acks[seat]||0);
+  render(); pump();
+}
+function sendReq(a){
+  if(NET.pending||!NET.room) return;
+  NET.reqN=Math.max(NET.reqN,(NET.g&&NET.g.acks[S.net.seat])||0)+1;
+  NET.pending=a; NET.room.presence({req:{n:NET.reqN,a}}).catch(()=>{NET.pending=null});
+  render();
+}
+
+// ----- shared -----
+function legal(a){
+  const m=/^([fp])(\d{1,2})$|^([xbc])$/.exec(a); if(!m) return false;
+  const c=m[1]||m[3], s=S.slots[+m[2]];
+  if(c==='f') return ['flip','hook','goggles'].includes(S.phase)&&!!s&&!s.up;
+  if(c==='p') return S.phase==='peek'&&!!s&&!s.up;
+  if(c==='x') return S.phase==='peeking';
+  if(c==='b') return S.phase==='flip'&&turnPts()>0;
+  if(c==='c') return S.phase==='card';
+  return false;
+}
+// Replay moves from the shared list one at a time; when catching up after joining, skip the animations.
+async function pump(){
+  if(pumping) return; pumping=true;
+  try{
+    while(S&&S.screen==='play'&&NET.applied<NET.log.length){
+      while(busy) await new Promise(r=>setTimeout(r,30));
+      NET.ff=NET.applied<NET.ffUntil-1;
+      const a=NET.log[NET.applied++]; NET.pending=null;
+      await applyAction(a);
+    }
+  } finally { pumping=false; NET.ff=false }
+  if(S&&S.screen==='play'){ render(); hostProcessReqs() }
+}
+
+function renderLobby(){
+  const el=document.getElementById('lobby'); if(!el) return;
+  if(!NET.lobby){ el.hidden=true; return }
+  el.hidden=false;
+  const list=NET.hosts.filter(h=>h.st!=='over');
+  el.innerHTML=`<span class="label">Online games</span>
+    ${list.length?`<div class="hosts">${list.map(h=>`<div class="hostrow"><div><b>${esc(cleanName(h.name)||'Someone')}’s game</b><small>${h.st==='play'?'In progress':'Waiting for players'} · ${h.open|0} open seat${(h.open|0)===1?'':'s'}</small></div><button class="btn primary small" data-code="${esc(String(h.code).replace(/[^a-z]/g,''))}">Join</button></div>`).join('')}</div>`
+      :`<p class="muted">No games open right now. A game shows up here when someone on this link sets a seat to <b>Remote player</b> and starts it.</p>`}
+    ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}`;
+  el.querySelectorAll('[data-code]').forEach(b=>b.onclick=()=>guestJoin(b.dataset.code));
+}
+
+function renderWait(){
+  bar.hidden=true; ov.hidden=true; boardEl=null;
+  const g=NET.g, host=NET.role==='host', here=new Set(NET.peers.map(p=>p.peer));
+  if(!app.querySelector('#waitSeats')){
+    app.innerHTML=`
+      <header class="top"><div><h1>Jelly Flip</h1><p class="muted">Online game</p></div><div class="tools">${toggleHTML()}</div></header>
+      <div class="card">
+        <div id="waitHead"></div>
+        ${host?'':`<label class="name"><i style="background:var(--sea)"></i><input id="myName" maxlength="16" value="${esc(NET.myName)}" aria-label="Your name"></label>`}
+        <div class="seats" id="waitSeats"></div>
+        <div class="btnrow" id="waitBtns"></div>
+      </div>
+      <footer class="foot">Copyright © 2026 Grudge Match Games</footer>`;
+    bindToggles(app);
+    const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{NET.myName=cleanName(mn.value)};
+  }
+  const head=app.querySelector('#waitHead'), seats=app.querySelector('#waitSeats'), btns=app.querySelector('#waitBtns');
+  if(!g){
+    head.innerHTML=`<h2>Finding the game…</h2><p class="muted">${NET.hostHere?'Connecting to the host.':'The host isn’t here right now. Their game appears as soon as they’re back.'}</p>`;
+    seats.innerHTML=''; btns.innerHTML=`<button class="btn ghost" id="leaveWait">Leave</button>`;
+  } else {
+    const mine=Object.keys(g.seats).find(k=>g.seats[k]===NET.me);
+    const allIn=g.kinds.every((k,i)=>k!=='remote'||(g.seats[i]&&here.has(g.seats[i])));
+    head.innerHTML=host
+      ? `<h2>Waiting for players</h2><p class="muted">Ask your remote players to open this same Jelly Flip link while signed in to claude.ai. Your game appears for them under <b>Online games</b>. They need to be invited to this page from its Share menu.</p>`
+      : mine!=null ? `<h2>You’re in!</h2><p class="muted">Waiting for ${esc(hostName(g))} to start${g.st==='play'?'… the game is already going, so you’ll jump straight in.':'.'}</p>`
+      : `<h2>${esc(hostName(g))}’s game</h2><p class="muted">Type your name, then pick an open seat.</p>`;
+    seats.innerHTML=g.names.map((n,i)=>{
+      const k=g.kinds[i], held=g.seats[i]&&here.has(g.seats[i]), you=g.seats[i]===NET.me;
+      const status=k==='remote'?(you?'You':held?'Joined':'Open seat'):AI[k]?`AI · ${AI[k].label}`:`With ${esc(hostName(g))}`;
+      const canSit=!host&&mine==null&&k==='remote'&&!held;
+      return `<div class="seat"><i style="background:${COLORS[i]}"></i><b>${esc(n)}</b><small>${status}</small>${canSit?`<button class="btn primary small" data-sit="${i}">Sit here</button>`:''}</div>`;
+    }).join('');
+    btns.innerHTML=host
+      ? `<button class="btn primary" id="startOnline" ${allIn?'':'disabled'}>${allIn?'Start game':'Waiting for players…'}</button><button class="btn ghost" id="leaveWait">Cancel</button>`
+      : `<button class="btn ghost" id="leaveWait">Leave</button>`;
+    seats.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{ sfx('tap'); NET.room.presence({claim:+b.dataset.sit,name:NET.myName||'Friend'}).catch(()=>{}) });
+    const so=btns.querySelector('#startOnline'); if(so) so.onclick=()=>{ sfx('turn'); hostStart() };
+  }
+  const lw=btns.querySelector('#leaveWait'); if(lw) lw.onclick=async()=>{ await leaveOnline(); S=setupState(S.setup||NET.setup); render() };
+}
+
+// ---------- AI players ----------
+// Each AI remembers what it has seen face up, by spot. At the start of each turn it "recalls" those memories:
+// older memories fade, and weaker players sometimes put a token in the wrong spot nearby.
+const AI = {
+  easy:  {label:'Easy',   base:.5,  half:6,   confuse:.35, think:[1200,2000], caution:null, slip:.25},
+  medium:{label:'Medium', base:.85, half:25,  confuse:.12, think:[950,1600],  caution:.3,   slip:.05},
+  hard:  {label:'Hard',   base:1,   half:1e9, confuse:0,   think:[750,1250],  caution:.1,   slip:0},
+};
+const KINDS=[['human','Human'],['easy','AI · Easy'],['medium','AI · Medium'],['hard','AI · Hard'],['remote','Remote player']];
+const BOT_NAMES=['Coral','Barnacle','Kelp','Pebble','Squid','Marlin','Minnow','Nori'];
+const isAI = p => !!p && !!AI[p.kind];
+// Seats this device plays: every human seat offline; online, the host's own seats or the remote player's one seat.
+function mine(seat){ const p=S.players&&S.players[seat]; if(!p||isAI(p)) return false; if(!S.net) return true; return S.net.host?p.kind==='human':seat===S.net.seat }
+let aiTimer=null, beliefCache=null;
+const rnd = ([a,b]) => a+Math.random()*(b-a);
+
+function seeAll(i){ S.tick++; const t=S.slots[i].t; for(const p of S.players) if(isAI(p)) p.mem[i]={t,tick:S.tick} }
+function forget(i){ for(const p of S.players) if(p.mem) delete p.mem[i] }
+function forgetAll(){ for(const p of S.players) if(p.mem) p.mem={} }
+
+function beliefFor(p){
+  const fd=new Set(faceDown());
+  if(!beliefCache||beliefCache.turn!==S.turnNo||beliefCache.p!==S.cur){
+    const cfg=AI[p.kind], B={};
+    for(const k in p.mem){
+      const i=+k, e=p.mem[k]; if(!fd.has(i)) continue;
+      if(Math.random()>cfg.base*Math.exp(-(S.tick-e.tick)/cfg.half)) continue;
+      let slot=i;
+      if(Math.random()<cfg.confuse){
+        const sp=S.layout.spots[i], d=j=>Math.hypot(S.layout.spots[j].x-sp.x,S.layout.spots[j].y-sp.y);
+        const near=[...fd].filter(j=>j!==i).sort((a,b)=>d(a)-d(b)).slice(0,3);
+        if(near.length) slot=pick(near);
+      }
+      B[slot]=e.t;
+    }
+    beliefCache={turn:S.turnNo,p:S.cur,B,start:S.tick,target:1+Math.floor(Math.random()*6)};
+  }
+  // anything seen during this turn is fresh in mind
+  const B={...beliefCache.B};
+  for(const k in p.mem) if(p.mem[k].tick>beliefCache.start) B[k]=p.mem[k].t;
+  for(const k in B) if(!fd.has(+k)) delete B[k];
+  return B;
+}
+
+// Expected points from flipping a token the AI knows nothing about.
+function blindEV(p,B,pend){
+  const c={};
+  for(const i of faceDown()){const t=S.slots[i].t;c[t]=(c[t]||0)+1}
+  for(const k in B) if(c[B[k]]>0) c[B[k]]--;
+  const U=Object.values(c).reduce((a,b)=>a+b,0); if(!U) return -99;
+  const half=p.bank.reduce((a,t)=>a+TYPES[t].pts,0)/2;
+  let ev=0;
+  for(const t in c){
+    const f=c[t]/U, T=TYPES[t];
+    if(T.kind==='catch') ev+=f*T.pts;
+    else if(T.kind==='bust') ev-=f*(pend+(t==='jelly'?1:0)+(t==='shark'?half:0));
+    else ev+=f*.6;
+  }
+  return ev;
+}
+
+function aiChooseFlip(p){
+  const cfg=AI[p.kind], B=beliefFor(p), fd=faceDown(), pend=turnPts();
+  const known=fd.filter(i=>B[i]), unknown=fd.filter(i=>!B[i]), of=t=>known.filter(i=>B[i]===t);
+  const kindOf=i=>TYPES[B[i]].kind;
+  if(Math.random()<cfg.slip && fd.length) return pend&&Math.random()<.5?-1:pick(fd);
+  if(of('star').length) return pick(of('star'));
+  if(of('fish').length) return pick(of('fish'));
+  if(of('extra').length&&(pend>0||p.kind==='hard')) return pick(of('extra'));
+  if(pend===0){
+    if(unknown.length) return pick(unknown);
+    const acts=known.filter(i=>kindOf(i)!=='bust'); if(acts.length) return pick(acts);
+    const order=p.bank.length?['dolphin','whirl','jelly','shark']:['shark','dolphin','whirl','jelly'];
+    for(const t of order) if(of(t).length) return pick(of(t));
+    return pick(fd);
+  }
+  if(p.kind==='easy') return pend>=beliefCache.target||!unknown.length?-1:pick(unknown);
+  if(unknown.length&&blindEV(p,B,pend)>cfg.caution) return pick(unknown);
+  const stops=known.filter(i=>kindOf(i)==='stop'); if(stops.length) return pick(stops);
+  return -1;
+}
+
+function aiTarget(p,purpose){
+  const B=beliefFor(p), fd=faceDown(), unknown=fd.filter(i=>!B[i]);
+  if(p.kind==='easy'&&Math.random()<.5) return pick(fd);
+  if(purpose==='hook') for(const t of ['shark','whirl','jelly','dolphin']){const k=fd.filter(i=>B[i]===t); if(k.length) return pick(k)}
+  return unknown.length?pick(unknown):pick(fd);
+}
+
+function maybeAI(){
+  if(aiTimer||busy||!S||S.screen!=='play'||S.rulesOpen||(S.net&&!S.net.host)) return;
+  const p=P(); if(!isAI(p)||!['flip','card','peek','peeking','hook','goggles'].includes(S.phase)) return;
+  let d=rnd(AI[p.kind].think);
+  if(S.phase==='card') d=1500+Math.random()*900;
+  else if(S.phase==='peeking') d=600;
+  else if(S.phase==='flip') d+=turnPts()*120 + (S.summary?700:0);
+  aiTimer=setTimeout(()=>{aiTimer=null;aiAct()},d*PACE());
+}
+async function aim(i){
+  const el=tokEl(i); if(!el) return;
+  el.classList.add('aim'); await new Promise(r=>setTimeout(r,480*PACE())); el.classList.remove('aim');
+}
+async function aiAct(){
+  if(busy||!S||S.screen!=='play'||S.rulesOpen||!isAI(P())||(S.net&&NET.applied<NET.log.length)) return;
+  const p=P(), ph=S.phase;
+  if(ph==='card') return act('c');
+  if(ph==='peeking') return act('x');
+  if(ph==='flip'){ const i=aiChooseFlip(p); if(i<0) return act('b'); await aim(i); return act('f'+i) }
+  if(ph==='peek'){ const i=aiTarget(p,'peek'); await aim(i); return act('p'+i) }
+  if(ph==='hook'||ph==='goggles'){ const i=aiTarget(p,ph); await aim(i); return act('f'+i) }
+}
+
+// ---------- turn flow ----------
+// A tap on the board by a player at this device.
+function onSlot(i){
+  const s=S.slots[i]; if(busy||!s||s.up||!mine(S.cur)||NET.pending) return;
+  if(['flip','hook','goggles'].includes(S.phase)){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('f'+i) }
+  else if(S.phase==='peek'){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('p'+i) }
+}
+// Every move goes through here. Offline it plays at once; online the host adds it to the shared list.
+function act(a){
+  if(!S.net) return applyAction(a);
+  if(S.net.host){ if(busy||NET.applied<NET.log.length||!legal(a)) return; hostAppend(a) }
+  else sendReq(a);
+}
+function applyAction(a){
+  if(!legal(a)) return;
+  const c=a[0], i=+a.slice(1);
+  if(c==='f'){ const ph=S.phase; return run(()=>ph==='flip'?doFlip(i):ph==='hook'?hookTap(i):goggleTap(i)) }
+  if(c==='p') return run(()=>startPeek(i));
+  if(c==='x') return run(endPeek);
+  if(c==='b') return run(doBank);
+  if(c==='c') return run(doContinue);
+}
+async function hookTap(i){
+  const s=S.slots[i];
+  {
+    sfx('hook'); s.up=true; S.turn.rev.push(i); seeAll(i); render(); await wait(480);
+    await cardToScrap(S.turn.act);
+    S.turn.pending={type:'hook',slot:i};
+    await toCard(i,{t:s.t,title:`Hooked: ${TYPES[s.t].name}`,body:'It goes to the scrap pile.'});
+    S.phase='card';
+  }
+}
+async function goggleTap(i){
+  const s=S.slots[i];
+  {
+    sfx('flip'); s.up=true; S.turn.rev.push(i); seeAll(i); S.turn.picks--;
+    S.card.body=!mine(S.cur)?`${P().name} is showing everyone ${plural(S.turn.picks,'more token')}.`:`Tap ${plural(S.turn.picks,'more token')} to show everyone.`;
+    render(); await wait(480);
+    if(S.turn.picks<=0||!faceDown().length){
+      await cardToScrap(S.turn.act);
+      S.turn.pending={type:'look'};
+      S.card={t:null,title:'Everyone, memorize these',body:'They flip back face down when you continue.'};
+      S.phase='card';
+    }
+  }
+}
+
+function bustBody(t){
+  const p=P();
+  if(t==='jelly') return `${p.name} keeps it for −1 and banks nothing this turn.`;
+  if(t==='shark'){const n=p.bank.length,l=Math.ceil(n/2);
+    return n?`${l} of ${p.name}’s ${plural(n,'banked token')} go back onto the table. Watch where they land!`:`${p.name} has no banked catch, so the shark leaves hungry.`}
+  if(t==='whirl') return 'Nothing banked. The whole table gets swirled, then the whirlpool is scrapped.';
+  return S.scrap.length?'Nothing banked. A token from the scrap pile swims back onto the table.':'Nothing banked. The scrap pile is empty, so nothing comes back.';
+}
+
+async function doFlip(i){
+  const s=S.slots[i], T=TYPES[s.t], p=P();
+  sfx('flip'); s.up=true; S.turn.rev.push(i); seeAll(i); S.summary=null; render();
+  sfx(T.kind==='catch'?s.t:T.kind==='bust'?s.t:s.t==='extra'?'extra':'chime');
+  await wait(500);
+  if(T.kind==='catch') return;
+  if(T.kind==='bust'){
+    S.turn.pending={type:s.t,slot:i};
+    await toCard(i,{t:s.t,title:`${T.name}!`,body:bustBody(s.t),bust:true});
+    S.phase='card'; return;
+  }
+  // action token: bank the catch, then the token moves into the card and later on to the scrap pile
+  const pts=await bankFlights(); S.turn.act=i;
+  const banked=pts?`Banked ${plural(pts,'point')}. `:'';
+  if(s.t==='extra'){
+    S.turn.pending={type:'extra'};
+    await toCard(i,{t:'extra',title:'Extra turn!',body:`${banked}${p.name} goes again.`});
+    S.phase='card'; return;
+  }
+  const fd=faceDown().length;
+  if(s.t==='bigeye'){
+    await toCard(i,{t:s.t,title:'Secret peek',body:!mine(S.cur)?`${banked}${p.name} is taking a secret peek.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, tap a token to peek.`});
+    if(!fd){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+    S.phase='peek'; return;
+  }
+  if(s.t==='hook'){
+    await toCard(i,{t:s.t,title:'Cast the hook',body:!mine(S.cur)?`${banked}${p.name} is choosing a token to hook.`:`${banked}Tap a face-down token. It gets revealed and scrapped.`});
+    if(!fd){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+    S.phase='hook'; return;
+  }
+  S.turn.picks=Math.min(T.picks,fd);
+  await toCard(i,{t:s.t,title:'Goggles on',body:!mine(S.cur)?`${banked}${p.name} will show everyone ${plural(S.turn.picks,'token')}.`:`${banked}Tap ${plural(S.turn.picks,'token')} to show everyone.`});
+  if(!S.turn.picks){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+  S.phase='goggles';
+}
+
+async function startPeek(i){
+  S.turn.peek=i; const s=S.slots[i], p=P();
+  if(isAI(p)){ S.tick++; p.mem[i]={t:s.t,tick:S.tick} }
+  sfx('peek');
+  if(mine(S.cur)){
+    const from=centerOf(tokEl(i));
+    away.add(s.id); S.phase='peeking'; cardHidden=false; render();
+    const pf=document.getElementById('peekFace'); pf.style.visibility='hidden';
+    await fly(from,centerOf(pf),{t:s.t,dur:750,up:false,upEnd:true});
+    pf.style.visibility='';
+  } else {
+    // everyone else just sees the token lifted a little
+    S.phase='peeking'; render();
+    await tokEl(i).animate([{transform:'none'},{transform:'translateY(-6px) rotateX(35deg)'},{transform:'translateY(-6px) rotateX(35deg)',offset:.75},{transform:'none'}],{duration:1300*M()}).finished.catch(()=>{});
+  }
+}
+async function endPeek(){
+  const i=S.turn.peek, s=S.slots[i], pf=document.getElementById('peekFace');
+  if(pf&&away.has(s.id)){
+    const from=centerOf(pf); S.phase='anim'; render();
+    await fly(from,spotCenter(i),{t:s.t,dur:750,up:true,upEnd:false});
+    away.delete(s.id);
+  } else S.phase='anim';
+  render();
+  await cardToScrap(S.turn.act);
+  endTurn(`${P().name} ${bankedNote()} and took a secret peek.`);
+}
+
+async function doBank(){ const pts=await bankFlights(); endTurn(`${P().name} banked ${plural(pts,'point')}.`) }
+
+async function doContinue(){
+  const pd=S.turn.pending, p=P();
+  S.phase='anim';
+  switch(pd.type){
+    case 'extra':
+      await cardToScrap(S.turn.act); S.card=null; await flipDownAll();
+      S.turn=freshTurn(); S.turnNo++;
+      if(onTable()<=3) return finish();
+      S.phase='flip'; return;
+    case 'jelly': {
+      const s=S.slots[pd.slot], from=centerOf(cardFace()); cardHidden=true; render();
+      const dot=centerOf(chipDot());
+      await fly(from,{...dot,s:dot.s*1.3},{t:'jelly',up:true,dur:650}); sfx('thud');
+      p.jellies++; away.delete(s.id); S.slots[pd.slot]=null; forget(pd.slot); S.card=null; cardHidden=false; bump(S.cur); render();
+      await flipDownAll();
+      return endTurn(`${p.name} got stung by a jellyfish.`);
+    }
+    case 'shark': {
+      await cardToSpot(pd.slot); await flipDownAll();
+      const lost=await sharkReturn();
+      return endTurn(lost?`The shark knocked ${plural(lost,'token')} from ${p.name} back onto the table.`:`The shark found nothing to take from ${p.name}.`);
+    }
+    case 'whirl':
+      await cardToScrap(pd.slot); S.card=null; render(); await flipDownAll(); await swirl();
+      return endTurn(`${p.name} got caught in the whirlpool. The whole table got mixed up.`);
+    case 'dolphin': {
+      await cardToSpot(pd.slot); await flipDownAll();
+      const back=await dolphinReturn();
+      return endTurn(`${p.name} met the dolphin.${back?' A scrapped token is back on the table.':''}`);
+    }
+    case 'hook': {
+      const name=TYPES[S.slots[pd.slot].t].name.toLowerCase();
+      await cardToScrap(pd.slot); S.card=null; render(); await flipDownAll();
+      return endTurn(`${p.name} ${bankedNote()} and hooked a ${name} off the table.`);
+    }
+    case 'look':
+      S.card=null; render(); await flipDownAll();
+      return endTurn(`${p.name} ${bankedNote()} and used goggles.`);
+  }
+}
+
+function endTurn(summary){
+  S.slots.forEach(s=>{if(s) s.up=false}); S.turn=freshTurn(); S.card=null; away.clear();
+  if(onTable()<=3) return finish();
+  S.cur=(S.cur+1)%S.players.length; S.summary=summary; S.turnNo++;
+  const humans=S.players.filter(p=>!isAI(p)).length;
+  S.phase=(!S.net&&!isAI(P())&&humans>1)?'handoff':'flip';
+  render();
+}
+function finish(){ S.screen='over'; S.phase=null; render(); sfx('fanfare'); if(S.net&&S.net.host){NET.g.st='over';publishG();lobbyAnnounce()} }
+
+// ---------- persistence ----------
+function save(){ if(busy||S.screen==='wait'||(S.net&&!S.net.host)) return; if(S.net) S.net.applied=NET.applied; try{ if(S.screen==='setup') localStorage.setItem(KEY+'.setup',JSON.stringify(S.setup)); else localStorage.setItem(KEY,JSON.stringify(S)) }catch(e){} }
+function loadSetup(){ try{return JSON.parse(localStorage.getItem(KEY+'.setup'))}catch(e){return null} }
+function load(){ try{const v=JSON.parse(localStorage.getItem(KEY)); return v&&v.screen?v:null}catch(e){return null} }
+
+// ---------- render ----------
+const app=document.getElementById('app'), bar=document.getElementById('bar'), ov=document.getElementById('ov');
+let boardEl=null;
+
+function render(){
+  save();
+  if(S.screen==='setup') return renderSetup();
+  if(S.screen==='over') return renderOver();
+  if(S.screen==='wait') return renderWait();
+  renderGame();
+}
+
+function rulesHTML(){
+  const li=t=>`<li>${face(t)}<span><b>${TYPES[t].name}</b> ×${TYPES[t].n}<br><span class="muted">${TYPES[t].say}</span></span></li>`;
+  return `<div class="rules">
+    <p>Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends when 3 or fewer tokens are left on the table. Most points wins; ties go to whoever has fewer jellyfish.</p>
+    <section><h3>Keep going</h3><ul>${['fish','star','extra'].map(li).join('')}</ul></section>
+    <section><h3>Bank and stop</h3><ul>${['bigeye','hook','g1','g2','g3'].map(li).join('')}</ul></section>
+    <section><h3>Bust: bank nothing</h3><ul>${['jelly','shark','whirl','dolphin'].map(li).join('')}</ul></section>
+    <p class="muted">Scrapped tokens go to a face-down scrap pile. The shark and dolphin stay on the table unless a hook pulls them off.</p>
+  </div>`;
+}
+
+function renderSetup(){
+  bar.hidden=true; ov.hidden=true; boardEl=null;
+  const st=S.setup, saved=load(), resume=saved&&saved.screen==='play'?saved:null;
+  const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
+  app.innerHTML=`
+    <header class="top"><div><h1>Jelly Flip</h1><p class="muted">Push your luck. Remember the reef.</p></div><div class="tools">${toggleHTML()}</div></header>
+    ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div></div>`:''}
+    <div class="card">
+      <span class="label">Players</span>
+      <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
+      <div class="names">${st.names.slice(0,st.count).map((n,i)=>`<div class="name ${st.kinds[i]!=='human'?'bot':''}"><i style="background:${COLORS[i]}"></i><input id="name${i}" data-i="${i}" maxlength="16" value="${esc(n)}" aria-label="Player ${i+1} name"><select id="kind${i}" data-i="${i}" aria-label="Player ${i+1} type">${kinds.map(([v,l])=>`<option value="${v}" ${st.kinds[i]===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
+      <p class="muted">AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.${NET.lobby?' A <b>Remote player</b> seat is for someone joining from their own device.':''}</p>
+      ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}
+      <button class="btn primary" id="start">${st.kinds.slice(0,st.count).includes('remote')?'Open online game':'Start game'}</button>
+    </div>
+    <div class="card" id="lobby" hidden></div>
+    <div class="card"><span class="label">In the bag · 42 tokens</span>
+      <div class="tray">${ORDER.map(t=>`<figure>${face(t)}<figcaption><b>×${TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
+    </div>
+    <div class="card"><h2>How to play</h2>${rulesHTML()}</div>
+    <footer class="foot">Copyright © 2026 Grudge Match Games</footer>`;
+  bindToggles(app);
+  const sync=()=>app.querySelectorAll('.name input').forEach(inp=>st.names[+inp.dataset.i]=inp.value);
+  app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save()}));
+  app.querySelectorAll('.name select').forEach(sel=>sel.onchange=()=>{
+    sync(); const i=+sel.dataset.i, was=st.kinds[i]; st.kinds[i]=sel.value;
+    if(AI[sel.value]&&/^Player \d$/.test(st.names[i])) st.names[i]=BOT_NAMES[i];
+    if(!AI[sel.value]&&AI[was]&&st.names[i]===BOT_NAMES[i]) st.names[i]=`Player ${i+1}`;
+    render();
+  });
+  app.querySelector('#minus').onclick=()=>{sync();st.count=Math.max(2,st.count-1);render()};
+  app.querySelector('#plus').onclick=()=>{sync();st.count=Math.min(8,st.count+1);render()};
+  app.querySelector('#start').onclick=()=>{
+    sync();
+    if(st.kinds.slice(0,st.count).includes('remote')){ if(NET.lobby) return hostOpen(st); NET.err='Online play isn’t available here. Open this page on claude.ai while signed in.'; return render() }
+    newGame(st);render();
+  };
+  renderLobby();
+  const r=app.querySelector('#resume'); if(r) r.onclick=()=>{ if(resume.net&&resume.net.host){ if(NET.lobby) hostResume(resume); return } S=resume;for(const p of S.players){p.kind=p.kind||'human';p.mem=p.mem||{}}S.tick=S.tick||0;S.turnNo=S.turnNo||0;boardEl=null;render()};
+}
+
+function renderBoard(){
+  const pickable=!busy&&!NET.pending&&mine(S.cur)&&['flip','peek','hook','goggles'].includes(S.phase);
+  if(S.net&&!S.net.host&&!NET.pending) boardEl.querySelectorAll('.tok.aim').forEach(e=>e.classList.remove('aim'));
+  boardEl.classList.toggle('dim',pickable&&S.phase!=='flip');
+  const D=S.layout.D, live=new Set();
+  S.slots.forEach((s,i)=>{
+    if(!s) return;
+    live.add(s.id);
+    let el=tokMap.get(s.id);
+    if(!el){
+      el=document.createElement('button'); el.className='tok'+(s.up?' up':'');
+      el.innerHTML=`<span class="tilt"><span class="inner"><span class="back"></span><span class="front">${face(s.t)}</span></span></span>`;
+      boardEl.appendChild(el); tokMap.set(s.id,el);
+    }
+    const sp=S.layout.spots[i];
+    el.dataset.i=i;
+    el.style.left=`${(sp.x-D/2)*100}%`; el.style.top=`${(sp.y-D/2)/S.h*100}%`; el.style.width=`${D*100}%`;
+    el.style.setProperty('--r',sp.r+'deg');
+    el.classList.toggle('up',s.up);
+    el.classList.toggle('rev',s.up&&S.turn.rev.includes(i));
+    el.classList.toggle('away',away.has(s.id));
+    el.classList.toggle('pick',!s.up&&pickable);
+    el.disabled=!(!s.up&&pickable);
+    el.setAttribute('aria-label',s.up?TYPES[s.t].name:'Face-down token');
+  });
+  for(const [id,el] of tokMap) if(!live.has(id)){el.remove();tokMap.delete(id)}
+}
+
+function renderGame(){
+  if(!boardEl){
+    tokMap.clear();
+    app.innerHTML=`
+      <header class="top"><h1>Jelly Flip</h1><div class="tools">${toggleHTML()}<button class="btn small ghost" id="rulesBtn">Rules</button><button class="btn small ghost" id="quitBtn">Quit</button></div></header>
+      <div class="scores" id="scores"></div>
+      <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
+      <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
+    boardEl=app.querySelector('#board');
+    boardEl.addEventListener('click',e=>{const b=e.target.closest('.tok');if(b) onSlot(+b.dataset.i)});
+    fitPending=true; bindToggles(app);
+    app.querySelector('#rulesBtn').onclick=()=>{S.rulesOpen=true;render()};
+    app.querySelector('#quitBtn').onclick=()=>{
+      if(busy) return;
+      if(S.quitArm){clearTimeout(aiTimer);aiTimer=null;const st=S.setup;if(S.net){leaveOnline()}S=setupState(st);try{localStorage.removeItem(KEY)}catch(e){};return render()}
+      S.quitArm=true;render();setTimeout(()=>{if(S.quitArm){S.quitArm=false;render()}},3000);
+    };
+  }
+  app.querySelector('#quitBtn').textContent=S.quitArm?'Tap again to quit':'Quit';
+
+  const pend=turnPts(), pl=pulse&&Date.now()<pulse.until?pulse.p:-1;
+  const sc=app.querySelector('#scores'), n=S.players.length;
+  sc.style.setProperty('--cols',n<=4?n:Math.ceil(n/2)); sc.classList.toggle('compact',n>4);
+  sc.innerHTML=S.players.map((p,i)=>`<div class="chip ${i===S.cur?'on':''} ${i===pl?'got':''}" data-p="${i}" style="--c:${p.color}" title="${esc(p.name)}${isAI(p)?' (AI, '+AI[p.kind].label+')':p.kind==='remote'?' (remote)':''}"><i class="${isAI(p)?'bot':''}" style="background:${p.color}">${isAI(p)?'AI':i+1}</i><span>${esc(p.name)}</span><b>${score(p)}${i===S.cur&&pend?`<small>+${pend}</small>`:''}</b>${isAI(p)?`<em>AI ${AI[p.kind].label[0]}</em>`:p.kind==='remote'?'<em>NET</em>':''}</div>`).join('');
+  boardEl.style.setProperty('--c',P().color);
+  app.querySelector('#tableCount').innerHTML=`On the table <b>${onTable()}</b> · game ends at 3${S.net?(!S.net.host&&!NET.hostHere?' · <span class="err">Host offline</span>':' · Online'):''}`;
+  app.querySelector('#scrapCount').textContent=S.scrap.length;
+  app.querySelector('#pile').classList.toggle('empty',!S.scrap.length);
+
+  // bar
+  bar.hidden=false; bar.classList.toggle('bust',!!(S.card&&S.card.bust));
+  const p=P(), bot=isAI(p), me=mine(S.cur); let mini='',title='',sub='',acts='';
+  const avatar=`<div class="mini avatar ${bot&&!busy?'think':''}" style="--c:${p.color}">${bot?'AI':S.cur+1}</div>`;
+  if(S.card){
+    mini=S.card.t?`<div class="mini ${cardHidden?'hide':''}" id="cardFace">${face(S.card.t)}</div>`:avatar;
+    title=esc(S.card.title); sub=esc(S.card.body);
+    if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>Continue</button>`;
+  } else {
+    const fd=faceDown().length;
+    mini=avatar;
+    title=`${esc(p.name)}’s turn${bot?` · AI ${AI[p.kind].label}`:''}`;
+    if(S.summary&&!S.turn.rev.length) sub=esc(S.summary);
+    else if(bot) sub=pend?`This turn: +${pend}. Thinking…`:'Thinking…';
+    else if(!me) sub=pend?`This turn: +${pend}. Waiting for ${esc(p.name)}…`:`Waiting for ${esc(p.name)}…`;
+    else sub=pend?(fd?`This turn: +${pend}. Flip again or bank it.`:'No face-down tokens left. Bank your catch.'):'Tap any face-down token to flip it.';
+    if(me) acts=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>Bank${pend?' +'+pend:''}</button>`;
+  }
+  bar.innerHTML=`<div class="in">${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">Copyright © 2026 Grudge Match Games</div>`;
+  const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
+  const cb=bar.querySelector('#contBtn'); if(cb) cb.onclick=()=>{sfx('tap');act('c')};
+  if(!S.layout||fitPending){fitPending=false;fitBoard()}
+  renderBoard();
+
+  // overlays
+  if(S.rulesOpen){
+    ov.hidden=false;
+    ov.innerHTML=`<div class="sheet left"><h2>Rules</h2>${rulesHTML()}<div class="btnrow"><button class="btn primary" id="closeRules">Back to the game</button></div></div>`;
+    ov.querySelector('#closeRules').onclick=()=>{S.rulesOpen=false;render()};
+  } else if(S.phase==='handoff'){
+    ov.hidden=false;
+    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">Pass the device to</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">Start my turn</button></div>`;
+    ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
+  } else if(S.phase==='peeking'&&mine(S.cur)&&S.turn.peek!=null){
+    if(!ov.querySelector('#peekFace')){
+      const t=S.slots[S.turn.peek].t;
+      ov.hidden=false;
+      ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><div id="peekFace" class="peekface">${face(t)}</div><h2>${TYPES[t].name}</h2><p class="muted">Remember where it was.</p><button class="btn primary" id="hide">Hide it and end turn</button></div>`;
+      const f=ov.querySelector('#peekFace .face'); f.style.width='100%'; f.style.height='100%';
+    }
+    ov.querySelector('#hide').disabled=busy||!!NET.pending;
+    ov.querySelector('#hide').onclick=()=>act('x');
+  } else { ov.hidden=true; ov.innerHTML='' }
+  maybeAI();
+}
+
+// Size the board to the space between the scoreboard and the card. The first time, also pick the board's shape.
+let fitPending=false;
+function fitBoard(){
+  const wrap=boardEl.parentElement, top=wrap.getBoundingClientRect().top+scrollY;
+  const availW=wrap.clientWidth, availH=Math.max(180,innerHeight-top-(bar.hidden?0:bar.offsetHeight)-8);
+  if(!S.layout){ if(!S.h) S.h=Math.round(Math.min(1.45,Math.max(.55,availH/availW))*100)/100; S.layout=makeLayout(S.h); boardEl.style.setProperty('--h',S.h) }
+  boardEl.style.width=Math.min(availW,availH/S.h)+'px';
+}
+addEventListener('resize',()=>{ if(boardEl&&S&&S.screen==='play'&&S.layout) fitBoard() });
+
+function renderOver(){
+  bar.hidden=true; boardEl=null;
+  const ranked=S.players.map(p=>({...p,sc:score(p)})).sort((a,b)=>b.sc-a.sc||a.jellies-b.jellies);
+  const top=ranked[0], winners=ranked.filter(r=>r.sc===top.sc&&r.jellies===top.jellies);
+  const fish=p=>p.bank.filter(t=>t==='fish').length, star=p=>p.bank.filter(t=>t==='star').length;
+  let place=0;
+  ov.hidden=false;
+  ov.innerHTML=`<div class="sheet"><span class="label">Game over</span>
+    <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>
+    <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
+      return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
+    <div class="btnrow"><button class="btn primary" id="again">Grudge Match</button><button class="btn ghost" id="setup">New players</button></div><p class="foot">Copyright © 2026 Grudge Match Games</p></div>`;
+  app.innerHTML='';
+  const again=ov.querySelector('#again');
+  if(S.net&&!S.net.host){ again.textContent='Waiting for the host…'; again.disabled=true }
+  else again.onclick=()=>{ if(S.net){ hostStart(); return } newGame(S.setup);render() };
+  ov.querySelector('#setup').onclick=()=>{const st=S.setup;if(S.net)leaveOnline();S=setupState(st);try{localStorage.removeItem(KEY)}catch(e){};render()};
+}
+
+// ---------- splash ----------
+function startSplash(){
+  const sp=document.getElementById('splash'), sea=document.getElementById('sea');
+  const rows=[.14,.3,.62,.78], out=[];
+  rows.forEach((y,k)=>{
+    const s=44+Math.random()*40, d=9+Math.random()*7;
+    out.push(`<div class="swim ${k%2?'r':''}" style="--y:${(y*100).toFixed(0)}%;--x:${(10+Math.random()*70).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="bob" style="animation-delay:${(-Math.random()*1.5).toFixed(2)}s">${icon(k===1?'bigeye':'fish')}</span></div>`);
+  });
+  [.14,.76].forEach(x=>{
+    const s=50+Math.random()*30, d=14+Math.random()*6;
+    out.push(`<div class="drift" style="--x:${(x*100).toFixed(0)}%;--y:${(20+Math.random()*60).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="pulse" style="animation-delay:${(-Math.random()*1.6).toFixed(2)}s">${icon('jelly')}</span></div>`);
+  });
+  sea.innerHTML=out.join('');
+  let gone=false;
+  const close=()=>{ if(gone) return; gone=true; sp.classList.add('out'); setTimeout(()=>sp.remove(),650) };
+  document.getElementById('splashGo').onclick=()=>{audio();sfx('turn');close()};
+  sp.addEventListener('click',close);
+  setTimeout(close,5000);
+}
+
+// ---------- boot ----------
+window.claude?.hot?.snapshot?.(()=>({S}));
+function start(d){
+  const sp=document.getElementById('splash');
+  if(d&&d.S){ if(sp) sp.remove() } else if(sp) startSplash();
+  const saved=load();
+  S=(d&&d.S&&!d.S.net)?d.S:setupState(loadSetup()||(saved&&saved.setup)||undefined);
+  if(S.phase==='anim'||S.phase==='peeking') S.phase='flip';
+  if(S.players) for(const p of S.players){p.kind=p.kind||'human';p.mem=p.mem||{}}
+  S.tick=S.tick||0; S.turnNo=S.turnNo||0;
+  clearTimeout(aiTimer); aiTimer=null;
+  boardEl=null; busy=false; away.clear();
+  render();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+</body>
+</html>
