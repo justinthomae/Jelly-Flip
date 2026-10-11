@@ -101,6 +101,10 @@ p{margin:0}
 /* fixed grid: the scoreboard keeps the same size all game */
 .scores{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:6px}
 .chip{display:flex;align-items:center;gap:6px;padding:5px 9px 5px 5px;border-radius:999px;background:var(--table-2);border:1.5px solid transparent;font-size:.88rem;min-width:0;height:34px;box-sizing:border-box;white-space:nowrap;overflow:hidden}
+.chip.seehand{cursor:pointer}
+.handgrid{display:flex!important;flex-wrap:wrap;justify-content:center;gap:14px;margin:10px 0}
+.handgrid figure{margin:0;text-align:center;width:88px;flex:none}.handgrid .face{width:64px;height:64px;margin:0 auto 4px}
+.handgrid figcaption{font-size:.85rem}
 .chip i{width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-size:.7rem;font-weight:700;color:#1a120d}
 .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .chip b{font-variant-numeric:tabular-nums;flex:none}
@@ -389,9 +393,9 @@ const TYPES = {
   g2:     {name:'Submarine · 2 windows', kind:'stop', n:1, picks:2, say:'Bank, scrap it, show 2 tokens to everyone. Turn ends.'},
   g3:     {name:'Submarine · 3 windows', kind:'stop', n:1, picks:3, say:'Bank, scrap it, show 3 tokens to everyone. Turn ends.'},
   jelly:  {name:'Jellyfish', kind:'bust', pts:-1, n:5, say:'Bust. It goes into your hand for −1 point.'},
-  shark:  {name:'Shark', kind:'bust', n:1, say:'Bust. Half your hand (rounded up, jellyfish included) goes back on the table, then the shark scatters every token on the table to new spots.'},
-  whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Bank, scrap it, then swap the places of any 2 face-down tokens. Turn ends.'},
-  dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick up to 3 tokens from the scrap pile and hide them face down in empty spots of your choice. The dolphin stays on the table.'},
+  shark:  {name:'Shark', kind:'bust', n:1, say:'Bust. Half your hand (rounded up, jellyfish included) goes back on the table, the shark scatters every token on the table to new spots, then it goes to the scrap pile.'},
+  whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Bank, then every token on the table swirls to a new spot. The whirlpool is scrapped. Turn ends.'},
+  dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick up to 3 tokens from the scrap pile. Hide them and the dolphin face down in spots of your choice. The dolphin always stays in play.'},
 };
 const ORDER = ['fish','star','extra','bigeye','hook','g1','g2','g3','dolphin','whirl','jelly','shark'];
 
@@ -406,7 +410,8 @@ const ART = {
   star:  `<path d="${starPath()}"/><g fill="currentColor" stroke="none">${starDots()}</g>`,
   jelly: `<path d="M27 54 C27 24 73 24 73 54 Z"/><g fill="currentColor" stroke="none"><circle cx="42" cy="43" r="2.6"/><circle cx="58" cy="43" r="2.6"/></g>`+
          [34,45,56,67].map(x=>`<path d="M${x} 54 q4 6 0 11 q-4 6 0 11 q4 5 0 10"/>`).join(''),
-  shark: `<path d="M12 56 C30 38 62 36 86 50 C70 62 40 68 12 56 Z M44 41 L50 24 L60 40 M12 56 L5 44 M12 56 L5 68 M64 55 l3 4 l3 -4 l3 4 l3 -4"/><circle cx="72" cy="47" r="2.4" fill="currentColor" stroke="none"/><path d="M40 76 v6 M48 76 v6 M56 76 v6" stroke-width="3"/>`,
+  // shark drawn from the wooden token: crescent tail, three gill marks, toothy grin and a !!! underneath
+  shark: `<path d="M27 50 C42 35 66 31 87 45 C73 58 47 62 27 50 Z"/><path d="M27 50 C22 43 17 37 11 33 C15 41 15 48 9 58 C16 56 22 53 27 50"/><path d="M47 38 L53 25 L63 36"/><path d="M41 44 q-2 4 0 8 M47 43 q-2 4 0 8 M53 42 q-2 4 0 8"/><circle cx="67" cy="42" r="2.5" fill="currentColor" stroke="none"/><path d="M64 51 l3 3 l3 -3 l3 3 l3 -3" stroke-width="3"/><path d="M40 68 v10 M50 68 v10 M60 68 v10"/><g fill="currentColor" stroke="none"><circle cx="40" cy="86" r="2.6"/><circle cx="50" cy="86" r="2.6"/><circle cx="60" cy="86" r="2.6"/></g>`,
   // dolphin traced from the supplied drawing
   dolphin:`<path d="M32.3 83.3C32.1 83.0 31.7 82.4 31.4 81.9C30.7 80.8 29.0 79.6 27.1 78.9C24.9 78.1 23.8 77.5 23.1 76.9L22.5 76.3 L21.4 76.8C20.6 77.1 19.5 77.3 17.7 77.5C14.3 77.9 12.9 78.3 11.2 79.8C10.0 80.9 9.1 80.7 9.1 79.3C9.1 78.5 9.8 76.2 10.3 75.1C11.8 72.3 13.9 70.4 17.8 68.6C20.8 67.2 20.7 67.3 20.7 63.0C20.7 58.1 21.4 54.2 22.8 49.7C25.3 42.3 29.3 36.0 35.4 29.9C37.0 28.3 38.2 26.9 38.4 26.5C38.6 26.1 38.7 25.3 38.7 24.7C38.7 22.7 37.7 21.1 35.5 20.0C34.1 19.3 33.8 19.1 33.8 18.6C33.8 17.9 34.4 17.4 35.9 16.9C37.3 16.5 37.7 16.4 40.2 16.4C43.6 16.4 45.3 16.8 49.0 18.4C51.9 19.7 52.8 19.8 56.2 19.1C59.7 18.5 64.0 18.2 67.2 18.5C70.4 18.7 72.0 19.0 74.4 19.8C78.7 21.3 82.3 24.5 83.5 28.3C84.0 29.7 84.3 29.9 87.1 31.3C88.2 31.8 89.4 32.5 89.7 32.7C91.0 33.7 91.5 35.7 90.7 36.7C89.6 38.1 86.9 38.2 81.6 37.0L79.4 36.6 L76.6 37.2C75.1 37.6 73.1 38.0 72.2 38.1C71.2 38.2 70.0 38.3 69.3 38.4C67.9 38.6 68.2 38.3 66.6 41.6C64.0 47.3 59.2 50.9 53.9 51.3C52.5 51.4 52.4 51.4 52.1 51.0C51.6 50.5 51.8 49.9 52.7 49.0C53.8 48.0 55.1 46.3 55.7 44.9C56.2 43.8 57.0 40.4 56.8 40.2C56.7 40.0 52.4 41.2 50.5 41.9C44.6 44.1 39.3 47.4 35.0 51.7C31.4 55.1 29.5 57.7 27.6 61.4C25.9 64.8 25.5 66.8 26.2 67.9C26.4 68.2 27.4 69.0 28.4 69.7C31.7 71.9 33.5 74.3 34.1 77.3C34.8 80.4 34.2 83.9 33.0 83.9C32.9 83.9 32.6 83.6 32.3 83.3ZM33.4 80.1C33.7 76.0 31.9 73.0 27.7 70.3C26.7 69.6 25.8 68.9 25.6 68.6C25.4 68.4 25.2 68.2 25.2 68.2C25.1 68.2 24.8 68.7 24.6 69.3L24.3 70.5 L24.4 69.3C24.6 66.4 25.9 62.6 27.7 59.4C33.3 49.8 44.0 42.1 55.6 39.5C56.8 39.2 57.7 38.9 57.9 38.7C58.3 38.3 59.7 37.7 59.7 37.8C59.7 37.9 59.4 38.2 59.1 38.5C58.3 39.2 57.9 40.0 57.5 42.2C57.0 44.6 55.9 47.0 54.2 48.8L53.0 50.3 L54.1 50.3C57.2 50.3 61.1 48.1 63.5 45.1C64.9 43.4 65.6 42.2 66.5 39.8L67.4 37.6 L69.4 37.5C72.1 37.4 73.9 37.1 76.8 36.3L79.3 35.7 L82.1 36.3C85.6 37.0 88.7 37.1 89.5 36.5C90.4 35.9 90.3 35.7 89.0 35.7C86.4 35.7 83.0 34.7 80.1 33.1C79.4 32.7 78.6 32.4 78.3 32.4C78.0 32.4 77.9 32.3 78.2 32.2C78.5 31.9 78.8 32.0 81.1 33.1C83.8 34.4 85.9 35.0 88.3 35.1C90.1 35.2 90.2 35.2 90.2 34.8C90.2 34.0 89.2 33.3 86.7 32.0C85.3 31.3 83.9 30.5 83.6 30.2C83.4 29.9 83.0 29.2 82.8 28.6C81.5 24.8 78.2 21.9 73.6 20.5C67.1 18.5 56.3 19.1 48.7 21.9C48.0 22.2 47.4 22.4 47.4 22.3C47.3 22.2 50.6 20.6 51.0 20.6C51.1 20.6 51.2 20.5 51.2 20.4C51.2 20.3 51.1 20.2 50.9 20.2C50.8 20.2 49.8 19.8 48.7 19.3C45.0 17.6 42.7 17.1 39.4 17.3C37.4 17.4 35.4 17.9 35.2 18.4C35.2 18.6 35.6 18.9 36.2 19.3C38.8 20.9 40.1 23.4 39.6 25.7C39.4 26.6 39.5 26.6 40.6 26.0C41.1 25.7 41.5 25.5 41.5 25.6C41.6 25.6 41.0 26.1 40.3 26.7C38.4 28.0 33.5 33.0 31.8 35.1C26.6 41.7 23.4 48.8 22.1 56.4C22.0 57.4 21.8 60.0 21.7 62.4C21.6 66.6 21.6 66.7 21.0 67.4C20.6 68.1 20.2 68.4 18.4 69.2C15.8 70.4 14.5 71.3 13.1 72.8C11.5 74.5 10.2 77.2 10.2 78.7C10.2 79.4 10.3 79.4 11.0 78.8C12.4 77.6 14.4 77.0 17.6 76.7C20.0 76.4 21.1 76.1 21.9 75.5L22.5 75.0 L23.3 75.8C24.1 76.6 25.1 77.2 27.2 78.0C29.7 78.9 31.3 80.1 32.4 81.7C33.0 82.6 33.0 82.6 33.2 82.2C33.3 82.0 33.4 81.0 33.4 80.1ZM74.3 30.9C73.6 30.2 74.0 29.0 75.0 28.8C75.7 28.6 76.5 29.3 76.5 30.0C76.5 31.1 75.1 31.7 74.3 30.9Z" fill="currentColor" fill-rule="evenodd" stroke-width="2.4"/>`,
   whirl: `<path d="${spiral()}"/>`,
@@ -428,9 +433,9 @@ const TEXT_DEFAULTS={
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
   howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
-  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends when 3 or fewer tokens are left on the table. Most points wins; ties go to whoever has fewer jellyfish.',
+  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left. Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
-  rulesNote:'Scrapped tokens go to a face-down scrap pile. The shark and dolphin stay on the table unless a hook pulls them off.',
+  rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
   bank:'Bank', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
   gameOver:'Game over', grudge:'Grudge Match', newPlayers:'New players',
 };
@@ -639,8 +644,10 @@ function makeLayout(h){
 }
 
 function setupState(prev){
-  const st = prev || {count:3, names:['Player 1','Player 2','Player 3','Player 4','Player 5','Player 6','Player 7','Player 8']};
-  st.kinds = st.kinds || Array(8).fill('human');
+  const st = prev || {count:3, names:[]};
+  st.names = Array.from({length:8},(_,i)=>(st.names&&st.names[i])||`Player ${i+1}`);
+  st.kinds = Array.from({length:8},(_,i)=>{ const k=st.kinds&&st.kinds[i]; return k&&(k!=='remote'||(prev&&prev.kinds&&prev.kinds.includes('remote')))?k:'human' });
+  st.count = Math.max(2,Math.min(8,st.count||3));
   return {screen:'setup', setup:st};
 }
 function newGame(setup,seed){
@@ -664,6 +671,8 @@ const empties = () => S.slots.map((s,i)=>s?-1:i).filter(i=>i>=0);
 const onTable = () => S.slots.filter(Boolean).length;
 const isCatch = s => s && s.up && TYPES[s.t].kind==='catch';
 const turnPts = () => S.turn.rev.reduce((a,i)=>a+(isCatch(S.slots[i])?TYPES[S.slots[i].t].pts:0),0);
+function scrapSeen(t){ S.scrapMass=S.scrapMass||{}; S.scrapMass[t]=(S.scrapMass[t]||0)+1; (S.seenScrap=S.seenScrap||[]).push(t) }
+function scrapTaken(n){ const m=S.scrapMass||{}, tot=Object.values(m).reduce((a,b)=>a+b,0); if(tot&&n) for(const k in m) m[k]*=Math.max(0,1-n/tot) }
 const bankedNote = () => S.turn.banked ? `banked ${plural(S.turn.banked,'point')}` : 'banked nothing';
 
 // ---------- animation helpers ----------
@@ -671,7 +680,7 @@ const RM = matchMedia('(prefers-reduced-motion: reduce)');
 const PACE = () => window.JF_PACE ?? 1;
 const M = () => NET.ff ? 0.001 : RM.matches ? 0.02 : 1;
 const wait = ms => new Promise(r=>setTimeout(r,ms*M()));
-let busy=false, cardHidden=false, pulse=null;
+let busy=false, cardHidden=false, pulse=null, handOpen=null;
 const away=new Set();
 const tokMap=new Map();
 const fx=document.getElementById('fx');
@@ -735,7 +744,7 @@ async function toCard(i,card){
 async function cardToScrap(i){
   const s=S.slots[i], from=centerOf(cardFace()); cardHidden=true; render();
   await fly(from,centerOf(pileEl()),{t:s.t,up:true,upEnd:false,dur:650});
-  sfx('thud'); S.scrap.push(s.t); (S.seenScrap=S.seenScrap||[]).push(s.t); away.delete(s.id); S.slots[i]=null; forget(i); S.turn.rev=S.turn.rev.filter(j=>j!==i);
+  sfx('thud'); S.scrap.push(s.t); scrapSeen(s.t); away.delete(s.id); S.slots[i]=null; forget(i); S.turn.rev=S.turn.rev.filter(j=>j!==i);
   if(S.turn.act===i) S.turn.act=null;
   cardHidden=false; render();
 }
@@ -753,7 +762,7 @@ async function sharkReturn(){
   const from=centerOf(chipDot()), moves=[];
   for(let k=0;k<lose;k++){
     const t=p.bank.pop(), e=empties();
-    if(!e.length){ S.scrap.push(t); (S.seenScrap=S.seenScrap||[]).push(t); continue }
+    if(!e.length){ S.scrap.push(t); scrapSeen(t); continue }
     const spot=gpick(e); S.slots[spot]={id:S.nextId++,t,up:false}; moves.push([spot,t]);
   }
   for(const [spot] of moves) away.add(S.slots[spot].id);
@@ -764,8 +773,8 @@ async function sharkReturn(){
   render(); await wait(250);
   return lose;
 }
-// The shark scares the reef: every token rushes into the middle, churns out of sight, then scatters to brand-new spots.
-async function swirl(){
+// The shark (or the whirlpool) churns the reef: every token rushes into the middle, churns out of sight, then scatters to brand-new spots.
+async function swirl(art='shark'){
   const bw=boardEl.offsetWidth, bh=boardEl.offsetHeight, cx=bw/2, cy=bh/2, m=Math.min(bw,bh);
   const idx=S.slots.map((s,i)=>s?i:-1).filter(i=>i>=0);
   const before=new Map(idx.map(i=>[S.slots[i].id,{x:S.layout.spots[i].x*bw,y:S.layout.spots[i].y*bw}]));
@@ -779,7 +788,7 @@ async function swirl(){
   const T=2300*M();
   const vortex=document.createElement('div'); vortex.className='vortex';
   vortex.style.cssText=`width:${m*.72}px;height:${m*.72}px;left:${cx-m*.36}px;top:${cy-m*.36}px`;
-  vortex.innerHTML=icon('shark'); boardEl.appendChild(vortex); sfx('whirl');
+  vortex.innerHTML=icon(art); boardEl.appendChild(vortex); sfx('whirl');
   const va=vortex.animate([
     {opacity:0,transform:'scale(.3) rotate(0deg)'},
     {opacity:1,transform:'scale(1) rotate(-300deg)',offset:.22},
@@ -805,27 +814,6 @@ async function swirl(){
 }
 
 
-// Whirlpool: two face-down tokens trade places in a little spin, in full view of everyone.
-let swapPick=null;
-async function doSwap(a,b){
-  const p=P(); swapPick=null; S.phase='anim';
-  const bw=boardEl.offsetWidth, loc=i=>({x:S.layout.spots[i].x*bw,y:S.layout.spots[i].y*bw});
-  const pa=loc(a), pb=loc(b);
-  [S.slots[a],S.slots[b]]=[S.slots[b],S.slots[a]];
-  for(const q of S.players) if(q.mem){ const ma=q.mem[a], mb=q.mem[b]; delete q.mem[a]; delete q.mem[b]; if(mb) q.mem[a]=mb; if(ma) q.mem[b]=ma }
-  render(); sfx('whirl');
-  // each token arcs from its old spot to its new one, on opposite sides so they cross
-  const mx=(pa.x+pb.x)/2, my=(pa.y+pb.y)/2, nx=-(pb.y-pa.y), ny=pb.x-pa.x, len=Math.hypot(nx,ny)||1, bend=Math.min(60,len*.35);
-  const arc=(from,to,side)=>{ const kf=[]; for(let k=0;k<=20;k++){ const t=k/20, e=t*t*(3-2*t), u=1-e;
-      const cx=mx+side*nx/len*bend, cy=my+side*ny/len*bend;
-      const x=u*u*from.x+2*u*e*cx+e*e*to.x, y=u*u*from.y+2*u*e*cy+e*e*to.y;
-      kf.push({transform:`translate(${(x-to.x).toFixed(1)}px,${(y-to.y).toFixed(1)}px) rotate(${Math.round(e*360)}deg) scale(${(1+.15*Math.sin(Math.PI*t)).toFixed(3)})`}) }
-    return kf };
-  await Promise.all([[b,pa,pb,1],[a,pb,pa,-1]].map(([slot,from,to,side])=>animDone(tokEl(slot).animate(arc(from,to,side),{duration:1100*M(),easing:'linear'}),1100*M())));
-  sfx('thud');
-  await cardToScrap(S.turn.act);
-  endTurn(`${p.name} ${bankedNote()} and swapped two tokens.`);
-}
 
 // ---------- sound & haptics ----------
 // Every sound is synthesized with Web Audio, so nothing needs to download. Audio starts on the first tap.
@@ -1210,11 +1198,10 @@ function sendReq(a){
 
 // ----- shared -----
 function legal(a){
-  const wm=/^w(\d{1,2})s(\d{1,2})$/.exec(a);
-  if(wm){ const x=S.slots[+wm[1]], y=S.slots[+wm[2]]; return S.phase==='swap'&&wm[1]!==wm[2]&&!!x&&!x.up&&!!y&&!y.up }
-  if(/^(?:d\d{1,2}s\d{1,2}){1,3}$/.test(a)){
-    const pairs=dolphinPairs(a), ks=pairs.map(x=>x[0]), sp=pairs.map(x=>x[1]);
-    return S.phase==='dolphin'&&new Set(ks).size===ks.length&&new Set(sp).size===sp.length&&ks.every(k=>k<S.scrap.length)&&sp.every(i=>i<S.slots.length&&!S.slots[i]);
+  const dm=/^D(\d{1,2})((?:d\d{1,2}s\d{1,2}){0,3})$/.exec(a);
+  if(dm){
+    const pairs=dolphinPairs(dm[2]), ks=pairs.map(x=>x[0]), sp=[+dm[1],...pairs.map(x=>x[1])];
+    return S.phase==='dolphin'&&new Set(ks).size===ks.length&&new Set(sp).size===sp.length&&ks.every(k=>k<S.scrap.length)&&sp.every(i=>i<S.slots.length&&(!S.slots[i]||i===S.turn.act));
   }
   const m=/^([fp])(\d{1,2})$|^([xbc])$/.exec(a); if(!m) return false;
   const c=m[1]||m[3], s=S.slots[+m[2]];
@@ -1694,7 +1681,7 @@ function blindEV(p,B,pend){
   for(const t of ORDER) c[t]=TYPES[t].n;
   const out=t=>{ if(c[t]>0) c[t]-- };
   for(const q of S.players) q.bank.forEach(out);
-  (S.seenScrap||[]).forEach(out);
+  if(S.scrapMass) for(const t in S.scrapMass) c[t]=Math.max(0,c[t]-S.scrapMass[t]); else (S.seenScrap||[]).forEach(out);
   S.slots.forEach(s=>{ if(s&&s.up) out(s.t) });
   for(const k in B) out(B[k]);
   const U=Object.values(c).reduce((a,b)=>a+b,0); if(!U) return -99;
@@ -1739,7 +1726,7 @@ function aiTarget(p,purpose){
 
 function maybeAI(){
   if(aiTimer||busy||!S||S.screen!=='play'||S.rulesOpen||(S.net&&!S.net.host)) return;
-  const p=P(); if(!isAI(p)||!['flip','card','peek','peeking','hook','goggles','dolphin','swap'].includes(S.phase)) return;
+  const p=P(); if(!isAI(p)||!['flip','card','peek','peeking','hook','goggles','dolphin'].includes(S.phase)) return;
   let d=rnd(AI[p.kind].think);
   if(S.phase==='card') d=1500+Math.random()*900;
   else if(S.phase==='peeking') d=600;
@@ -1758,22 +1745,13 @@ async function aiAct(){
   if(ph==='flip'){ const i=aiChooseFlip(p); if(i<0) return act('b'); await aim(i); return act('f'+i) }
   if(ph==='peek'){ const i=aiTarget(p,'peek'); await aim(i); return act('p'+i) }
   if(ph==='hook'||ph==='goggles'){ const i=aiTarget(p,ph); await aim(i); return act('f'+i) }
-  if(ph==='swap'){
-    // swap a remembered prize with a remembered trap, so anyone not paying attention gets caught; otherwise any two
-    const B=beliefFor(p), fd=faceDown(), good=fd.filter(i=>['star','fish'].includes(B[i])), bad=fd.filter(i=>['jelly','shark'].includes(B[i]));
-    let a,b;
-    if(p.kind!=='easy'&&good.length&&bad.length){ a=pick(good); b=pick(bad) }
-    else { a=pick(fd); b=pick(fd.filter(i=>i!==a)) }
-    await aim(a); await aim(b); return act('w'+a+'s'+b);
-  }
   if(ph==='dolphin'){
-    // hide traps for others and prizes for itself (it remembers where); easy players just grab one at random
-    const max=Math.min(3,S.scrap.length,empties().length), ks=[];
-    if(p.kind==='easy') ks.push(Math.floor(Math.random()*S.scrap.length));
-    else for(const t of ['shark','jelly','star','fish']) S.scrap.forEach((x,k)=>{ if(x===t&&ks.length<max&&!ks.includes(k)) ks.push(k) });
-    if(!ks.length) ks.push(Math.floor(Math.random()*S.scrap.length));
-    const sp=shuffle(empties()).slice(0,ks.length);
-    return act(ks.map((k,j)=>'d'+k+'s'+sp[j]).join(''));
+    // bring back the shark as a trap only it knows about, then prizes it can collect later; easy players grab one at random
+    const max=dolMax(), ks=[];
+    if(p.kind==='easy'){ if(max) ks.push(Math.floor(Math.random()*S.scrap.length)) }
+    else for(const t of ['shark','star','jelly','fish']) S.scrap.forEach((x,k)=>{ if(x===t&&ks.length<max&&!ks.includes(k)) ks.push(k) });
+    const sp=shuffle(dolSpots()).slice(0,ks.length+1);
+    return act('D'+sp[0]+ks.map((k,j)=>'d'+k+'s'+sp[j+1]).join(''));
   }
 }
 
@@ -1783,11 +1761,6 @@ function onSlot(i){
   const s=S.slots[i]; if(busy||!s||s.up||!mine(S.cur)||NET.pending) return;
   if(['flip','hook','goggles'].includes(S.phase)){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('f'+i) }
   else if(S.phase==='peek'){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('p'+i) }
-  else if(S.phase==='swap'){
-    if(swapPick===i){ swapPick=null; return render() }
-    if(swapPick==null){ sfx('tap'); swapPick=i; return render() }
-    const a=swapPick; swapPick=null; act('w'+a+'s'+i);
-  }
 }
 // Every move goes through here. Offline it plays at once; online the host adds it to the shared list.
 function act(a){
@@ -1803,8 +1776,7 @@ function applyAction(a){
   if(c==='x') return run(endPeek);
   if(c==='b') return run(doBank);
   if(c==='c') return run(doContinue);
-  if(c==='w'){ const [,x,y]=/^w(\d+)s(\d+)$/.exec(a); return run(()=>doSwap(+x,+y)) }
-  if(c==='d') return run(()=>dolphinPlace(dolphinPairs(a)));
+  if(c==='D'){ const m=/^D(\d+)(.*)$/.exec(a); return run(()=>dolphinPlace(+m[1],dolphinPairs(m[2]))) }
 }
 async function hookTap(i){
   const s=S.slots[i];
@@ -1831,31 +1803,39 @@ async function goggleTap(i){
   }
 }
 
-function bustBody(t){
+function bustBody(t,last){
   const p=P();
+  if(t==='shark'&&last){ const n=p.bank.length; return n?`${Math.ceil(n/2)} of the ${plural(n,'token')} in ${p.name}’s hand go back on the table.`:`${p.name}’s hand is empty.` }
   if(t==='jelly') return `${p.name} keeps it for −1 and banks nothing this turn.`;
   if(t==='shark'){const n=p.bank.length,l=Math.ceil(n/2);
-    return n?`${l} of the ${plural(n,'token')} in ${p.name}’s hand go back on the table, then the shark scares the whole reef into new spots.`:`${p.name}’s hand is empty, but the shark still scares the whole reef into new spots.`}
+    return n?`${l} of the ${plural(n,'token')} in ${p.name}’s hand go back on the table, then the shark scares the whole reef into new spots and swims off to the scrap pile.`:`${p.name}’s hand is empty, but the shark still scares the whole reef into new spots, then swims off to the scrap pile.`}
   return '';
 }
-// The dolphin's player hides their chosen scrap token in an empty spot; only they (and an AI's memory) know what it is.
-// what the dolphin's player has chosen on this device so far: scrap tokens, then the spots to hide them in
+// The dolphin's player picks up to 3 scrap tokens, then hides them and the dolphin itself in spots of their choice.
+// The dolphin dives into the scrap pile first, so everything comes back out looking the same; only the hider knows what went where.
 let DOL={picks:[],confirmed:false,spots:[]};
 const resetDol=()=>{ DOL={picks:[],confirmed:false,spots:[]} };
 const dolphinPairs=a=>[...a.matchAll(/d(\d+)s(\d+)/g)].map(m=>[+m[1],+m[2]]);
-async function dolphinPlace(pairs){
-  const p=P(), types=pairs.map(([k])=>S.scrap[k]);
+const dolSpots=()=>[...empties(),S.turn.act].filter(i=>i!=null);
+const dolMax=()=>Math.min(3,S.scrap.length,empties().length);
+async function dolphinPlace(dSpot,pairs){
+  const p=P(), di=S.turn.act, dol=S.slots[di], types=pairs.map(([k])=>S.scrap[k]);
   [...pairs.map(([k])=>k)].sort((x,y)=>y-x).forEach(k=>S.scrap.splice(k,1));
+  scrapTaken(types.length);
   resetDol(); S.phase='anim';
-  const from=centerOf(pileEl());
-  pairs.forEach(([,spot],j)=>{ S.slots[spot]={id:S.nextId++,t:types[j],up:false}; forget(spot); away.add(S.slots[spot].id);
-    if(isAI(p)){ S.tick++; p.mem[spot]={t:types[j],tick:S.tick} } });
+  const c0=centerOf(cardFace()); cardHidden=true; render();
+  await fly(c0,centerOf(pileEl()),{t:'dolphin',up:true,upEnd:false,dur:650});
+  S.slots[di]=null; forget(di); away.delete(dol.id); S.card=null; cardHidden=false;
+  S.turn.rev=S.turn.rev.filter(j=>j!==di); S.turn.act=null;
+  const items=gshuffle([['dolphin',dSpot],...pairs.map(([,spot],j)=>[types[j],spot])]);
+  items.forEach(([t,spot])=>{ S.slots[spot]={id:S.nextId++,t,up:false}; forget(spot); away.add(S.slots[spot].id);
+    if(isAI(p)){ S.tick++; p.mem[spot]={t,tick:S.tick} } });
   render(); sfx('dolphin');
-  await Promise.all(pairs.map(([,spot],j)=>fly(from,spotCenter(spot),{t:types[j],dur:1100,delay:j*180})));
-  pairs.forEach(([,spot])=>away.delete(S.slots[spot].id));
+  const from=centerOf(pileEl());
+  await Promise.all(items.map(([t,spot],j)=>fly(from,spotCenter(spot),{t,dur:1100,delay:j*200})));
+  items.forEach(([,spot])=>away.delete(S.slots[spot].id));
   sfx('thud'); render(); await wait(250);
-  await cardToSpot(S.turn.act);
-  endTurn(`${p.name} ${bankedNote()} and slipped ${pairs.length===1?'a token':pairs.length+' tokens'} from the scrap pile back onto the table.`);
+  endTurn(`${p.name} ${bankedNote()} and hid the dolphin${types.length?` along with ${plural(types.length,'token')} from the scrap pile`:''}.`);
 }
 
 async function doFlip(i){
@@ -1863,6 +1843,7 @@ async function doFlip(i){
   sfx('flip'); s.up=true; S.turn.rev.push(i); seeAll(i); S.summary=null; render();
   sfx(T.kind==='catch'||T.kind==='bust'||s.t==='dolphin'?s.t:s.t==='extra'?'extra':'chime');
   await wait(500);
+  if(faceDown().length<=3) return lastFlip(i);
   if(T.kind==='catch') return;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
@@ -1878,18 +1859,15 @@ async function doFlip(i){
     S.phase='card'; return;
   }
   if(s.t==='whirl'){
-    if(faceDown().length<2){ await toCard(i,{t:'whirl',title:'Whirlpool!',body:`${banked}Not enough tokens left to swap.`}); await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
-    await toCard(i,{t:'whirl',title:'Whirlpool!',body:!mine(S.cur)?`${banked}${p.name} is choosing two tokens to swap.`:`${banked}Tap two face-down tokens to swap their places.`});
-    swapPick=null; S.phase='swap'; return;
+    S.turn.pending={type:'whirl'};
+    await toCard(i,{t:'whirl',title:'Whirlpool!',body:`${banked}The whole table is about to swirl into new spots.`});
+    S.phase='card'; return;
   }
   if(s.t==='dolphin'){
-    if(!S.scrap.length){
-      S.turn.pending={type:'dolphinEmpty'};
-      await toCard(i,{t:'dolphin',title:'Dolphin!',body:`${banked}The scrap pile is empty, so there’s nothing to bring back.`});
-      S.phase='card'; return;
-    }
-    await toCard(i,{t:'dolphin',title:'Dolphin!',body:!mine(S.cur)?`${banked}${p.name} is secretly picking tokens from the scrap pile.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, pick up to 3 tokens from the scrap pile.`});
-    resetDol(); S.phase='dolphin'; return;
+    const max=dolMax();
+    await toCard(i,{t:'dolphin',title:'Dolphin!',body:!mine(S.cur)?`${banked}${p.name} is secretly hiding the dolphin${max?' and tokens from the scrap pile':''}.`
+      :max?`${banked}Everyone but ${p.name}, look away. ${p.name}, pick up to ${max} scrap ${max===1?'token':'tokens'} to hide with the dolphin.`:`${banked}The scrap pile is empty. Hide the dolphin in any glowing spot.`});
+    resetDol(); if(!max) DOL.confirmed=true; S.phase='dolphin'; return;
   }
   const fd=faceDown().length;
   if(s.t==='bigeye'){
@@ -1907,6 +1885,20 @@ async function doFlip(i){
   await toCard(i,{t:s.t,title:'Submarine!',body:!mine(S.cur)?`${banked}${p.name} will show everyone ${plural(S.turn.picks,'token')}.`:`${banked}Tap ${plural(S.turn.picks,'token')} to show everyone.`});
   if(!S.turn.picks){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
   S.phase='goggles';
+}
+
+// Only 3 face-down tokens left: the game ends on this flip. A catch is banked, a jellyfish or shark still costs you, actions don't happen.
+async function lastFlip(i){
+  const s=S.slots[i], T=TYPES[s.t], p=P(); S.final=true;
+  if(T.kind==='bust'){
+    S.turn.pending={type:s.t,slot:i};
+    await toCard(i,{t:s.t,title:`${T.name}!`,body:`${bustBody(s.t,true)} That was the last flip: only 3 tokens are left.`,bust:true});
+    S.phase='card'; return;
+  }
+  const pts=await bankFlights();
+  S.endNote=T.kind==='catch'?`${p.name} banked ${plural(pts,'point')} on the last flip.`
+    :`${p.name} flipped the ${T.name.toLowerCase()} with only 3 tokens left, so the game ended before it could be used${pts?`. ${p.name} banked ${plural(pts,'point')}`:''}.`;
+  finish();
 }
 
 async function startPeek(i){
@@ -1966,14 +1958,16 @@ async function doContinue(){
       return endTurn(`${p.name} got stung by a jellyfish.`);
     }
     case 'shark': {
-      await cardToSpot(pd.slot); await flipDownAll();
+      await cardToScrap(pd.slot); S.card=null; await flipDownAll();
       const lost=await sharkReturn();
+      if(S.final) return endTurn(`The shark got ${p.name} on the last flip${lost?`: ${plural(lost,'token')} went back to the table`:''}.`);
       await swirl();
       return endTurn(`The shark scattered the reef! ${lost?`${p.name} lost ${plural(lost,'token')} to the table, and`:'Then'} every token on the table moved to a new spot.`);
     }
-    case 'dolphinEmpty':
-      await cardToSpot(S.turn.act); await flipDownAll();
-      return endTurn(`${p.name} ${bankedNote()}.`);
+    case 'whirl':
+      await cardToScrap(S.turn.act); S.card=null; await flipDownAll();
+      await swirl('whirl');
+      return endTurn(`${p.name} ${bankedNote()} and the whirlpool moved every token to a new spot.`);
     case 'hook': {
       const name=TYPES[S.slots[pd.slot].t].name.toLowerCase();
       await cardToScrap(pd.slot); S.card=null; render(); await flipDownAll();
@@ -1986,9 +1980,9 @@ async function doContinue(){
 }
 
 function endTurn(summary){
-  resetDol(); swapPick=null;
+  resetDol();
   S.slots.forEach(s=>{if(s) s.up=false}); S.turn=freshTurn(); S.card=null; away.clear();
-  if(onTable()<=3) return finish();
+  if(S.final||onTable()<=3){ S.endNote=S.endNote||summary; return finish() }
   S.cur=(S.cur+1)%S.players.length; S.summary=summary; S.turnNo++;
   const humans=S.players.filter(p=>!isAI(p)).length;
   S.phase=(!S.net&&!isAI(P())&&humans>1)?'handoff':'flip';
@@ -2014,6 +2008,15 @@ function render(){
   renderGame();
 }
 
+// You can look at your own hand: on your turn when passing one device around, any time on your own device.
+function canSeeHand(i){ if(!S.players[i]||!mine(i)) return false; if(S.net) return true; return S.players.filter(p=>!isAI(p)).length<2||i===S.cur }
+function handHTML(i){
+  const p=S.players[i], groups=ORDER.filter(t=>TYPES[t].pts!=null).map(t=>[t,p.bank.filter(x=>x===t).length]).filter(([,n])=>n);
+  return `<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Your hand · ${score(p)} ${Math.abs(score(p))===1?'point':'points'}</h2>
+    ${groups.length?`<div class="handgrid">${groups.map(([t,n])=>`<figure>${face(t)}<figcaption><b>×${n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>`:'<p class="muted">Nothing banked yet.</p>'}
+    <p class="muted">A shark sends half of these (rounded up, picked at random) back to the table.</p>
+    <button class="btn primary" id="closeHand">Close</button></div>`;
+}
 function rulesHTML(){
   const li=t=>`<li>${face(t)}<span><b>${fmt(TYPES[t].name)}</b> ×${TYPES[t].n}<br><span class="muted">${fmt(TYPES[t].say)}</span></span></li>`;
   return `<div class="rules">
@@ -2070,7 +2073,7 @@ function renderSetup(){
 }
 
 function renderBoard(){
-  const pickable=!busy&&!NET.pending&&mine(S.cur)&&['flip','peek','hook','goggles','swap'].includes(S.phase);
+  const pickable=!busy&&!NET.pending&&mine(S.cur)&&['flip','peek','hook','goggles'].includes(S.phase);
   if(S.net&&!S.net.host&&!NET.pending) boardEl.querySelectorAll('.tok.aim').forEach(e=>e.classList.remove('aim'));
   boardEl.classList.toggle('dim',pickable&&S.phase!=='flip');
   const D=S.layout.D, live=new Set();
@@ -2089,7 +2092,6 @@ function renderBoard(){
     el.style.setProperty('--r',sp.r+'deg');
     el.classList.toggle('up',s.up);
     el.classList.toggle('rev',s.up&&S.turn.rev.includes(i));
-    el.classList.toggle('sel',S.phase==='swap'&&swapPick===i);
     el.classList.toggle('away',away.has(s.id));
     const canPick=!s.up&&pickable&&!(S.phase==='peek'&&(S.turn.peeked||[]).includes(i));
     el.classList.toggle('pick',canPick);
@@ -2099,16 +2101,17 @@ function renderBoard(){
   for(const [id,el] of tokMap) if(!live.has(id)){el.remove();tokMap.delete(id)}
   boardEl.querySelectorAll('.hide-spot').forEach(g=>g.remove());
   if(S.phase==='dolphin'&&mine(S.cur)&&DOL.confirmed&&!busy&&!NET.pending){
-    for(const i of empties()){
+    const items=['dolphin',...DOL.picks.map(k=>S.scrap[k])];
+    for(const i of dolSpots()){
       const sp=S.layout.spots[i], g=document.createElement('button'), at=DOL.spots.indexOf(i);
-      g.className='hide-spot'+(at>=0?' taken':''); g.setAttribute('aria-label',at>=0?'Spot chosen; tap to undo':'Empty spot');
+      g.className='hide-spot'+(at>=0?' taken':''); g.setAttribute('aria-label',at>=0?'Spot chosen; tap to undo':'Hiding spot');
       g.style.left=`${(sp.x-D/2)*100}%`; g.style.top=`${(sp.y-D/2)/S.h*100}%`; g.style.width=`${D*100}%`;
-      if(at>=0) g.innerHTML=face(S.scrap[DOL.picks[at]]);
+      if(at>=0) g.innerHTML=face(items[at]);
       g.onclick=()=>{
         if(at>=0){ DOL.spots.splice(at,1); return render() }
         DOL.spots.push(i); sfx('tap');
-        if(DOL.spots.length<DOL.picks.length) return render();
-        const move=DOL.picks.map((k,j)=>'d'+k+'s'+DOL.spots[j]).join(''); resetDol(); act(move);
+        if(DOL.spots.length<items.length) return render();
+        const move='D'+DOL.spots[0]+DOL.picks.map((k,j)=>'d'+k+'s'+DOL.spots[j+1]).join(''); resetDol(); act(move);
       };
       boardEl.appendChild(g);
     }
@@ -2152,8 +2155,8 @@ function renderGame(){
   if(S.card){
     mini=S.card.t?`<div class="mini ${cardHidden?'hide':''}" id="cardFace">${face(S.card.t)}</div>`:avatar;
     title=esc(S.card.title); sub=esc(S.card.body);
-    if(S.phase==='swap'&&me&&swapPick!=null) sub='Now tap the token to swap it with. Tap the first one again to change your mind.';
-    if(S.phase==='dolphin'&&me&&DOL.confirmed){ const left=DOL.picks.length-DOL.spots.length; sub=`Tap glowing empty spots to hide your ${DOL.picks.length===1?'token':'tokens'} (${left} left). Tap a chosen spot to undo it.` }
+    if(S.phase==='dolphin'&&me&&DOL.confirmed){ const items=['dolphin',...DOL.picks.map(k=>S.scrap[k])], next=items[DOL.spots.length];
+      sub=next?`Tap a glowing spot to hide the ${TYPES[next].name.toLowerCase()}${items.length>1?` (${DOL.spots.length+1} of ${items.length})`:''}. Tap a chosen spot to undo it.`:'' }
     if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>${TX('continue')}</button>`;
   } else {
     const fd=faceDown().length;
@@ -2163,10 +2166,13 @@ function renderGame(){
     else if(bot) sub=pend?`This turn: +${pend}. Thinking…`:'Thinking…';
     else if(!me) sub=pend?`This turn: +${pend}. Waiting for ${esc(p.name)}…`:`Waiting for ${esc(p.name)}…`;
     else sub=pend?(fd?`This turn: +${pend}. Flip again or bank it.`:'No face-down tokens left. Bank your catch.'):'Tap any face-down token to flip it.';
-    if(me) acts=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
+    if(me&&canSeeHand(S.cur)) acts=`<button class="btn ghost small" id="handBtn">Hand</button>`;
+    if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
   }
   bar.innerHTML=`<div class="in">${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">${TX('copyright')}</div>`;
   const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
+  const hb=bar.querySelector('#handBtn'); if(hb) hb.onclick=()=>{ sfx('tap'); handOpen=S.cur; render() };
+  sc.querySelectorAll('.chip').forEach(ch=>{ const i=+ch.dataset.p; if(canSeeHand(i)){ ch.classList.add('seehand'); ch.onclick=()=>{ sfx('tap'); handOpen=i; render() } } });
   const cb=bar.querySelector('#contBtn'); if(cb) cb.onclick=()=>{sfx('tap');act('c')};
   if(!S.layout||fitPending){fitPending=false;fitBoard()}
   renderBoard();
@@ -2176,27 +2182,30 @@ function renderGame(){
     ov.hidden=false;
     ov.innerHTML=`<div class="sheet left"><h2>${TX('rules')}</h2>${rulesHTML()}<div class="btnrow"><button class="btn primary" id="closeRules">${TX('backToGame')}</button></div></div>`;
     ov.querySelector('#closeRules').onclick=()=>{S.rulesOpen=false;render()};
+  } else if(handOpen!=null&&canSeeHand(handOpen)&&S.phase!=='handoff'){
+    ov.hidden=false; ov.innerHTML=handHTML(handOpen);
+    ov.querySelector('#closeHand').onclick=()=>{ handOpen=null; render() };
   } else if(S.phase==='handoff'){
-    ov.hidden=false;
+    handOpen=null; ov.hidden=false;
     ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button></div>`;
     ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
   } else if(S.phase==='dolphin'&&mine(S.cur)&&!DOL.confirmed&&!busy&&!NET.pending){
     const groups={}; S.scrap.forEach((t,k)=>{(groups[t]=groups[t]||[]).push(k)});
-    const max=Math.min(3,S.scrap.length,empties().length), n=DOL.picks.length;
+    const max=dolMax(), n=DOL.picks.length;
     const picked=t=>DOL.picks.filter(k=>S.scrap[k]===t).length;
     ov.hidden=false;
-    ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Pick up to ${max} ${max===1?'token':'tokens'} to hide</h2><p class="muted">They go back on the table face down, in empty spots you choose. Nobody else will know what they are.</p>
+    ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Pick up to ${max} ${max===1?'token':'tokens'} to hide</h2><p class="muted">They go back on the table face down with the dolphin, in spots you choose. Nobody else will know which is which.</p>
       <div class="scrapgrid">${ORDER.filter(t=>groups[t]).map(t=>{const c=picked(t);return `<button class="scrapbtn ${c?'on':''}" data-t="${t}" ${n>=max&&!c?'disabled':''}>${face(t)}<span>${TYPES[t].name}${groups[t].length>1?` ×${groups[t].length}`:''}</span>${c?`<b class="pickcount">${c} picked</b>`:''}</button>`}).join('')}</div>
-      <p class="muted">Tap a token to pick it; tap it again to pick another of the same kind. ${n?`<button class="linkbtn" id="dolClear">Clear</button>`:''}</p>
-      <button class="btn primary" id="dolGo" ${n?'':'disabled'}>${n?`Hide ${n===1?'this token':`these ${n} tokens`}`:'Pick at least one token'}</button></div>`;
+      <p class="muted">Tap a token to pick it; tap again for another of the same kind, until it goes back to none. ${n?`<button class="linkbtn" id="dolClear">Clear all</button>`:''}</p>
+      <button class="btn primary" id="dolGo">${n?`Hide the dolphin and ${n===1?'this token':`these ${n} tokens`}`:'Hide just the dolphin'}</button></div>`;
     ov.querySelectorAll('.scrapbtn').forEach(b=>b.onclick=()=>{
       const t=b.dataset.t, free=groups[t].filter(k=>!DOL.picks.includes(k));
       if(free.length&&DOL.picks.length<max){ DOL.picks.push(free[0]); sfx('tap') }
-      else if(picked(t)){ const k=[...DOL.picks].reverse().find(k=>S.scrap[k]===t); DOL.picks.splice(DOL.picks.lastIndexOf(k),1) }
+      else DOL.picks=DOL.picks.filter(k=>S.scrap[k]!==t);
       render();
     });
     const cl=ov.querySelector('#dolClear'); if(cl) cl.onclick=()=>{ DOL.picks=[]; render() };
-    ov.querySelector('#dolGo').onclick=()=>{ if(!DOL.picks.length) return; DOL.confirmed=true; DOL.spots=[]; sfx('tap'); render() };
+    ov.querySelector('#dolGo').onclick=()=>{ DOL.confirmed=true; DOL.spots=[]; sfx('tap'); render() };
   } else if(S.phase==='peeking'&&mine(S.cur)&&S.turn.peek!=null){
     if(!ov.querySelector('#peekFace')){
       const t=S.slots[S.turn.peek].t;
@@ -2228,7 +2237,7 @@ function renderOver(){
   let place=0;
   ov.hidden=false;
   ov.innerHTML=`<div class="sheet"><span class="label">${TX('gameOver')}</span>
-    <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>
+    <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>${S.endNote?`<p class="muted">${esc(S.endNote)}</p>`:''}
     <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
       return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
     <div class="btnrow"><button class="btn primary" id="again">${TX('grudge')}</button><button class="btn ghost" id="setup">${TX('newPlayers')}</button></div><p class="foot">${TX('copyright')}</p></div>`;
