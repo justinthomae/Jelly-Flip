@@ -195,6 +195,13 @@ p{margin:0}
 .scrapbtn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--table-2);border:1.5px solid transparent;border-radius:14px;padding:10px 6px;font-size:.78rem;color:var(--ink-2)}
 .scrapbtn:hover,.scrapbtn:focus-visible{border-color:var(--sea);color:var(--ink)}
 .scrapbtn .face{width:52px;height:52px}
+.scrapbtn{position:relative}
+.scrapbtn.on{border-color:var(--sea);color:var(--ink);background:color-mix(in srgb,var(--sea) 14%,var(--table-2))}
+.scrapbtn:disabled{opacity:.4}
+.pickcount{font-size:.72rem;color:var(--sea)}
+.linkbtn{background:none;border:0;padding:0;color:var(--sea);text-decoration:underline;font:inherit;cursor:pointer}
+.hide-spot.taken{border-style:solid;animation:none;background:color-mix(in srgb,var(--sea) 30%,transparent);display:grid;place-items:center}
+.hide-spot.taken .face{width:80%;height:80%;opacity:.85}
 .hide-spot{position:absolute;aspect-ratio:1;padding:0;border-radius:50%;border:2px dashed color-mix(in srgb,var(--sea) 75%,transparent);background:color-mix(in srgb,var(--sea) 14%,transparent);cursor:pointer;animation:hidespot 1.6s ease-in-out infinite}
 @keyframes hidespot{50%{background:color-mix(in srgb,var(--sea) 28%,transparent)}}
 @media (prefers-reduced-motion:reduce){ .hide-spot{animation:none} }
@@ -302,7 +309,7 @@ const TYPES = {
   jelly:  {name:'Jellyfish', kind:'bust', pts:-1, n:5, say:'Bust. It goes into your hand for −1 point.'},
   shark:  {name:'Shark', kind:'bust', n:1, say:'Bust. Half your hand (rounded up, jellyfish included) goes back on the table, then the shark scatters every token on the table to new spots.'},
   whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Bank, scrap it, then swap the places of any 2 face-down tokens. Turn ends.'},
-  dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick any token from the scrap pile and hide it face down in an empty spot. The dolphin stays on the table.'},
+  dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick up to 3 tokens from the scrap pile and hide them face down in empty spots of your choice. The dolphin stays on the table.'},
 };
 const ORDER = ['fish','star','extra','bigeye','hook','g1','g2','g3','dolphin','whirl','jelly','shark'];
 
@@ -914,8 +921,10 @@ function sendReq(a){
 function legal(a){
   const wm=/^w(\d{1,2})s(\d{1,2})$/.exec(a);
   if(wm){ const x=S.slots[+wm[1]], y=S.slots[+wm[2]]; return S.phase==='swap'&&wm[1]!==wm[2]&&!!x&&!x.up&&!!y&&!y.up }
-  const dm=/^d(\d{1,2})s(\d{1,2})$/.exec(a);
-  if(dm) return S.phase==='dolphin'&&+dm[1]<S.scrap.length&&+dm[2]<S.slots.length&&!S.slots[+dm[2]];
+  if(/^(?:d\d{1,2}s\d{1,2}){1,3}$/.test(a)){
+    const pairs=dolphinPairs(a), ks=pairs.map(x=>x[0]), sp=pairs.map(x=>x[1]);
+    return S.phase==='dolphin'&&new Set(ks).size===ks.length&&new Set(sp).size===sp.length&&ks.every(k=>k<S.scrap.length)&&sp.every(i=>i<S.slots.length&&!S.slots[i]);
+  }
   const m=/^([fp])(\d{1,2})$|^([xbc])$/.exec(a); if(!m) return false;
   const c=m[1]||m[3], s=S.slots[+m[2]];
   if(c==='f') return ['flip','hook','goggles'].includes(S.phase)&&!!s&&!s.up;
@@ -1126,11 +1135,13 @@ async function aiAct(){
     await aim(a); await aim(b); return act('w'+a+'s'+b);
   }
   if(ph==='dolphin'){
-    // hide a trap if there is one; easy players just grab anything
-    let k=-1;
-    if(p.kind!=='easy') for(const t of ['shark','jelly']){ k=S.scrap.indexOf(t); if(k>=0) break }
-    if(k<0) k=Math.floor(Math.random()*S.scrap.length);
-    return act('d'+k+'s'+pick(empties()));
+    // hide traps for others and prizes for itself (it remembers where); easy players just grab one at random
+    const max=Math.min(3,S.scrap.length,empties().length), ks=[];
+    if(p.kind==='easy') ks.push(Math.floor(Math.random()*S.scrap.length));
+    else for(const t of ['shark','jelly','star','fish']) S.scrap.forEach((x,k)=>{ if(x===t&&ks.length<max&&!ks.includes(k)) ks.push(k) });
+    if(!ks.length) ks.push(Math.floor(Math.random()*S.scrap.length));
+    const sp=shuffle(empties()).slice(0,ks.length);
+    return act(ks.map((k,j)=>'d'+k+'s'+sp[j]).join(''));
   }
 }
 
@@ -1161,7 +1172,7 @@ function applyAction(a){
   if(c==='b') return run(doBank);
   if(c==='c') return run(doContinue);
   if(c==='w'){ const [,x,y]=/^w(\d+)s(\d+)$/.exec(a); return run(()=>doSwap(+x,+y)) }
-  if(c==='d'){ const [,k,spot]=/^d(\d+)s(\d+)$/.exec(a); return run(()=>dolphinPlace(+k,+spot)) }
+  if(c==='d') return run(()=>dolphinPlace(dolphinPairs(a)));
 }
 async function hookTap(i){
   const s=S.slots[i];
@@ -1196,16 +1207,23 @@ function bustBody(t){
   return '';
 }
 // The dolphin's player hides their chosen scrap token in an empty spot; only they (and an AI's memory) know what it is.
-let dolphinPick=null;
-async function dolphinPlace(k,spot){
-  const p=P(), t=S.scrap.splice(k,1)[0]; dolphinPick=null; S.phase='anim'; render();
-  sfx('dolphin');
-  await fly(centerOf(pileEl()),spotCenter(spot),{t,dur:1200});
-  S.slots[spot]={id:S.nextId++,t,up:false}; forget(spot);
-  if(isAI(p)){ S.tick++; p.mem[spot]={t,tick:S.tick} }
+// what the dolphin's player has chosen on this device so far: scrap tokens, then the spots to hide them in
+let DOL={picks:[],confirmed:false,spots:[]};
+const resetDol=()=>{ DOL={picks:[],confirmed:false,spots:[]} };
+const dolphinPairs=a=>[...a.matchAll(/d(\d+)s(\d+)/g)].map(m=>[+m[1],+m[2]]);
+async function dolphinPlace(pairs){
+  const p=P(), types=pairs.map(([k])=>S.scrap[k]);
+  [...pairs.map(([k])=>k)].sort((x,y)=>y-x).forEach(k=>S.scrap.splice(k,1));
+  resetDol(); S.phase='anim';
+  const from=centerOf(pileEl());
+  pairs.forEach(([,spot],j)=>{ S.slots[spot]={id:S.nextId++,t:types[j],up:false}; forget(spot); away.add(S.slots[spot].id);
+    if(isAI(p)){ S.tick++; p.mem[spot]={t:types[j],tick:S.tick} } });
+  render(); sfx('dolphin');
+  await Promise.all(pairs.map(([,spot],j)=>fly(from,spotCenter(spot),{t:types[j],dur:1100,delay:j*180})));
+  pairs.forEach(([,spot])=>away.delete(S.slots[spot].id));
   sfx('thud'); render(); await wait(250);
   await cardToSpot(S.turn.act);
-  endTurn(`${p.name} ${bankedNote()} and slipped a token from the scrap pile back onto the table.`);
+  endTurn(`${p.name} ${bankedNote()} and slipped ${pairs.length===1?'a token':pairs.length+' tokens'} from the scrap pile back onto the table.`);
 }
 
 async function doFlip(i){
@@ -1238,8 +1256,8 @@ async function doFlip(i){
       await toCard(i,{t:'dolphin',title:'Dolphin!',body:`${banked}The scrap pile is empty, so there’s nothing to bring back.`});
       S.phase='card'; return;
     }
-    await toCard(i,{t:'dolphin',title:'Dolphin!',body:!mine(S.cur)?`${banked}${p.name} is secretly picking a token from the scrap pile.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, pick a token from the scrap pile.`});
-    dolphinPick=null; S.phase='dolphin'; return;
+    await toCard(i,{t:'dolphin',title:'Dolphin!',body:!mine(S.cur)?`${banked}${p.name} is secretly picking tokens from the scrap pile.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, pick up to 3 tokens from the scrap pile.`});
+    resetDol(); S.phase='dolphin'; return;
   }
   const fd=faceDown().length;
   if(s.t==='bigeye'){
@@ -1336,7 +1354,7 @@ async function doContinue(){
 }
 
 function endTurn(summary){
-  dolphinPick=null; swapPick=null;
+  resetDol(); swapPick=null;
   S.slots.forEach(s=>{if(s) s.up=false}); S.turn=freshTurn(); S.card=null; away.clear();
   if(onTable()<=3) return finish();
   S.cur=(S.cur+1)%S.players.length; S.summary=summary; S.turnNo++;
@@ -1444,12 +1462,18 @@ function renderBoard(){
   });
   for(const [id,el] of tokMap) if(!live.has(id)){el.remove();tokMap.delete(id)}
   boardEl.querySelectorAll('.hide-spot').forEach(g=>g.remove());
-  if(S.phase==='dolphin'&&mine(S.cur)&&dolphinPick!=null&&!busy&&!NET.pending){
+  if(S.phase==='dolphin'&&mine(S.cur)&&DOL.confirmed&&!busy&&!NET.pending){
     for(const i of empties()){
-      const sp=S.layout.spots[i], g=document.createElement('button');
-      g.className='hide-spot'; g.setAttribute('aria-label','Empty spot');
+      const sp=S.layout.spots[i], g=document.createElement('button'), at=DOL.spots.indexOf(i);
+      g.className='hide-spot'+(at>=0?' taken':''); g.setAttribute('aria-label',at>=0?'Spot chosen; tap to undo':'Empty spot');
       g.style.left=`${(sp.x-D/2)*100}%`; g.style.top=`${(sp.y-D/2)/S.h*100}%`; g.style.width=`${D*100}%`;
-      g.onclick=()=>{ const k=dolphinPick; dolphinPick=null; act('d'+k+'s'+i) };
+      if(at>=0) g.innerHTML=face(S.scrap[DOL.picks[at]]);
+      g.onclick=()=>{
+        if(at>=0){ DOL.spots.splice(at,1); return render() }
+        DOL.spots.push(i); sfx('tap');
+        if(DOL.spots.length<DOL.picks.length) return render();
+        const move=DOL.picks.map((k,j)=>'d'+k+'s'+DOL.spots[j]).join(''); resetDol(); act(move);
+      };
       boardEl.appendChild(g);
     }
   }
@@ -1493,7 +1517,7 @@ function renderGame(){
     mini=S.card.t?`<div class="mini ${cardHidden?'hide':''}" id="cardFace">${face(S.card.t)}</div>`:avatar;
     title=esc(S.card.title); sub=esc(S.card.body);
     if(S.phase==='swap'&&me&&swapPick!=null) sub='Now tap the token to swap it with. Tap the first one again to change your mind.';
-    if(S.phase==='dolphin'&&me&&dolphinPick!=null) sub=`You picked a token. Tap any glowing empty spot to hide it there face down.`;
+    if(S.phase==='dolphin'&&me&&DOL.confirmed){ const left=DOL.picks.length-DOL.spots.length; sub=`Tap glowing empty spots to hide your ${DOL.picks.length===1?'token':'tokens'} (${left} left). Tap a chosen spot to undo it.` }
     if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>Continue</button>`;
   } else {
     const fd=faceDown().length;
@@ -1520,11 +1544,23 @@ function renderGame(){
     ov.hidden=false;
     ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">Pass the device to</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">Start my turn</button></div>`;
     ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
-  } else if(S.phase==='dolphin'&&mine(S.cur)&&dolphinPick==null&&!busy&&!NET.pending){
+  } else if(S.phase==='dolphin'&&mine(S.cur)&&!DOL.confirmed&&!busy&&!NET.pending){
     const groups={}; S.scrap.forEach((t,k)=>{(groups[t]=groups[t]||[]).push(k)});
+    const max=Math.min(3,S.scrap.length,empties().length), n=DOL.picks.length;
+    const picked=t=>DOL.picks.filter(k=>S.scrap[k]===t).length;
     ov.hidden=false;
-    ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Pick a token to hide</h2><p class="muted">It goes back on the table face down, in an empty spot you choose. Nobody else will know what it is.</p><div class="scrapgrid">${ORDER.filter(t=>groups[t]).map(t=>`<button class="scrapbtn" data-k="${groups[t][0]}">${face(t)}<span>${TYPES[t].name}${groups[t].length>1?` ×${groups[t].length}`:''}</span></button>`).join('')}</div></div>`;
-    ov.querySelectorAll('.scrapbtn').forEach(b=>b.onclick=()=>{ sfx('tap'); dolphinPick=+b.dataset.k; render() });
+    ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Pick up to ${max} ${max===1?'token':'tokens'} to hide</h2><p class="muted">They go back on the table face down, in empty spots you choose. Nobody else will know what they are.</p>
+      <div class="scrapgrid">${ORDER.filter(t=>groups[t]).map(t=>{const c=picked(t);return `<button class="scrapbtn ${c?'on':''}" data-t="${t}" ${n>=max&&!c?'disabled':''}>${face(t)}<span>${TYPES[t].name}${groups[t].length>1?` ×${groups[t].length}`:''}</span>${c?`<b class="pickcount">${c} picked</b>`:''}</button>`}).join('')}</div>
+      <p class="muted">Tap a token to pick it; tap it again to pick another of the same kind. ${n?`<button class="linkbtn" id="dolClear">Clear</button>`:''}</p>
+      <button class="btn primary" id="dolGo" ${n?'':'disabled'}>${n?`Hide ${n===1?'this token':`these ${n} tokens`}`:'Pick at least one token'}</button></div>`;
+    ov.querySelectorAll('.scrapbtn').forEach(b=>b.onclick=()=>{
+      const t=b.dataset.t, free=groups[t].filter(k=>!DOL.picks.includes(k));
+      if(free.length&&DOL.picks.length<max){ DOL.picks.push(free[0]); sfx('tap') }
+      else if(picked(t)){ const k=[...DOL.picks].reverse().find(k=>S.scrap[k]===t); DOL.picks.splice(DOL.picks.lastIndexOf(k),1) }
+      render();
+    });
+    const cl=ov.querySelector('#dolClear'); if(cl) cl.onclick=()=>{ DOL.picks=[]; render() };
+    ov.querySelector('#dolGo').onclick=()=>{ if(!DOL.picks.length) return; DOL.confirmed=true; DOL.spots=[]; sfx('tap'); render() };
   } else if(S.phase==='peeking'&&mine(S.cur)&&S.turn.peek!=null){
     if(!ov.querySelector('#peekFace')){
       const t=S.slots[S.turn.peek].t;
