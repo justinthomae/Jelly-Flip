@@ -248,6 +248,12 @@ p{margin:0}
 .st-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px 18px;border-top:1px solid var(--panel-2)}
 .studio-link{font-size:inherit;color:var(--ink-2)}
 
+/* Studio token material and logo */
+.st-material .st-prev .face,.st-material .st-back{width:60px;height:60px}
+.st-small{font-size:.8rem;margin:2px 0 0}
+.st-logo-prev{position:relative}
+.st-back .back{overflow:hidden}
+
 /* Studio sets */
 .st-sets{display:flex;flex-direction:column;gap:8px;margin:0 18px 8px;padding:10px 12px;border-radius:14px;background:var(--table-2)}
 .st-setrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -424,7 +430,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -461,8 +467,16 @@ function applyTheme(){
   const bgCss=(sel,e)=>{ if(!e) return; const src=srcOf(e), c=e.color||'var(--table)';
     if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat fixed !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
   bgCss('body::before',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
+  // token material: the surface of every token, wood unless the admin picked a color or a picture
+  const mat=THEME.material||{}, gloss='radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 45%)';
+  const matBg=mat.type==='color'&&mat.color?`${gloss},${mat.color}`:mat.type==='image'&&srcOf(mat)?`${gloss},url("${srcOf(mat)}") center/cover no-repeat,var(--wood)`:'';
+  if(matBg) css.push(`.face:not(.fullart),.tok .back,.fly .back,.pile .stack i,.st-back .back{background:${matBg} !important}`);
   const back=srcOf(THEME.back);
-  if(back) css.push(`.tok .back,.fly .back,.pile .stack i{background:var(--wood) url("${back}") center/cover no-repeat !important}`);
+  if(back) css.push(`.tok .back,.fly .back,.pile .stack i,.st-back .back{background:var(--wood) url("${back}") center/cover no-repeat !important}`);
+  // optional logo on the back of every face-down token (off unless switched on)
+  const logo=THEME.backLogo&&THEME.backLogo.on&&srcOf(THEME.backLogo);
+  if(logo){ const inset=((1-(THEME.backLogo.size||.6))/2*100).toFixed(1);
+    css.push(`.tok .back::after,.fly .back::after,.st-back .back::after{content:"";position:absolute;inset:${inset}%;background:url("${logo}") center/contain no-repeat;pointer-events:none}`) }
   let st=document.getElementById('themeStyle'); if(!st){ st=document.createElement('style'); st.id='themeStyle'; document.head.appendChild(st) }
   st.textContent=css.join('\n');
   document.title=T('title');
@@ -1358,10 +1372,22 @@ function renderStudio(){
   } else if(STUDIO.tab==='tokens'){
     const item=(key,label,prev)=>{ const e=key==='back'?E.back:E.tokens&&E.tokens[key], has=!!srcOf(e);
       return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
-        <div class="st-acts"><button class="btn small" data-up="${key}">Upload</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
-        ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token</label>`:''}</div>` };
-    body=`<p class="muted">Upload a picture for any token (PNG with a transparent background works best; SVG and JPG work too). “Fill whole token” replaces the wood as well.</p>
-      <div class="st-grid">${ORDER.map(t=>item(t,TYPES[t].name,face(t))).join('')}${item('back','Token back (face down)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
+        <div class="st-acts"><button class="btn small" data-up="${key}">${key==='back'?'Upload picture':'Upload icon'}</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
+        ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token (covers the material too)</label>`:''}</div>` };
+    const mat=E.material||{}, mt=mat.type||'wood', lg=E.backLogo||{};
+    body=`<div class="st-row st-material"><div class="st-prev">${face('fish')}</div><div class="st-prev"><div class="st-back"><span class="back"></span></div></div>
+        <div class="st-grow"><b>Token material</b><p class="muted st-small">The surface of every token, front and back.</p>
+        <div class="st-acts"><select data-mattype>${[['wood','Wood'],['color','Solid color'],['image','Picture']].map(([v,l])=>`<option value="${v}" ${mt===v?'selected':''}>${l}</option>`).join('')}</select>
+          ${mt==='color'?`<label class="st-color">Color <input type="color" data-matcolor value="${mat.color||'#e9e2d0'}"></label>`:''}
+          ${mt==='image'?`<button class="btn small" data-matup>${srcOf(mat)?'Replace picture':'Upload picture'}</button>`:''}</div></div></div>
+      <div class="st-row"><div class="st-prev"><div class="st-back st-logo-prev"><span class="back"></span>${srcOf(lg)&&!lg.on?`<img src="${srcOf(lg)}" alt="" style="position:absolute;inset:${((1-(lg.size||.6))/2*100).toFixed(1)}%;width:${((lg.size||.6)*100).toFixed(0)}%;height:${((lg.size||.6)*100).toFixed(0)}%;object-fit:contain;opacity:${lg.on?1:.35}">`:''}</div></div>
+        <div class="st-grow"><b>Logo on token backs</b><p class="muted st-small">Shows on every face-down token. Off until you switch it on.</p>
+        <div class="st-acts"><button class="btn small" data-logoup>${srcOf(lg)?'Replace logo':'Upload logo'}</button>
+          ${srcOf(lg)?`<label class="st-check"><input type="checkbox" data-logoon ${lg.on?'checked':''}> Show on token backs</label>
+          <label class="st-color">Size <input type="range" min="30" max="95" step="5" value="${Math.round((lg.size||.6)*100)}" data-logosize></label>
+          <button class="btn small ghost" data-logoreset>Remove</button>`:''}</div></div></div>
+      <p class="muted">Upload an icon for any token. It sits on top of the token material (PNG with a transparent background works best; SVG and JPG work too).</p>
+      <div class="st-grid">${ORDER.map(t=>item(t,TYPES[t].name,face(t))).join('')}${item('back','Token back picture (replaces the material on backs)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
   } else if(STUDIO.tab==='bg'){
     const row=(key,label)=>{ const e=E.bg&&E.bg[key]||{}, src=srcOf(e);
       return `<div class="st-row"><div class="st-swatch" style="background:${src?`url('${src}') center/cover,`:e.color?'':'var(--water) center/cover,'}${e.color||'#2f9ea3'}"></div>
@@ -1401,7 +1427,7 @@ function renderStudio(){
     <div class="st-body">${STUDIO.ok&&!STUDIO.editId?`<div class="st-center"><p class="muted">There are no artwork sets yet. Start one from the original design.</p><button class="btn primary" id="stFirstSet">Create the first set</button></div>`:body}</div>
     ${STUDIO.ok?`<footer class="st-foot"><button class="btn small ghost" id="stResetAll" ${STUDIO.editId?'':'hidden'}>${STUDIO.armReset?'Tap again to clear this set':'Clear this set back to the original'}</button><button class="linkbtn" id="stSignOut">Sign out</button></footer>`:''}
   </div>`;
-  const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'?'change':el.type==='color'?'change':el.tagName==='SELECT'||el.type==='checkbox'?'change':'click',()=>fn(el)));
+  const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'||el.tagName==='SELECT'||['color','checkbox','range'].includes(el.type)?'change':'click',()=>fn(el)));
   on('#stClose',()=>{ b.hidden=true; STUDIO.msg=''; render() });
   on('#stSignIn',()=>studioSignIn());
   on('#stSignOut',async()=>{ const {AU,auth}=await adminCore(); await AU.signOut(auth); STUDIO.user=null; STUDIO.ok=false; STUDIO.needSignIn=true; STUDIO.msg=''; renderStudio() });
@@ -1409,6 +1435,13 @@ function renderStudio(){
   on('[data-up]',el=>{ const k=el.dataset.up; pickFile('image/*',f=>uploadAsset(k==='back'?'back':'tokens/'+k,f,'image',{max:512})) });
   on('[data-reset]',async el=>{ const k=el.dataset.reset, p=k==='back'?'back':'tokens/'+k; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-full]',el=>saveTheme('tokens/'+el.dataset.full+'/full',el.checked));
+  on('[data-mattype]',async el=>{ const v=el.value; if(v==='wood'){ await removeOldAsset('material'); return saveTheme('material',null) } await saveTheme('material/type',v) });
+  on('[data-matcolor]',el=>saveTheme('material/color',el.value));
+  on('[data-matup]',()=>pickFile('image/*',f=>uploadAsset('material',f,'image',{max:512,keep:{type:'image'}})));
+  on('[data-logoup]',()=>pickFile('image/*',f=>uploadAsset('backLogo',f,'image',{max:512,keep:{on:!!(editTheme().backLogo&&editTheme().backLogo.on)}})));
+  on('[data-logoon]',el=>saveTheme('backLogo/on',el.checked));
+  on('[data-logosize]',el=>saveTheme('backLogo/size',(+el.value)/100));
+  on('[data-logoreset]',async()=>{ await removeOldAsset('backLogo'); saveTheme('backLogo',null) });
   on('[data-bgup]',el=>pickFile('image/*',f=>uploadAsset('bg/'+el.dataset.bgup,f,'image',{max:1800})));
   on('[data-bgocean]',async el=>{ const p='bg/'+el.dataset.bgocean; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-bgcolor]',el=>saveTheme('bg/'+el.dataset.bgcolor+'/color',el.value));
