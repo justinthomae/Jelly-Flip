@@ -290,7 +290,7 @@ const TYPES = {
   fish:   {name:'Fish', kind:'catch', pts:1, n:20, say:'+1 point. Keep flipping or bank.'},
   star:   {name:'Starfish', kind:'catch', pts:3, n:5, say:'+3 points. Keep flipping or bank.'},
   extra:  {name:'Extra Turn', kind:'go', n:2, say:'Bank your catch, scrap it, then take another turn.'},
-  bigeye: {name:'Big-Eyed Fish', kind:'stop', n:2, say:'Bank, scrap it, secretly peek at one token. Turn ends.'},
+  bigeye: {name:'Snorkel Mask', kind:'stop', n:2, say:'Bank, scrap it, then secretly peek at 3 tokens. Turn ends.'},
   hook:   {name:'Fish Hook', kind:'stop', n:2, say:'Bank, scrap it, then reveal and scrap any face-down token. Turn ends.'},
   g1:     {name:'Submarine · 1 window', kind:'stop', n:1, picks:1, say:'Bank, scrap it, show 1 token to everyone. Turn ends.'},
   g2:     {name:'Submarine · 2 windows', kind:'stop', n:1, picks:2, say:'Bank, scrap it, show 2 tokens to everyone. Turn ends.'},
@@ -317,7 +317,9 @@ const ART = {
   dolphin:`<path d="M19 77 C24 60 36 45 51 38 C60 33 69 32 77 35 L88 35 C91 35 91 40 88 40 L78 43 C71 50 62 57 53 61 C43 66 35 71 29 79"/><path d="M47 40 C47 32 44 27 39 25 C43 30 43 35 41 42"/><path d="M58 58 C57 65 60 69 64 69 C62 65 62 61 62 57"/><path d="M19 77 C13 75 9 77 8 82 C12 80 16 81 19 83 C18 88 20 92 24 93 C24 88 26 83 29 79"/><circle cx="72" cy="39" r="2.3" fill="currentColor" stroke="none"/>`,
   whirl: `<path d="${spiral()}"/>`,
   extra: `<path d="M27 44 A24 24 0 0 1 70 34 M70 34 l-10 -1 M70 34 l1 -10 M73 56 A24 24 0 0 1 30 66 M30 66 l10 1 M30 66 l-1 10"/>`,
-  bigeye:`<path d="${FISH}"/><circle cx="36" cy="46" r="8"/><circle cx="37" cy="46" r="3" fill="currentColor" stroke="none"/><path d="M30 34 l-3 -6 M37 32 v-7 M44 34 l3 -6" stroke-width="3"/>`,
+  // snorkel mask: wide frame with a nose pocket, glass glints, side straps, snorkel up the right side
+  bigeye:`<path d="M17 44 C17 33 30 29 50 29 C70 29 83 33 83 44 C83 57 76 65 66 65 C59 65 57 58 50 58 C43 58 41 65 34 65 C24 65 17 57 17 44 Z"/><path d="M25 45 C25 38 34 36 50 36 C66 36 75 38 75 45 C75 53 71 57 65 57 C60 57 57 51 50 51 C43 51 40 57 35 57 C29 57 25 53 25 45 Z"/><path d="M33 42 l5 -2 M34 47 l7 -3" stroke-width="3"/><path d="M17 46 H10 M83 46 H86"/><path d="M80 74 C86 70 89 64 89 54 V20"/><circle cx="89" cy="16" r="3.5"/><path d="M80 74 C75 79 68 80 63 77"/>`,
+  bigfish:`<path d="${FISH}"/><circle cx="36" cy="46" r="8"/><circle cx="37" cy="46" r="3" fill="currentColor" stroke="none"/><path d="M30 34 l-3 -6 M37 32 v-7 M44 34 l3 -6" stroke-width="3"/>`,
   hook:  `<circle cx="56" cy="17" r="4.5"/><path d="M56 22 L56 64 C56 82 30 82 30 64 L30 57 L37 64"/>`,
   g1:G(1), g2:G(2), g3:G(3),
 };
@@ -371,7 +373,7 @@ function newGame(setup,seed){
   if(isAI(P())||S.players.filter(p=>!isAI(p)).length<2) S.phase='flip';
   boardEl=null;
 }
-const freshTurn = () => ({rev:[], picks:0, pending:null, banked:0, peek:null, act:null});
+const freshTurn = () => ({rev:[], picks:0, pending:null, banked:0, peek:null, act:null, peeked:[]});
 const P = () => S.players[S.cur];
 const score = p => p.bank.reduce((a,t)=>a+TYPES[t].pts,0) - p.jellies;
 const faceDown = () => S.slots.map((s,i)=>s&&!s.up?i:-1).filter(i=>i>=0);
@@ -876,7 +878,7 @@ function legal(a){
   const m=/^([fp])(\d{1,2})$|^([xbc])$/.exec(a); if(!m) return false;
   const c=m[1]||m[3], s=S.slots[+m[2]];
   if(c==='f') return ['flip','hook','goggles'].includes(S.phase)&&!!s&&!s.up;
-  if(c==='p') return S.phase==='peek'&&!!s&&!s.up;
+  if(c==='p') return S.phase==='peek'&&!!s&&!s.up&&!(S.turn.peeked||[]).includes(+m[2]);
   if(c==='x') return S.phase==='peeking';
   if(c==='b') return S.phase==='flip'&&turnPts()>0;
   if(c==='c') return S.phase==='card';
@@ -1041,7 +1043,7 @@ function aiChooseFlip(p){
 }
 
 function aiTarget(p,purpose){
-  const B=beliefFor(p), fd=faceDown(), unknown=fd.filter(i=>!B[i]);
+  const B=beliefFor(p), fd=faceDown().filter(i=>!(purpose==='peek'&&(S.turn.peeked||[]).includes(i))), unknown=fd.filter(i=>!B[i]);
   if(p.kind==='easy'&&Math.random()<.5) return pick(fd);
   if(purpose==='hook') for(const t of ['shark','whirl','jelly']){const k=fd.filter(i=>B[i]===t); if(k.length) return pick(k)}
   return unknown.length?pick(unknown):pick(fd);
@@ -1176,7 +1178,8 @@ async function doFlip(i){
   }
   const fd=faceDown().length;
   if(s.t==='bigeye'){
-    await toCard(i,{t:s.t,title:'Secret peek',body:!mine(S.cur)?`${banked}${p.name} is taking a secret peek.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, tap a token to peek.`});
+    S.turn.picks=Math.min(3,fd);
+    await toCard(i,{t:s.t,title:'Snorkel mask',body:!mine(S.cur)?`${banked}${p.name} is secretly peeking at ${plural(S.turn.picks,'token')}.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, tap ${plural(S.turn.picks,'token')} to peek at, one at a time.`});
     if(!fd){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
     S.phase='peek'; return;
   }
@@ -1192,7 +1195,7 @@ async function doFlip(i){
 }
 
 async function startPeek(i){
-  S.turn.peek=i; const s=S.slots[i], p=P();
+  S.turn.peek=i; S.turn.peeked=S.turn.peeked||[]; S.turn.peeked.push(i); const s=S.slots[i], p=P();
   if(isAI(p)){ S.tick++; p.mem[i]={t:s.t,tick:S.tick} }
   sfx('peek');
   if(mine(S.cur)){
@@ -1215,8 +1218,17 @@ async function endPeek(){
     away.delete(s.id);
   } else S.phase='anim';
   render();
+  // the snorkel mask gives several peeks, one at a time
+  S.turn.picks--; S.turn.peek=null;
+  const left=faceDown().filter(j=>!S.turn.peeked.includes(j)).length;
+  if(S.turn.picks>0&&left){
+    const p=P(), n=Math.min(S.turn.picks,left); S.turn.picks=n;
+    S.card={...S.card,body:mine(S.cur)?`Tap ${plural(n,'more token')} to peek at.`:`${p.name} has ${plural(n,'more peek')}.`};
+    S.phase='peek'; return;
+  }
+  const n=S.turn.peeked.length;
   await cardToScrap(S.turn.act);
-  endTurn(`${P().name} ${bankedNote()} and took a secret peek.`);
+  endTurn(`${P().name} ${bankedNote()} and secretly peeked at ${plural(n,'token')}.`);
 }
 
 async function doBank(){ const pts=await bankFlights(); endTurn(`${P().name} banked ${plural(pts,'point')}.`) }
@@ -1361,8 +1373,9 @@ function renderBoard(){
     el.classList.toggle('up',s.up);
     el.classList.toggle('rev',s.up&&S.turn.rev.includes(i));
     el.classList.toggle('away',away.has(s.id));
-    el.classList.toggle('pick',!s.up&&pickable);
-    el.disabled=!(!s.up&&pickable);
+    const canPick=!s.up&&pickable&&!(S.phase==='peek'&&(S.turn.peeked||[]).includes(i));
+    el.classList.toggle('pick',canPick);
+    el.disabled=!canPick;
     el.setAttribute('aria-label',s.up?TYPES[s.t].name:'Face-down token');
   });
   for(const [id,el] of tokMap) if(!live.has(id)){el.remove();tokMap.delete(id)}
@@ -1451,7 +1464,7 @@ function renderGame(){
     if(!ov.querySelector('#peekFace')){
       const t=S.slots[S.turn.peek].t;
       ov.hidden=false;
-      ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><div id="peekFace" class="peekface">${face(t)}</div><h2>${TYPES[t].name}</h2><p class="muted">Remember where it was.</p><button class="btn primary" id="hide">Hide it and end turn</button></div>`;
+      ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><div id="peekFace" class="peekface">${face(t)}</div><h2>${TYPES[t].name}</h2><p class="muted">Peek ${S.turn.peeked.length} of ${S.turn.peeked.length+S.turn.picks-1}. Remember where it was.</p><button class="btn primary" id="hide">${S.turn.picks>1&&faceDown().some(j=>!S.turn.peeked.includes(j)&&j!==S.turn.peek)?'Hide it and peek again':'Hide it and end turn'}</button></div>`;
       const f=ov.querySelector('#peekFace .face'); f.style.width='100%'; f.style.height='100%';
     }
     ov.querySelector('#hide').disabled=busy||!!NET.pending;
@@ -1495,7 +1508,7 @@ function startSplash(){
   const rows=[.14,.3,.62,.78], out=[];
   rows.forEach((y,k)=>{
     const s=44+Math.random()*40, d=9+Math.random()*7;
-    out.push(`<div class="swim ${k%2?'r':''}" style="--y:${(y*100).toFixed(0)}%;--x:${(10+Math.random()*70).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="bob" style="animation-delay:${(-Math.random()*1.5).toFixed(2)}s">${icon(k===1?'bigeye':'fish')}</span></div>`);
+    out.push(`<div class="swim ${k%2?'r':''}" style="--y:${(y*100).toFixed(0)}%;--x:${(10+Math.random()*70).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="bob" style="animation-delay:${(-Math.random()*1.5).toFixed(2)}s">${icon(k===1?'bigfish':'fish')}</span></div>`);
   });
   [.14,.76].forEach(x=>{
     const s=50+Math.random()*30, d=14+Math.random()*6;
