@@ -403,6 +403,8 @@ const pileEl = () => document.querySelector('#pile .stack');
 const cardFace = () => document.getElementById('cardFace');
 
 // A loose copy of a token that travels in an arc between two points, flipping on the way if asked.
+// Wait for an animation, but never longer than it should take: browsers pause animations in hidden tabs.
+function animDone(a,ms){ return Promise.race([a.finished.catch(()=>{}), new Promise(r=>setTimeout(r,ms+300))]).then(()=>{ try{a.finish()}catch(e){} }) }
 function fly(from,to,{t=null,up=false,upEnd=up,dur=650,delay=0}={}){
   const el=document.createElement('div'); el.className='fly';
   el.style.cssText=`left:${from.x-from.s/2}px;top:${from.y-from.s/2}px;width:${from.s}px;height:${from.s}px`;
@@ -415,14 +417,15 @@ function fly(from,to,{t=null,up=false,upEnd=up,dur=650,delay=0}={}){
     {transform:`translate(${dx/2}px,${dy/2+lift}px) scale(${Math.max(sc,1)*1.12})`,offset:.5},
     {transform:`translate(${dx}px,${dy}px) scale(${sc})`}],opts);
   el.firstChild.animate([{transform:`rotateY(${up?180:0}deg)`},{transform:`rotateY(${upEnd?180:0}deg)`}],opts);
-  return a.finished.catch(()=>{}).then(()=>el.remove());
+  return animDone(a,(dur+delay)*M()).then(()=>el.remove());
 }
 function bump(p){pulse={p,until:Date.now()+600}}
 
 async function run(fn){
-  if(busy) return; busy=true; render();
-  try{ await fn() } catch(e){ console.error(e) }
-  busy=false; render();
+  if(busy) return; busy=true;
+  try{ render(); await fn() } catch(e){ console.error('move failed',e) }
+  finally{ busy=false }
+  try{ render() }catch(e){ console.error('render failed',e) }
 }
 
 // ---------- moves ----------
@@ -451,7 +454,7 @@ async function toCard(i,card){
 async function cardToScrap(i){
   const s=S.slots[i], from=centerOf(cardFace()); cardHidden=true; render();
   await fly(from,centerOf(pileEl()),{t:s.t,up:true,upEnd:false,dur:650});
-  sfx('thud'); S.scrap.push(s.t); away.delete(s.id); S.slots[i]=null; forget(i); S.turn.rev=S.turn.rev.filter(j=>j!==i);
+  sfx('thud'); S.scrap.push(s.t); (S.seenScrap=S.seenScrap||[]).push(s.t); away.delete(s.id); S.slots[i]=null; forget(i); S.turn.rev=S.turn.rev.filter(j=>j!==i);
   if(S.turn.act===i) S.turn.act=null;
   cardHidden=false; render();
 }
@@ -467,7 +470,7 @@ async function sharkReturn(){
   const p=P(), lose=Math.ceil(p.bank.length/2); gshuffle(p.bank);
   for(let k=0;k<lose;k++){
     const t=p.bank.pop(); bump(S.cur); render();
-    const e=empties(); if(!e.length){S.scrap.push(t);continue}
+    const e=empties(); if(!e.length){S.scrap.push(t);(S.seenScrap=S.seenScrap||[]).push(t);continue}
     const spot=gpick(e);
     await fly(centerOf(chipDot()),spotCenter(spot),{t,up:true,dur:1150});
     S.slots[spot]={id:S.nextId++,t,up:true}; seeAll(spot); sfx('thud'); render(); await wait(900);
@@ -491,7 +494,7 @@ async function doSwap(a,b){
       const x=u*u*from.x+2*u*e*cx+e*e*to.x, y=u*u*from.y+2*u*e*cy+e*e*to.y;
       kf.push({transform:`translate(${(x-to.x).toFixed(1)}px,${(y-to.y).toFixed(1)}px) rotate(${Math.round(e*360)}deg) scale(${(1+.15*Math.sin(Math.PI*t)).toFixed(3)})`}) }
     return kf };
-  await Promise.all([[b,pa,pb,1],[a,pb,pa,-1]].map(([slot,from,to,side])=>tokEl(slot).animate(arc(from,to,side),{duration:1100*M(),easing:'linear'}).finished.catch(()=>{})));
+  await Promise.all([[b,pa,pb,1],[a,pb,pa,-1]].map(([slot,from,to,side])=>animDone(tokEl(slot).animate(arc(from,to,side),{duration:1100*M(),easing:'linear'}),1100*M())));
   sfx('thud');
   await cardToScrap(S.turn.act);
   endTurn(`${p.name} ${bankedNote()} and swapped two tokens.`);
@@ -991,10 +994,16 @@ function beliefFor(p){
 }
 
 // Expected points from flipping a token the AI knows nothing about.
+// Only public information: start from the full bag and take away every token anyone has seen leave the table
+// (hands, the scrap pile as it was filled), whatever is face up now, and whatever this AI remembers.
 function blindEV(p,B,pend){
   const c={};
-  for(const i of faceDown()){const t=S.slots[i].t;c[t]=(c[t]||0)+1}
-  for(const k in B) if(c[B[k]]>0) c[B[k]]--;
+  for(const t of ORDER) c[t]=TYPES[t].n;
+  const out=t=>{ if(c[t]>0) c[t]-- };
+  for(const q of S.players) q.bank.forEach(out);
+  (S.seenScrap||[]).forEach(out);
+  S.slots.forEach(s=>{ if(s&&s.up) out(s.t) });
+  for(const k in B) out(B[k]);
   const U=Object.values(c).reduce((a,b)=>a+b,0); if(!U) return -99;
   const half=p.bank.reduce((a,t)=>a+TYPES[t].pts,0)/2;
   let ev=0;
@@ -1211,7 +1220,7 @@ async function startPeek(i){
   } else {
     // everyone else just sees the token lifted a little
     S.phase='peeking'; render();
-    await tokEl(i).animate([{transform:'none'},{transform:'translateY(-6px) rotateX(35deg)'},{transform:'translateY(-6px) rotateX(35deg)',offset:.75},{transform:'none'}],{duration:1300*M()}).finished.catch(()=>{});
+    await animDone(tokEl(i).animate([{transform:'none'},{transform:'translateY(-6px) rotateX(35deg)'},{transform:'translateY(-6px) rotateX(35deg)',offset:.75},{transform:'none'}],{duration:1300*M()}),1300*M());
   }
 }
 async function endPeek(){
