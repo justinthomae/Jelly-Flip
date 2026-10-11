@@ -144,11 +144,9 @@ p{margin:0}
 .tok.aim .tilt{transform:rotate(var(--r,0deg)) scale(1.08) translateY(-2px);transition:transform .25s}
 .board.dim .tok.pick .back{box-shadow:inset 0 0 0 1px rgba(80,40,10,.2),0 0 0 3px color-mix(in srgb,var(--sea) 55%,transparent),0 4px 7px rgba(0,0,0,.5)}
 
-/* whirlpool vortex that hides the churning tokens */
-.vortex{position:absolute;z-index:50;border-radius:50%;pointer-events:none;color:color-mix(in srgb,var(--ink) 30%,transparent);
-  background:radial-gradient(circle,var(--table-2) 0 58%,color-mix(in srgb,var(--table-2) 75%,transparent) 68%,transparent 72%);
-  box-shadow:0 0 30px 6px rgba(0,0,0,.35)}
-.vortex svg{width:100%;height:100%;stroke-width:3.5}
+/* whirlpool swap: the first token picked */
+.tok.sel .back{box-shadow:inset 0 0 0 1px rgba(80,40,10,.2),0 0 0 4px var(--sea),0 8px 14px rgba(0,0,0,.55)}
+.tok.sel .tilt{transform:rotate(var(--r,0deg)) scale(1.1) translateY(-3px)}
 
 /* splash */
 .splash{position:fixed;inset:0;z-index:60;background:var(--table);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
@@ -297,10 +295,10 @@ const TYPES = {
   g3:     {name:'Submarine · 3 windows', kind:'stop', n:1, picks:3, say:'Bank, scrap it, show 3 tokens to everyone. Turn ends.'},
   jelly:  {name:'Jellyfish', kind:'bust', pts:-1, n:5, say:'Bust. It goes into your hand for −1 point.'},
   shark:  {name:'Shark', kind:'bust', n:1, say:'Bust. Half your hand (rounded up), picked at random, goes back onto the table. Jellyfish count too.'},
-  whirl:  {name:'Whirlpool', kind:'bust', n:1, say:'Bust. Every token on the table moves to a new spot, then the whirlpool is scrapped.'},
+  whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Bank, scrap it, then swap the places of any 2 face-down tokens. Turn ends.'},
   dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick any token from the scrap pile and hide it face down in an empty spot. The dolphin stays on the table.'},
 };
-const ORDER = ['fish','star','extra','bigeye','hook','g1','g2','g3','dolphin','jelly','shark','whirl'];
+const ORDER = ['fish','star','extra','bigeye','hook','g1','g2','g3','dolphin','whirl','jelly','shark'];
 
 function starPath(){let d='';for(let i=0;i<10;i++){const a=(-90+i*36)*Math.PI/180,r=i%2?13:31;d+=(i?'L':'M')+(50+r*Math.cos(a)).toFixed(1)+' '+(53+r*Math.sin(a)).toFixed(1)}return d+'Z'}
 function starDots(){let s='<circle cx="50" cy="53" r="2.4"/>';for(let i=0;i<5;i++){const a=(-90+i*72)*Math.PI/180;s+=`<circle cx="${(50+19*Math.cos(a)).toFixed(1)}" cy="${(53+19*Math.sin(a)).toFixed(1)}" r="2.2"/>`}return s}
@@ -477,44 +475,26 @@ async function sharkReturn(){
   }
   return lose;
 }
-// The whirlpool pulls every token into the middle, churns them out of sight, then scatters them to brand-new spots.
-async function swirl(){
-  const bw=boardEl.offsetWidth, bh=boardEl.offsetHeight, cx=bw/2, cy=bh/2, m=Math.min(bw,bh);
-  const idx=S.slots.map((s,i)=>s?i:-1).filter(i=>i>=0);
-  const before=new Map(idx.map(i=>[S.slots[i].id,{x:S.layout.spots[i].x*bw,y:S.layout.spots[i].y*bw}]));
-  const toks=gshuffle(idx.map(i=>S.slots[i]));
-  S.layout=makeLayout(S.h);
-  const spots=gshuffle([...Array(S.slots.length).keys()]).slice(0,toks.length);
-  S.slots=S.slots.map(()=>null); spots.forEach((sp,k)=>S.slots[sp]=toks[k]);
-  forgetAll(); render();
-  // put the tokens in a random stacking order so none stays on top
-  shuffle([...tokMap.values()]).forEach(el=>boardEl.appendChild(el));
-  const T=2300*M();
-  const vortex=document.createElement('div'); vortex.className='vortex';
-  vortex.style.cssText=`width:${m*.72}px;height:${m*.72}px;left:${cx-m*.36}px;top:${cy-m*.36}px`;
-  vortex.innerHTML=icon('whirl'); boardEl.appendChild(vortex); sfx('whirl');
-  const va=vortex.animate([
-    {opacity:0,transform:'scale(.3) rotate(0deg)'},
-    {opacity:1,transform:'scale(1) rotate(-300deg)',offset:.22},
-    {opacity:1,transform:'scale(1.05) rotate(-1100deg)',offset:.74},
-    {opacity:0,transform:'scale(.4) rotate(-1500deg)'}],{duration:T,easing:'linear',fill:'both'});
-  const anims=spots.map(sp=>{
-    const s=S.slots[sp], o=before.get(s.id), n={x:S.layout.spots[sp].x*bw,y:S.layout.spots[sp].y*bw};
-    const ao=Math.atan2(o.y-cy,o.x-cx), ro=Math.hypot(o.x-cx,o.y-cy);
-    const r0=m*(.03+Math.random()*.15), w=(5+Math.random()*7)*Math.PI, ph=Math.random()*6.28, amp=m*(.02+Math.random()*.08);
-    const a1=ao+Math.PI*(1+Math.random()), aEnd=a1+w;
-    let an=Math.atan2(n.y-cy,n.x-cx); while(an<aEnd+Math.PI*.6) an+=Math.PI*2;
-    const rn=Math.hypot(n.x-cx,n.y-cy), kf=[], N=48;
-    for(let k=0;k<=N;k++){
-      const t=k/N; let a,r;
-      if(t<.24){const u=t/.24, e=u*u*(3-2*u); a=ao+(a1-ao)*e; r=ro+(r0-ro)*e}
-      else if(t<.72){const u=(t-.24)/.48; a=a1+w*u; r=r0+amp*Math.sin(ph+u*9)}
-      else {const u=(t-.72)/.28, e=u*u*(3-2*u); const rEnd=r0+amp*Math.sin(ph+9); a=aEnd+(an-aEnd)*e; r=rEnd+(rn-rEnd)*e}
-      kf.push({transform:`translate(${(cx+r*Math.cos(a)-n.x).toFixed(1)}px,${(cy+r*Math.sin(a)-n.y).toFixed(1)}px) rotate(${Math.round(t*900)}deg)`});
-    }
-    return tokMap.get(s.id).animate(kf,{duration:T,easing:'linear'}).finished.catch(()=>{});
-  });
-  await Promise.all(anims); await va.finished.catch(()=>{}); vortex.remove();
+// Whirlpool: two face-down tokens trade places in a little spin, in full view of everyone.
+let swapPick=null;
+async function doSwap(a,b){
+  const p=P(); swapPick=null; S.phase='anim';
+  const bw=boardEl.offsetWidth, loc=i=>({x:S.layout.spots[i].x*bw,y:S.layout.spots[i].y*bw});
+  const pa=loc(a), pb=loc(b);
+  [S.slots[a],S.slots[b]]=[S.slots[b],S.slots[a]];
+  for(const q of S.players) if(q.mem){ const ma=q.mem[a], mb=q.mem[b]; delete q.mem[a]; delete q.mem[b]; if(mb) q.mem[a]=mb; if(ma) q.mem[b]=ma }
+  render(); sfx('whirl');
+  // each token arcs from its old spot to its new one, on opposite sides so they cross
+  const mx=(pa.x+pb.x)/2, my=(pa.y+pb.y)/2, nx=-(pb.y-pa.y), ny=pb.x-pa.x, len=Math.hypot(nx,ny)||1, bend=Math.min(60,len*.35);
+  const arc=(from,to,side)=>{ const kf=[]; for(let k=0;k<=20;k++){ const t=k/20, e=t*t*(3-2*t), u=1-e;
+      const cx=mx+side*nx/len*bend, cy=my+side*ny/len*bend;
+      const x=u*u*from.x+2*u*e*cx+e*e*to.x, y=u*u*from.y+2*u*e*cy+e*e*to.y;
+      kf.push({transform:`translate(${(x-to.x).toFixed(1)}px,${(y-to.y).toFixed(1)}px) rotate(${Math.round(e*360)}deg) scale(${(1+.15*Math.sin(Math.PI*t)).toFixed(3)})`}) }
+    return kf };
+  await Promise.all([[b,pa,pb,1],[a,pb,pa,-1]].map(([slot,from,to,side])=>tokEl(slot).animate(arc(from,to,side),{duration:1100*M(),easing:'linear'}).finished.catch(()=>{})));
+  sfx('thud');
+  await cardToScrap(S.turn.act);
+  endTurn(`${p.name} ${bankedNote()} and swapped two tokens.`);
 }
 
 // ---------- sound & haptics ----------
@@ -877,6 +857,8 @@ function sendReq(a){
 
 // ----- shared -----
 function legal(a){
+  const wm=/^w(\d{1,2})s(\d{1,2})$/.exec(a);
+  if(wm){ const x=S.slots[+wm[1]], y=S.slots[+wm[2]]; return S.phase==='swap'&&wm[1]!==wm[2]&&!!x&&!x.up&&!!y&&!y.up }
   const dm=/^d(\d{1,2})s(\d{1,2})$/.exec(a);
   if(dm) return S.phase==='dolphin'&&+dm[1]<S.scrap.length&&+dm[2]<S.slots.length&&!S.slots[+dm[2]];
   const m=/^([fp])(\d{1,2})$|^([xbc])$/.exec(a); if(!m) return false;
@@ -1036,7 +1018,7 @@ function aiChooseFlip(p){
   if(pend===0){
     if(unknown.length) return pick(unknown);
     const acts=known.filter(i=>kindOf(i)!=='bust'); if(acts.length) return pick(acts);
-    const order=p.bank.length?['whirl','jelly','shark']:['shark','whirl','jelly'];
+    const order=p.bank.length?['jelly','shark']:['shark','jelly'];
     for(const t of order) if(of(t).length) return pick(of(t));
     return pick(fd);
   }
@@ -1049,13 +1031,13 @@ function aiChooseFlip(p){
 function aiTarget(p,purpose){
   const B=beliefFor(p), fd=faceDown().filter(i=>!(purpose==='peek'&&(S.turn.peeked||[]).includes(i))), unknown=fd.filter(i=>!B[i]);
   if(p.kind==='easy'&&Math.random()<.5) return pick(fd);
-  if(purpose==='hook') for(const t of ['shark','whirl','jelly']){const k=fd.filter(i=>B[i]===t); if(k.length) return pick(k)}
+  if(purpose==='hook') for(const t of ['shark','jelly']){const k=fd.filter(i=>B[i]===t); if(k.length) return pick(k)}
   return unknown.length?pick(unknown):pick(fd);
 }
 
 function maybeAI(){
   if(aiTimer||busy||!S||S.screen!=='play'||S.rulesOpen||(S.net&&!S.net.host)) return;
-  const p=P(); if(!isAI(p)||!['flip','card','peek','peeking','hook','goggles','dolphin'].includes(S.phase)) return;
+  const p=P(); if(!isAI(p)||!['flip','card','peek','peeking','hook','goggles','dolphin','swap'].includes(S.phase)) return;
   let d=rnd(AI[p.kind].think);
   if(S.phase==='card') d=1500+Math.random()*900;
   else if(S.phase==='peeking') d=600;
@@ -1074,10 +1056,18 @@ async function aiAct(){
   if(ph==='flip'){ const i=aiChooseFlip(p); if(i<0) return act('b'); await aim(i); return act('f'+i) }
   if(ph==='peek'){ const i=aiTarget(p,'peek'); await aim(i); return act('p'+i) }
   if(ph==='hook'||ph==='goggles'){ const i=aiTarget(p,ph); await aim(i); return act('f'+i) }
+  if(ph==='swap'){
+    // swap a remembered prize with a remembered trap, so anyone not paying attention gets caught; otherwise any two
+    const B=beliefFor(p), fd=faceDown(), good=fd.filter(i=>['star','fish'].includes(B[i])), bad=fd.filter(i=>['jelly','shark'].includes(B[i]));
+    let a,b;
+    if(p.kind!=='easy'&&good.length&&bad.length){ a=pick(good); b=pick(bad) }
+    else { a=pick(fd); b=pick(fd.filter(i=>i!==a)) }
+    await aim(a); await aim(b); return act('w'+a+'s'+b);
+  }
   if(ph==='dolphin'){
     // hide a trap if there is one; easy players just grab anything
     let k=-1;
-    if(p.kind!=='easy') for(const t of ['shark','jelly','whirl']){ k=S.scrap.indexOf(t); if(k>=0) break }
+    if(p.kind!=='easy') for(const t of ['shark','jelly']){ k=S.scrap.indexOf(t); if(k>=0) break }
     if(k<0) k=Math.floor(Math.random()*S.scrap.length);
     return act('d'+k+'s'+pick(empties()));
   }
@@ -1089,6 +1079,11 @@ function onSlot(i){
   const s=S.slots[i]; if(busy||!s||s.up||!mine(S.cur)||NET.pending) return;
   if(['flip','hook','goggles'].includes(S.phase)){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('f'+i) }
   else if(S.phase==='peek'){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('p'+i) }
+  else if(S.phase==='swap'){
+    if(swapPick===i){ swapPick=null; return render() }
+    if(swapPick==null){ sfx('tap'); swapPick=i; return render() }
+    const a=swapPick; swapPick=null; act('w'+a+'s'+i);
+  }
 }
 // Every move goes through here. Offline it plays at once; online the host adds it to the shared list.
 function act(a){
@@ -1104,6 +1099,7 @@ function applyAction(a){
   if(c==='x') return run(endPeek);
   if(c==='b') return run(doBank);
   if(c==='c') return run(doContinue);
+  if(c==='w'){ const [,x,y]=/^w(\d+)s(\d+)$/.exec(a); return run(()=>doSwap(+x,+y)) }
   if(c==='d'){ const [,k,spot]=/^d(\d+)s(\d+)$/.exec(a); return run(()=>dolphinPlace(+k,+spot)) }
 }
 async function hookTap(i){
@@ -1136,7 +1132,6 @@ function bustBody(t){
   if(t==='jelly') return `${p.name} keeps it for −1 and banks nothing this turn.`;
   if(t==='shark'){const n=p.bank.length,l=Math.ceil(n/2);
     return n?`${l} of the ${plural(n,'token')} in ${p.name}’s hand go back onto the table, jellyfish included. Watch where they land!`:`${p.name}’s hand is empty, so the shark leaves hungry.`}
-  if(t==='whirl') return 'Nothing banked. The whole table gets swirled, then the whirlpool is scrapped.';
   return '';
 }
 // The dolphin's player hides their chosen scrap token in an empty spot; only they (and an AI's memory) know what it is.
@@ -1170,6 +1165,11 @@ async function doFlip(i){
     S.turn.pending={type:'extra'};
     await toCard(i,{t:'extra',title:'Angelfish! Go again',body:`${banked}${p.name} takes another turn.`});
     S.phase='card'; return;
+  }
+  if(s.t==='whirl'){
+    if(faceDown().length<2){ await toCard(i,{t:'whirl',title:'Whirlpool!',body:`${banked}Not enough tokens left to swap.`}); await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+    await toCard(i,{t:'whirl',title:'Whirlpool!',body:!mine(S.cur)?`${banked}${p.name} is choosing two tokens to swap.`:`${banked}Tap two face-down tokens to swap their places.`});
+    swapPick=null; S.phase='swap'; return;
   }
   if(s.t==='dolphin'){
     if(!S.scrap.length){
@@ -1259,9 +1259,6 @@ async function doContinue(){
       const lost=await sharkReturn();
       return endTurn(lost?`The shark knocked ${plural(lost,'token')} from ${p.name} back onto the table.`:`The shark found nothing to take from ${p.name}.`);
     }
-    case 'whirl':
-      await cardToScrap(pd.slot); S.card=null; render(); await flipDownAll(); await swirl();
-      return endTurn(`${p.name} got caught in the whirlpool. The whole table got mixed up.`);
     case 'dolphinEmpty':
       await cardToSpot(S.turn.act); await flipDownAll();
       return endTurn(`${p.name} ${bankedNote()}.`);
@@ -1277,7 +1274,7 @@ async function doContinue(){
 }
 
 function endTurn(summary){
-  dolphinPick=null;
+  dolphinPick=null; swapPick=null;
   S.slots.forEach(s=>{if(s) s.up=false}); S.turn=freshTurn(); S.card=null; away.clear();
   if(onTable()<=3) return finish();
   S.cur=(S.cur+1)%S.players.length; S.summary=summary; S.turnNo++;
@@ -1309,8 +1306,8 @@ function rulesHTML(){
   return `<div class="rules">
     <p>Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends when 3 or fewer tokens are left on the table. Most points wins; ties go to whoever has fewer jellyfish.</p>
     <section><h3>Keep going</h3><ul>${['fish','star','extra'].map(li).join('')}</ul></section>
-    <section><h3>Bank and stop</h3><ul>${['bigeye','hook','g1','g2','g3','dolphin'].map(li).join('')}</ul></section>
-    <section><h3>Bust: bank nothing</h3><ul>${['jelly','shark','whirl'].map(li).join('')}</ul></section>
+    <section><h3>Bank and stop</h3><ul>${['bigeye','hook','g1','g2','g3','dolphin','whirl'].map(li).join('')}</ul></section>
+    <section><h3>Bust: bank nothing</h3><ul>${['jelly','shark'].map(li).join('')}</ul></section>
     <p class="muted">Scrapped tokens go to a face-down scrap pile. The shark and dolphin stay on the table unless a hook pulls them off.</p>
   </div>`;
 }
@@ -1357,7 +1354,7 @@ function renderSetup(){
 }
 
 function renderBoard(){
-  const pickable=!busy&&!NET.pending&&mine(S.cur)&&['flip','peek','hook','goggles'].includes(S.phase);
+  const pickable=!busy&&!NET.pending&&mine(S.cur)&&['flip','peek','hook','goggles','swap'].includes(S.phase);
   if(S.net&&!S.net.host&&!NET.pending) boardEl.querySelectorAll('.tok.aim').forEach(e=>e.classList.remove('aim'));
   boardEl.classList.toggle('dim',pickable&&S.phase!=='flip');
   const D=S.layout.D, live=new Set();
@@ -1376,6 +1373,7 @@ function renderBoard(){
     el.style.setProperty('--r',sp.r+'deg');
     el.classList.toggle('up',s.up);
     el.classList.toggle('rev',s.up&&S.turn.rev.includes(i));
+    el.classList.toggle('sel',S.phase==='swap'&&swapPick===i);
     el.classList.toggle('away',away.has(s.id));
     const canPick=!s.up&&pickable&&!(S.phase==='peek'&&(S.turn.peeked||[]).includes(i));
     el.classList.toggle('pick',canPick);
@@ -1432,6 +1430,7 @@ function renderGame(){
   if(S.card){
     mini=S.card.t?`<div class="mini ${cardHidden?'hide':''}" id="cardFace">${face(S.card.t)}</div>`:avatar;
     title=esc(S.card.title); sub=esc(S.card.body);
+    if(S.phase==='swap'&&me&&swapPick!=null) sub='Now tap the token to swap it with. Tap the first one again to change your mind.';
     if(S.phase==='dolphin'&&me&&dolphinPick!=null) sub=`You picked a token. Tap any glowing empty spot to hide it there face down.`;
     if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>Continue</button>`;
   } else {
