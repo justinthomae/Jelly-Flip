@@ -166,11 +166,15 @@ p{margin:0}
 .splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
   background:linear-gradient(180deg,rgba(6,40,46,.12),rgba(6,40,46,.3)),var(--water) center/cover no-repeat,#2f9ea3;transition:opacity .6s}
 .splash.out{pointer-events:none}
+/* a ready-blurred copy of the water, drawn once at load, so the dissolve only fades and scales (smooth on phones) */
+.splash-blur{position:absolute;inset:-5%;z-index:1;background:inherit;filter:blur(16px) saturate(1.25);opacity:.01;pointer-events:none;will-change:opacity,transform}
+#splashGo{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.popfx .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:none;box-shadow:none}
 .splash.out.plain{opacity:0;transition:opacity .6s}
 .popfx{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
 .popfx i{position:absolute;border-radius:50%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,.75);
   background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.9) 0 12%,rgba(255,255,255,.18) 13% 45%,rgba(160,230,225,.12) 70%,rgba(255,255,255,.35) 100%);
-  box-shadow:0 0 6px rgba(255,255,255,.25)}
+}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
 .top h1 .hlogo{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em;object-fit:contain}
@@ -378,6 +382,7 @@ p{margin:0}
 <div id="fx"></div>
 <div id="splash" class="splash" role="dialog" aria-label="Jelly Flip">
   <div class="sea" id="sea" aria-hidden="true"></div>
+  <div class="splash-blur" aria-hidden="true"></div>
   <div class="splash-in">
     <img id="splashLogo" class="title-logo" alt="" hidden>
     <h1 class="logo" data-t="title">Jelly Flip</h1>
@@ -2283,22 +2288,31 @@ function bubbleBurst(btn){
       {transform:`translate(${out-w}px,${-rise*.75}px) scale(1.2)`,opacity:.55,offset:.75},
       {transform:`translate(${out*1.1}px,${-rise}px) scale(1.5)`,opacity:0}],{duration:d,delay:110+Math.random()*120,easing:'cubic-bezier(.15,.7,.35,1)',fill:'both'});
   }
-  setTimeout(()=>layer.remove(),2200);
+  setTimeout(()=>layer.remove(),2500);
 }
-// the water melts away: it ripples, blurs and swells as it clears to show the page underneath
-function waterDissolve(sp,done){
+// the water melts away: it goes soft and blurry, swells and ripples, and clears to show the page underneath.
+// Only opacity and transform change while it plays, so phones keep up.
+function waterDissolve(sp,done,from){
   if(RM.matches||!sp.animate){ sp.classList.add('plain'); return setTimeout(done,650) }
-  const kids=sp.querySelectorAll('.splash-in,.credit,.foot,.sea');
-  kids.forEach(k=>k.animate([{opacity:1},{opacity:0}],{duration:420,delay:120,easing:'ease-in',fill:'forwards'}));
+  const fade=(el,o)=>el&&el.animate([{opacity:1},{opacity:0}],{duration:o.d,delay:o.dl,easing:'ease-in',fill:'forwards'});
+  sp.querySelectorAll('.splash-in,.credit,.foot').forEach(k=>fade(k,{d:300,dl:60}));
+  fade(sp.querySelector('.sea'),{d:400,dl:40});
+  const bl=sp.querySelector('.splash-blur');
+  if(bl) bl.animate([{opacity:.01,transform:'scale(1)'},{opacity:1,transform:'scale(1.04)'}],{duration:420,delay:60,easing:'ease-out',fill:'forwards'});
+  // ripples spread out from where Play was
+  if(from){ const layer=document.querySelector('.popfx');
+    if(layer) for(let k=0;k<3;k++){ const ring=document.createElement('i'); ring.className='ring'; const sz=120;
+      ring.style.cssText=`left:${from.x-sz/2}px;top:${from.y-sz/2}px;width:${sz}px;height:${sz}px`; layer.appendChild(ring);
+      ring.animate([{transform:'scale(.3)',opacity:.9},{transform:`scale(${7+k*2})`,opacity:0}],{duration:1100,delay:90+k*160,easing:'cubic-bezier(.2,.7,.3,1)',fill:'both'}) } }
   const a=sp.animate([
-    {opacity:1,filter:'blur(0) saturate(1)',transform:'scale(1) skew(0deg,0deg)'},
-    {opacity:1,filter:'blur(2px) saturate(1.15)',transform:'scale(1.015) skew(.8deg,-.4deg)',offset:.2},
-    {opacity:.85,filter:'blur(7px) saturate(1.25)',transform:'scale(1.05) skew(-1deg,.6deg)',offset:.45},
-    {opacity:.45,filter:'blur(14px) saturate(1.3)',transform:'scale(1.1) skew(.7deg,-.3deg)',offset:.72},
-    {opacity:0,filter:'blur(22px) saturate(1.3)',transform:'scale(1.16) skew(0deg,0deg)'}],{duration:1150,delay:120,easing:'ease-in-out',fill:'forwards'});
-  animDone(a,1300).then(done);
+    {opacity:1,transform:'scale(1) skew(0deg,0deg)'},
+    {opacity:1,transform:'scale(1.02) skew(.8deg,-.4deg)',offset:.3},
+    {opacity:.75,transform:'scale(1.06) skew(-1deg,.6deg)',offset:.55},
+    {opacity:.35,transform:'scale(1.1) skew(.6deg,-.3deg)',offset:.78},
+    {opacity:0,transform:'scale(1.14) skew(0deg,0deg)'}],{duration:1100,delay:220,easing:'ease-in-out',fill:'forwards'});
+  animDone(a,1350).then(done);
   const app=document.getElementById('app');
-  if(app) app.animate([{filter:'blur(10px)',transform:'scale(.96)',opacity:.6},{filter:'blur(4px)',transform:'scale(.99) skewX(.8deg)',opacity:.9,offset:.55},{filter:'blur(0)',transform:'none',opacity:1}],{duration:1250,delay:120,easing:'ease-out',fill:'backwards'});
+  if(app) app.animate([{transform:'scale(.95)',opacity:.4},{transform:'scale(1.005) skewX(.6deg)',opacity:.9,offset:.6},{transform:'none',opacity:1}],{duration:1150,delay:260,easing:'ease-out',fill:'backwards'});
 }
 function startSplash(){
   const sp=document.getElementById('splash'), sea=document.getElementById('sea');
@@ -2312,7 +2326,7 @@ function startSplash(){
     out.push(`<div class="drift" style="--x:${(x*100).toFixed(0)}%;--y:${(20+Math.random()*60).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="pulse" style="animation-delay:${(-Math.random()*1.6).toFixed(2)}s">${icon('jelly')}</span></div>`);
   });
   sea.innerHTML=out.join('');
-  let gone=false, touched=false;
+  let gone=false;
   // soft bubbles every second or two while the loading screen is up (once the browser allows sound)
   const bubbles=setInterval(()=>{
     if(gone||!PREFS.sound||!actx||actx.state!=='running') return;
@@ -2321,24 +2335,26 @@ function startSplash(){
     for(let k=0;k<n;k++) bubble(t+k*(.08+Math.random()*.12),.035);
   },1400);
   try{ if(PREFS.sound&&navigator.userActivation&&navigator.userActivation.hasBeenActive) audio() }catch(e){}
-  const close=(fx)=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out');
-    if(fx) waterDissolve(sp,()=>sp.remove()); else { sp.classList.add('plain'); setTimeout(()=>sp.remove(),650) } };
+  const close=from=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); waterDissolve(sp,()=>sp.remove(),from) };
   // Play pops the moment it's pressed: the button bursts into bubbles that float up over the game while the water clears
   const go=document.getElementById('splashGo');
   // phones only let sound start when the finger lifts, so the pop happens on press and the sound on release
   let sounded=false;
+  // a fizz of bubble pops that rises and thins out over the length of the animation
   const sound=()=>{ if(sounded) return; sounded=true; audio();
-    if(PREFS.sound&&actx){ if(srcOf(customSfx('bubble'))) playCustom(customSfx('bubble')); else { const t=actx.currentTime; for(let k=0;k<7;k++) bubble(t+k*.05,.05) } }
+    if(PREFS.sound&&actx){
+      if(srcOf(customSfx('bubble'))) playCustom(customSfx('bubble'));
+      else { const t=actx.currentTime+.02; let at=0; for(let k=0;k<16;k++){ bubble(t+at,.06*(1-k/22)); at+=.035+k*.006+Math.random()*.03 } }
+    }
     musicStart() };
   const press=e=>{
     e.stopPropagation(); if(gone) return;
-    buzz(12); bubbleBurst(go); close(true);
+    const r=go.getBoundingClientRect();
+    buzz(12); bubbleBurst(go); close({x:r.left+r.width/2,y:r.top+r.height/2});
   };
   go.addEventListener('pointerdown',press);
   go.addEventListener('pointerup',sound);
   go.addEventListener('click',e=>{ press(e); sound() });
-  sp.addEventListener('pointerdown',()=>{ touched=true });
-  setTimeout(()=>{ if(!touched){ close(true) } },8000);
 }
 
 // ---------- boot ----------
