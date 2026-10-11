@@ -248,6 +248,15 @@ p{margin:0}
 .st-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px 18px;border-top:1px solid var(--panel-2)}
 .studio-link{font-size:inherit;color:var(--ink-2)}
 
+/* Studio sets */
+.st-sets{display:flex;flex-direction:column;gap:8px;margin:0 18px 8px;padding:10px 12px;border-radius:14px;background:var(--table-2)}
+.st-setrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.st-setrow .label{min-width:84px}
+.st-setrow select,.st-setrow input{flex:1;min-width:140px;background:var(--panel);color:var(--ink);border:1.5px solid var(--panel-2);border-radius:10px;padding:7px 8px;font:inherit;font-size:.9rem}
+.st-note{font-size:.78rem;width:100%}
+.preview-bar{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--sea);color:var(--sea-ink);border-radius:14px;padding:10px 14px;font-weight:700;font-size:.9rem;box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.preview-bar .btn{background:var(--sea-ink);color:var(--sea)}
+
 /* online */
 .err{color:var(--bust);font-size:.9rem}
 .netstat{font-size:.82rem}
@@ -460,6 +469,17 @@ function applyTheme(){
   document.querySelectorAll('[data-t]').forEach(el=>{ el.innerHTML=TX(el.dataset.t) });
   themeDirty=true;
 }
+// Artwork sets: jf/sets/<id> each hold a whole theme; jf/active names the one players see.
+// An admin's device can preview any set without changing what players see.
+let SETS={}, ACTIVE=null, LEGACY={}, FETCH_ASSET=null, THEME_LOADED=0;
+let PREVIEW=(()=>{ try{ return localStorage.getItem('jellyflip.preview')||'' }catch(e){ return '' } })();
+const setPreview=id=>{ PREVIEW=id||''; try{ localStorage.setItem('jellyflip.preview',PREVIEW) }catch(e){} refreshTheme() };
+function displayedTheme(){
+  if(PREVIEW&&SETS[PREVIEW]) return SETS[PREVIEW];
+  if(ACTIVE&&SETS[ACTIVE]) return SETS[ACTIVE];
+  return ACTIVE==='original'?{}:LEGACY;
+}
+function refreshTheme(){ setTheme(displayedTheme(),FETCH_ASSET) }
 function setTheme(th,fetchRemote){
   THEME=th||{};
   try{ localStorage.setItem('jellyflip.theme',JSON.stringify(THEME)) }catch(e){}
@@ -1163,15 +1183,34 @@ function renderWait(){
   const lw=btns.querySelector('#leaveWait'); if(lw) lw.onclick=async()=>{ await leaveOnline(); S=setupState(S.setup||NET.setup); render() };
 }
 
-// ---------- Studio: the admin's editor for every image, color, font, word and sound ----------
-const ADMIN_EMAILS=['justinthomae@gmail.com'];
+// ---------- Studio: the admins' editor for every image, color, font, word and sound, in several sets ----------
+const ADMIN_EMAILS=['justinthomae@gmail.com','lydialichti@gmail.com'];
 const GOOGLE_FONTS=['Gochi Hand','Atkinson Hyperlegible','Rubik','Fredoka','Baloo 2','Nunito','Quicksand','Comfortaa','Patrick Hand','Caveat','Amatic SC','Pacifico','Lilita One','Luckiest Guy','Chewy','Bubblegum Sans','Sniglet','Short Stack','Poppins','Montserrat','Lato','Open Sans','Merriweather','Playfair Display','Lora'];
 const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',seam:'Plank lines',wood:'Token wood (light)',"wood-2":'Token wood (dark)',"wood-3":'Token edge',burn:'Token artwork lines',ink:'Main text',"ink-2":'Secondary text',sea:'Accent (buttons, highlights)',"sea-ink":'Text on accent buttons',bust:'Warnings and busts',panel:'Cards, menus and pop-ups',"panel-2":'Raised buttons and inputs'};
 const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',aiNote:'AI explanation',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Angelfish (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
-const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:''};
+const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
+const editTheme = () => SETS[STUDIO.editId]||{};
+const setName = id => id==='original'?'Original design':((SETS[id]&&SETS[id].meta&&SETS[id].meta.name)||'Untitled set');
+const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const studioAllowed = () => !!FIREBASE_CONFIG && !(window.claude&&window.claude.use);
 
+function setsBarHTML(){
+  const ids=Object.keys(SETS).sort((a,b)=>((SETS[a].meta&&SETS[a].meta.updated)||0)-((SETS[b].meta&&SETS[b].meta.updated)||0)).reverse();
+  const by=id=>{ const m=SETS[id]&&SETS[id].meta; return m&&m.by?' · '+m.by.split('@')[0]:'' };
+  const live=ACTIVE&&SETS[ACTIVE]?ACTIVE:'original';
+  return `<div class="st-sets">
+    <div class="st-setrow"><span class="label">Editing</span>
+      ${STUDIO.renaming?`<input id="stNameInput" maxlength="40" value="${esc(setName(STUDIO.editId))}"><button class="btn small primary" id="stNameSave">Save name</button>`
+      :`<select id="stEditSet" ${ids.length?'':'disabled'}>${ids.map(id=>`<option value="${id}" ${id===STUDIO.editId?'selected':''}>${esc(setName(id))}${id===ACTIVE?' (live)':''}${esc(by(id))}</option>`).join('')||'<option>No sets yet</option>'}</select>
+      <button class="btn small" id="stNewSet">New</button>${STUDIO.editId?`<button class="btn small" id="stDupSet">Duplicate</button><button class="btn small" id="stRename">Rename</button><button class="btn small ghost" id="stDelSet">${STUDIO.armDel?'Tap again to delete':'Delete'}</button>`:''}`}
+    </div>
+    <div class="st-setrow"><span class="label">Players see</span>
+      <select id="stLive"><option value="original" ${live==='original'?'selected':''}>Original design</option>${ids.map(id=>`<option value="${id}" ${id===live?'selected':''}>${esc(setName(id))}</option>`).join('')}</select>
+      ${STUDIO.editId&&STUDIO.editId!==live?`<span class="muted st-note">You’re previewing a different set on this device.</span>`:''}
+    </div>
+  </div>`;
+}
 async function adminCore(){
   if(STUDIO.core) return STUDIO.core;
   const {A,AU,D}=await fbCore();
@@ -1199,11 +1238,52 @@ async function studioSignIn(){
     STUDIO.msg='Sign-in didn’t finish: '+(e.code||e.message); renderStudio();
   }
 }
-function finishSignIn(user){
+async function finishSignIn(user){
   STUDIO.user=user; STUDIO.needSignIn=false;
   STUDIO.ok=!!user.email&&ADMIN_EMAILS.includes(user.email.toLowerCase())&&user.emailVerified!==false;
   STUDIO.msg=STUDIO.ok?'':`${user.email||'This account'} isn’t a Jelly Flip admin.`;
+  if(STUDIO.ok){
+    const {D,db}=await adminCore();
+    for(let k=0;k<50&&THEME_LOADED!==3;k++) await new Promise(r=>setTimeout(r,100));
+    // earlier single design becomes the first set
+    if(!Object.keys(SETS).length&&Object.keys(LEGACY).length){
+      const id=newId();
+      await D.set(D.ref(db,'jf/sets/'+id),{...LEGACY,meta:{name:'First set',by:user.email,updated:Date.now()}});
+      await D.set(D.ref(db,'jf/active'),id); await D.set(D.ref(db,'jf/theme'),null);
+      STUDIO.editId=id;
+    }
+    if(!STUDIO.editId||!SETS[STUDIO.editId]) STUDIO.editId=(PREVIEW&&SETS[PREVIEW])?PREVIEW:(ACTIVE&&SETS[ACTIVE])?ACTIVE:Object.keys(SETS)[0]||null;
+    if(STUDIO.editId) setPreview(STUDIO.editId);
+  }
   renderStudio();
+}
+// ---- sets ----
+async function createSet(from){
+  const {D,db}=await adminCore(), id=newId();
+  const base=from?JSON.parse(JSON.stringify(SETS[from]||{})):{};
+  const name=from?`${setName(from)} (copy)`:`New set ${Object.keys(SETS).length+1}`;
+  await D.set(D.ref(db,'jf/sets/'+id),{...base,meta:{name,by:STUDIO.user.email,updated:Date.now()}});
+  SETS[id]=SETS[id]||{...base,meta:{name}};
+  STUDIO.editId=id; setPreview(id); STUDIO.msg=`Created “${name}”. You’re editing it now; only this device shows it.`; renderStudio();
+}
+async function deleteSet(id){
+  const {D,db}=await adminCore(), gone=SETS[id];
+  await D.set(D.ref(db,'jf/sets/'+id),null);
+  if(ACTIVE===id) await D.set(D.ref(db,'jf/active'),null);
+  delete SETS[id];
+  for(const a of themeAssetIds(gone||{})) if(!assetInUse(a)) try{ await D.remove(D.ref(db,'jf/assets/'+a)) }catch(e){}
+  STUDIO.editId=Object.keys(SETS)[0]||null; setPreview(STUDIO.editId||'');
+  STUDIO.msg='Set deleted.'; renderStudio();
+}
+async function makeLive(id){
+  const {D,db}=await adminCore();
+  await D.set(D.ref(db,'jf/active'),id||'original');
+  STUDIO.msg=`Players now see “${setName(id||'original')}”.`; renderStudio();
+}
+// is a file still used by any set (or the old single design)?
+function assetInUse(id,except){
+  const all=[LEGACY,...Object.entries(SETS).map(([k,v])=>v)];
+  return all.some(th=>th&&th!==except&&themeAssetIds(th).includes(id));
 }
 async function resumeStudioRedirect(){
   try{ if(sessionStorage.getItem('jfStudio')!=='1') return; sessionStorage.removeItem('jfStudio') }catch(e){ return }
@@ -1219,13 +1299,23 @@ function studioBox(){
 // ---- saving ----
 async function saveTheme(path,value){
   const {D,db}=await adminCore();
-  try{ await D.set(D.ref(db,path?'jf/theme/'+path:'jf/theme'),value===undefined?null:value); STUDIO.msg='Saved. Everyone gets it the next time they open the game.' }
+  if(!STUDIO.editId){ await createSet(null) }
+  const id=STUDIO.editId, base='jf/sets/'+id;
+  try{
+    if(path) await D.set(D.ref(db,base+'/'+path),value===undefined?null:value);
+    else await D.set(D.ref(db,base),{meta:(SETS[id]&&SETS[id].meta)||{name:'Untitled set'}});
+    await D.update(D.ref(db,base+'/meta'),{updated:Date.now(),by:STUDIO.user.email});
+    STUDIO.msg=ACTIVE===id?'Saved. Players see this set, so they get the change too.':'Saved to this set. Players won’t see it until you make the set live.';
+  }
   catch(e){ STUDIO.msg='Couldn’t save: '+(e.code||e.message)+'. Check the database rules include the Studio section.' }
   renderStudio();
 }
-const getPath=(path)=>path.split('/').reduce((o,k)=>o&&o[k],THEME);
+const getPath=(path)=>path.split('/').reduce((o,k)=>o&&o[k],editTheme());
 async function removeOldAsset(path){
   const old=getPath(path); if(!old||!old.asset) return;
+  // other sets may share the file after a duplicate; only delete it when nothing else uses it
+  const copy=JSON.parse(JSON.stringify(editTheme())); const parts=path.split('/'); let o=copy; for(let i=0;i<parts.length-1;i++) o=o&&o[parts[i]]; if(o) delete o[parts[parts.length-1]];
+  if(assetInUse(old.asset,editTheme())||themeAssetIds(copy).includes(old.asset)) return;
   const {D,db}=await adminCore(); try{ await D.remove(D.ref(db,'jf/assets/'+old.asset)) }catch(e){}
 }
 function readFile(file,as){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); as==='text'?r.readAsText(file):r.readAsDataURL(file) }) }
@@ -1258,6 +1348,7 @@ function pickFile(accept,cb){ const i=document.createElement('input'); i.type='f
 // ---- screens ----
 function renderStudio(){
   const b=studioBox(); if(b.hidden) return;
+  const E=editTheme(), TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
   const tabs=[['tokens','Tokens'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
   let body='';
   if(!STUDIO.ok){
@@ -1265,14 +1356,14 @@ function renderStudio(){
       ${STUDIO.needSignIn?`<button class="btn primary" id="stSignIn">Sign in with Google</button>`:''}
       ${STUDIO.user&&!STUDIO.ok?`<button class="btn ghost" id="stSignOut">Use a different account</button>`:''}</div>`;
   } else if(STUDIO.tab==='tokens'){
-    const item=(key,label,prev)=>{ const e=key==='back'?THEME.back:THEME.tokens&&THEME.tokens[key], has=!!srcOf(e);
+    const item=(key,label,prev)=>{ const e=key==='back'?E.back:E.tokens&&E.tokens[key], has=!!srcOf(e);
       return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
         <div class="st-acts"><button class="btn small" data-up="${key}">Upload</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
         ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token</label>`:''}</div>` };
     body=`<p class="muted">Upload a picture for any token (PNG with a transparent background works best; SVG and JPG work too). “Fill whole token” replaces the wood as well.</p>
       <div class="st-grid">${ORDER.map(t=>item(t,TYPES[t].name,face(t))).join('')}${item('back','Token back (face down)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
   } else if(STUDIO.tab==='bg'){
-    const row=(key,label)=>{ const e=THEME.bg&&THEME.bg[key]||{}, src=srcOf(e);
+    const row=(key,label)=>{ const e=E.bg&&E.bg[key]||{}, src=srcOf(e);
       return `<div class="st-row"><div class="st-swatch" style="background:${src?`url('${src}') center/cover,`:e.color?'':'var(--water) center/cover,'}${e.color||'#2f9ea3'}"></div>
         <div class="st-grow"><b>${label}</b><div class="st-acts">
           <button class="btn small" data-bgup="${key}">Upload picture</button>
@@ -1281,33 +1372,34 @@ function renderStudio(){
           ${e.color||src?`<button class="btn small ghost" data-bgreset="${key}">Reset</button>`:''}</div></div></div>` };
     body=`<p class="muted">Pictures fill the screen behind everything. Pick a color too: it shows while the picture loads and around its edges.</p>${row('game','Game and setup screens')}${row('splash','Loading screen')}`;
   } else if(STUDIO.tab==='colors'){
-    body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(THEME.colors&&THEME.colors[k])||COLOR_DEFAULTS[k];
-      return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${THEME.colors&&THEME.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
+    body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(E.colors&&E.colors[k])||COLOR_DEFAULTS[k];
+      return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${E.colors&&E.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
   } else if(STUDIO.tab==='fonts'){
     const roles=[['display','Titles and headings'],['body','Everything else'],['credit','Loading-screen credits']];
-    body=`<p class="muted">Choose from Google Fonts or upload your own font file (WOFF2, WOFF, TTF or OTF).</p>${roles.map(([r,l])=>{ const cur=(THEME.fonts&&THEME.fonts[r])||FONT_DEFAULTS[r], up=srcOf(THEME.fontFiles&&THEME.fontFiles[r]);
+    body=`<p class="muted">Choose from Google Fonts or upload your own font file (WOFF2, WOFF, TTF or OTF).</p>${roles.map(([r,l])=>{ const cur=(E.fonts&&E.fonts[r])||FONT_DEFAULTS[r], up=srcOf(E.fontFiles&&E.fontFiles[r]);
       return `<div class="st-row"><div class="st-grow"><b>${l}</b><div class="st-sample" style="font-family:var(--${r})">The quick fish flips the jelly</div>
         <div class="st-acts"><select data-font="${r}">${GOOGLE_FONTS.map(f=>`<option ${f===cur?'selected':''}>${f}</option>`).join('')}${up?`<option value="__upload" ${cur==='__upload'?'selected':''}>My uploaded font</option>`:''}</select>
-        <button class="btn small" data-fontup="${r}">Upload font</button>${THEME.fonts&&THEME.fonts[r]?`<button class="btn small ghost" data-fontreset="${r}">Reset</button>`:''}</div></div></div>` }).join('')}`;
+        <button class="btn small" data-fontup="${r}">Upload font</button>${E.fonts&&E.fonts[r]?`<button class="btn small ghost" data-fontreset="${r}">Reset</button>`:''}</div></div></div>` }).join('')}`;
   } else if(STUDIO.tab==='text'){
     const keys=[...Object.keys(TEXT_LABELS),...ORDER.flatMap(t=>['name_'+t,'say_'+t])];
     const label=k=>TEXT_LABELS[k]||(k.startsWith('name_')?`Token name: ${TEXT_DEFAULTS[k]}`:`Token description: ${TEXT_DEFAULTS['name_'+k.slice(4)]}`);
-    body=`<p class="muted">Edit any wording. Wrap words in **double stars** for bold; press Enter for a new line. Changes save when you leave a box.</p><div class="st-list">${keys.map(k=>{ const custom=THEME.text&&THEME.text[k]!=null&&THEME.text[k]!=='';
-      return `<label class="st-text"><span>${esc(label(k))}${custom?` <button class="linkbtn" data-textreset="${k}">reset</button>`:''}</span><textarea data-text="${k}" rows="${T(k).length>70?3:1}">${esc(T(k))}</textarea></label>` }).join('')}</div>`;
+    body=`<p class="muted">Edit any wording. Wrap words in **double stars** for bold; press Enter for a new line. Changes save when you leave a box.</p><div class="st-list">${keys.map(k=>{ const custom=E.text&&E.text[k]!=null&&E.text[k]!=='';
+      return `<label class="st-text"><span>${esc(label(k))}${custom?` <button class="linkbtn" data-textreset="${k}">reset</button>`:''}</span><textarea data-text="${k}" rows="${TE(k).length>70?3:1}">${esc(TE(k))}</textarea></label>` }).join('')}</div>`;
   } else if(STUDIO.tab==='sound'){
-    const m=THEME.audio&&THEME.audio.music;
+    const m=E.audio&&E.audio.music;
     body=`<p class="muted">Upload MP3, M4A, WAV or OGG files (under 4.5 MB). Keep sound effects short; music loops.</p>
       <div class="st-row"><div class="st-grow"><b>Background music</b><span class="muted"> ${srcOf(m)?'Your track':'Built-in calm loop'}</span><div class="st-acts">
         <button class="btn small" id="stMusicPlay">${MUSIC.playing?'Stop':'Play'}</button><button class="btn small" data-audioup="music">Upload</button>${srcOf(m)?`<button class="btn small ghost" data-audioreset="music">Reset</button>`:''}</div></div></div>
-      <div class="st-list">${Object.keys(SFX_LABELS).map(n=>{ const e=THEME.audio&&THEME.audio.sfx&&THEME.audio.sfx[n];
+      <div class="st-list">${Object.keys(SFX_LABELS).map(n=>{ const e=E.audio&&E.audio.sfx&&E.audio.sfx[n];
         return `<div class="st-row slim"><button class="btn small" data-sfxplay="${n}">▶</button><span class="st-grow">${SFX_LABELS[n]}${srcOf(e)?' <span class="muted">(yours)</span>':''}</span><button class="btn small" data-sfxup="${n}">Upload</button>${srcOf(e)?`<button class="btn small ghost" data-sfxreset="${n}">Reset</button>`:''}</div>` }).join('')}</div>`;
   }
   b.innerHTML=`<div class="st-panel">
     <header class="st-head"><h2>Studio</h2>${STUDIO.ok?`<span class="muted st-who">${esc(STUDIO.user.email)}</span>`:''}<button class="btn small ghost" id="stClose">Close</button></header>
-    ${STUDIO.ok?`<nav class="st-tabs">${tabs.map(([k,l])=>`<button class="${STUDIO.tab===k?'on':''}" data-tab="${k}">${l}</button>`).join('')}</nav>`:''}
+    ${STUDIO.ok?setsBarHTML():''}
+    ${STUDIO.ok&&STUDIO.editId?`<nav class="st-tabs">${tabs.map(([k,l])=>`<button class="${STUDIO.tab===k?'on':''}" data-tab="${k}">${l}</button>`).join('')}</nav>`:''}
     ${STUDIO.msg?`<p class="st-msg">${esc(STUDIO.msg)}</p>`:''}
-    <div class="st-body">${body}</div>
-    ${STUDIO.ok?`<footer class="st-foot"><button class="btn small ghost" id="stResetAll">${STUDIO.armReset?'Tap again to reset everything':'Reset everything to the original'}</button><button class="linkbtn" id="stSignOut">Sign out</button></footer>`:''}
+    <div class="st-body">${STUDIO.ok&&!STUDIO.editId?`<div class="st-center"><p class="muted">There are no artwork sets yet. Start one from the original design.</p><button class="btn primary" id="stFirstSet">Create the first set</button></div>`:body}</div>
+    ${STUDIO.ok?`<footer class="st-foot"><button class="btn small ghost" id="stResetAll" ${STUDIO.editId?'':'hidden'}>${STUDIO.armReset?'Tap again to clear this set':'Clear this set back to the original'}</button><button class="linkbtn" id="stSignOut">Sign out</button></footer>`:''}
   </div>`;
   const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'?'change':el.type==='color'?'change':el.tagName==='SELECT'||el.type==='checkbox'?'change':'click',()=>fn(el)));
   on('#stClose',()=>{ b.hidden=true; STUDIO.msg=''; render() });
@@ -1335,7 +1427,15 @@ function renderStudio(){
   on('[data-sfxup]',el=>pickFile('audio/*',f=>uploadAsset('audio/sfx/'+el.dataset.sfxup,f,'audio')));
   on('[data-sfxreset]',async el=>{ const p='audio/sfx/'+el.dataset.sfxreset; await removeOldAsset(p); saveTheme(p,null) });
   on('#stResetAll',async()=>{ if(!STUDIO.armReset){ STUDIO.armReset=true; renderStudio(); setTimeout(()=>{ STUDIO.armReset=false; renderStudio() },3000); return }
-    STUDIO.armReset=false; for(const id of themeAssetIds()){ const {D,db}=await adminCore(); try{ await D.remove(D.ref(db,'jf/assets/'+id)) }catch(e){} } saveTheme('',null) });
+    STUDIO.armReset=false; const E=editTheme(); for(const id of themeAssetIds(E)){ if(assetInUse(id,E)) continue; const {D,db}=await adminCore(); try{ await D.remove(D.ref(db,'jf/assets/'+id)) }catch(e){} } saveTheme('',null) });
+  on('#stFirstSet',()=>createSet(null));
+  on('#stEditSet',el=>{ STUDIO.editId=el.value; STUDIO.renaming=false; setPreview(el.value); STUDIO.msg=`Editing “${setName(el.value)}”. This device now shows it.`; renderStudio() });
+  on('#stNewSet',()=>createSet(null));
+  on('#stDupSet',()=>createSet(STUDIO.editId));
+  on('#stRename',()=>{ STUDIO.renaming=true; renderStudio(); const i=document.getElementById('stNameInput'); if(i){ i.focus(); i.select() } });
+  on('#stNameSave',async()=>{ const v=document.getElementById('stNameInput').value.trim().slice(0,40); STUDIO.renaming=false; if(v){ const {D,db}=await adminCore(); await D.update(D.ref(db,'jf/sets/'+STUDIO.editId+'/meta'),{name:v}); STUDIO.msg='Renamed.' } renderStudio() });
+  on('#stDelSet',()=>{ if(!STUDIO.armDel){ STUDIO.armDel=true; renderStudio(); setTimeout(()=>{ STUDIO.armDel=false; renderStudio() },3000); return } STUDIO.armDel=false; deleteSet(STUDIO.editId) });
+  on('#stLive',el=>makeLive(el.value==='original'?null:el.value));
 }
 
 // ---------- AI players ----------
@@ -1741,9 +1841,11 @@ function renderSetup(){
       <div class="tray">${ORDER.map(t=>`<figure>${face(t)}<figcaption><b>×${TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
     </div>
     <div class="card"><h2>${TX('howTo')}</h2>${rulesHTML()}</div>
-    <footer class="foot">${TX('copyright')}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>`;
+    <footer class="foot">${TX('copyright')}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>
+    ${PREVIEW&&SETS[PREVIEW]&&PREVIEW!==ACTIVE?`<div class="preview-bar">Previewing “${esc((SETS[PREVIEW].meta&&SETS[PREVIEW].meta.name)||'Untitled set')}” on this device only <button class="btn small" id="endPreview">Show what players see</button></div>`:''}`;
   bindToggles(app);
   const sb=app.querySelector('#studioBtn'); if(sb) sb.onclick=openStudio;
+  const ep=app.querySelector('#endPreview'); if(ep) ep.onclick=()=>{ setPreview(''); render() };
   const sync=()=>app.querySelectorAll('.name input').forEach(inp=>st.names[+inp.dataset.i]=inp.value);
   app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save()}));
   app.querySelectorAll('.name select').forEach(sel=>sel.onchange=()=>{
@@ -1971,7 +2073,11 @@ function startTheme(){
   applyTheme(); loadThemeAssets(null).then(()=>{ applyTheme(); if(S&&!busy) render() });
   if(!studioAllowed()) return;
   fbCore().then(({D,db})=>{
-    D.onValue(D.ref(db,'jf/theme'),snap=>setTheme(snap.val(),async id=>(await D.get(D.ref(db,'jf/assets/'+id))).val()),e=>console.warn('theme',e&&e.code));
+    FETCH_ASSET=async id=>(await D.get(D.ref(db,'jf/assets/'+id))).val();
+    const warn=e=>console.warn('theme',e&&e.code);
+    D.onValue(D.ref(db,'jf/sets'),snap=>{ SETS=snap.val()||{}; THEME_LOADED|=1; refreshTheme() },warn);
+    D.onValue(D.ref(db,'jf/active'),snap=>{ ACTIVE=snap.val()||null; refreshTheme() },warn);
+    D.onValue(D.ref(db,'jf/theme'),snap=>{ LEGACY=snap.val()||{}; THEME_LOADED|=2; refreshTheme() },warn);
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
