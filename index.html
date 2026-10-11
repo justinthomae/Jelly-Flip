@@ -209,8 +209,10 @@ p{margin:0}
 @media (prefers-reduced-motion:reduce){ .hide-spot{animation:none} }
 
 /* custom token art */
-.face img.art{width:84%;height:84%;object-fit:contain;pointer-events:none}
-.face.fullart img.art{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.face img.art{object-fit:contain;pointer-events:none;max-width:none}
+.face .art{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.face:has(.art){position:relative}
+.face.fullart img.art{object-fit:cover;border-radius:50%}
 .face.fullart{background:none}
 
 /* Studio */
@@ -249,14 +251,16 @@ p{margin:0}
 .studio-link{font-size:inherit;color:var(--ink-2)}
 
 /* icon styles */
-.face .art.ink{display:block;width:84%;height:84%;background:var(--icon-ink,var(--burn));-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none}
-.face.fullart .art.ink{width:100%;height:100%}
+.face .art.ink{display:block;background:var(--icon-ink,var(--burn));-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none}
+
 .face{isolation:isolate}
 .st-check select{background:var(--panel);color:var(--ink);border:1px solid var(--panel-2);border-radius:8px;padding:3px 4px;font:inherit;font-size:.78rem;max-width:150px}
 
 /* Studio token material and logo */
 .st-material .st-prev .face,.st-material .st-back{width:60px;height:60px}
 .st-small{font-size:.8rem;margin:2px 0 0}
+.st-pct{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block;font-size:.78rem}
+.st-check input[type=range]{width:90px}
 .st-logo-prev{position:relative}
 .st-back .back{overflow:hidden}
 
@@ -428,7 +432,7 @@ const TX = k => fmt(T(k));
 // an image, sound or font in the theme: either a file uploaded by the admin, or a file shipped with the site
 const srcOf = e => !e?null:e.url?e.url:(e.asset&&ASSET[e.asset])||null;
 const tokenArt = t => { const e=THEME.tokens&&THEME.tokens[t], src=srcOf(e);
-  return src?{src,full:!!e.full,key:e.asset||e.url,blend:e.blend||THEME.iconBlend||'normal'}:null };
+  return src?{src,full:!!e.full,key:e.asset||e.url,blend:e.blend||THEME.iconBlend||'normal',size:e.size||THEME.iconSize||(e.full?1:.84)}:null };
 // Ink style: turn a black-and-white picture into dark lines on a transparent background (darker = more solid),
 // worked out once per picture on this device; the lines are then painted in the chosen ink color.
 const INK={}, INKING={};
@@ -450,10 +454,11 @@ function inkSrc(key,src){
 }
 // the icon on a token, drawn the way the admin picked: as uploaded, multiplied onto the material, or as ink
 function artHTML(art){
+  const sz=`width:${(art.size*100).toFixed(0)}%;height:${(art.size*100).toFixed(0)}%;flex:none;`;
   if(art.blend==='ink'){ const m=inkSrc(art.key,art.src);
-    if(m) return `<span class="art ink" style="-webkit-mask-image:url('${m}');mask-image:url('${m}')"></span>`;
-    return `<img class="art" src="${art.src}" alt="" draggable="false" style="mix-blend-mode:multiply">`; }
-  return `<img class="art" src="${art.src}" alt="" draggable="false"${art.blend==='multiply'?' style="mix-blend-mode:multiply"':''}>`;
+    if(m) return `<span class="art ink" style="${sz}-webkit-mask-image:url('${m}');mask-image:url('${m}')"></span>`;
+    return `<img class="art" src="${art.src}" alt="" draggable="false" style="${sz}mix-blend-mode:multiply">`; }
+  return `<img class="art" src="${art.src}" alt="" draggable="false" style="${sz}${art.blend==='multiply'?'mix-blend-mode:multiply':''}">`;
 }
 
 // device cache for uploaded files, so they only download once
@@ -503,7 +508,8 @@ function applyTheme(){
   bgCss('body::before',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
   // token material: the surface of every token, wood unless the admin picked a color or a picture
   const mat=THEME.material||{}, gloss='radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 45%)';
-  const matBg=mat.type==='color'&&mat.color?`${gloss},${mat.color}`:mat.type==='image'&&srcOf(mat)?`${gloss},url("${srcOf(mat)}") center/cover no-repeat,var(--wood)`:'';
+  const matSize=mat.zoom?`${Math.round(mat.zoom*100)}%`:'cover';
+  const matBg=mat.type==='color'&&mat.color?`${gloss},${mat.color}`:mat.type==='image'&&srcOf(mat)?`${gloss},url("${srcOf(mat)}") center/${matSize} ${mat.zoom?'repeat':'no-repeat'},var(--wood)`:'';
   if(matBg) css.push(`.face:not(.fullart),.tok .back,.fly .back,.pile .stack i,.st-back .back{background:${matBg} !important}`);
   const back=srcOf(THEME.back);
   if(back) css.push(`.tok .back,.fly .back,.pile .stack i,.st-back .back{background:var(--wood) url("${back}") center/cover no-repeat !important}`);
@@ -1411,13 +1417,15 @@ function renderStudio(){
       return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
         <div class="st-acts"><button class="btn small" data-up="${key}">${key==='back'?'Upload picture':'Upload icon'}</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
         ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token (covers the material too)</label>
-        <label class="st-check">Style <select data-blend="${key}"><option value="">Same as all tokens</option>${BLENDS.map(([v,l])=>`<option value="${v}" ${e.blend===v?'selected':''}>${l}</option>`).join('')}</select></label>`:''}</div>` };
+        <label class="st-check">Style <select data-blend="${key}"><option value="">Same as all tokens</option>${BLENDS.map(([v,l])=>`<option value="${v}" ${e.blend===v?'selected':''}>${l}</option>`).join('')}</select></label>
+        <label class="st-check">Size <input type="range" min="30" max="150" step="5" value="${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}" data-size="${key}"> <span class="st-pct">${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}%</span>${e.size?` <button class="linkbtn" data-sizereset="${key}">reset</button>`:''}</label>`:''}</div>` };
     const mat=E.material||{}, mt=mat.type||'wood', lg=E.backLogo||{};
     body=`<div class="st-row st-material"><div class="st-prev">${face('fish')}</div><div class="st-prev"><div class="st-back"><span class="back"></span></div></div>
         <div class="st-grow"><b>Token material</b><p class="muted st-small">The surface of every token, front and back.</p>
         <div class="st-acts"><select data-mattype>${[['wood','Wood'],['color','Solid color'],['image','Picture']].map(([v,l])=>`<option value="${v}" ${mt===v?'selected':''}>${l}</option>`).join('')}</select>
           ${mt==='color'?`<label class="st-color">Color <input type="color" data-matcolor value="${mat.color||'#e9e2d0'}"></label>`:''}
-          ${mt==='image'?`<button class="btn small" data-matup>${srcOf(mat)?'Replace picture':'Upload picture'}</button>`:''}</div></div></div>
+          ${mt==='image'?`<button class="btn small" data-matup>${srcOf(mat)?'Replace picture':'Upload picture'}</button>`:''}
+          ${mt==='image'&&srcOf(mat)?`<label class="st-color">Zoom <input type="range" min="25" max="400" step="25" value="${Math.round((mat.zoom||1)*100)}" data-matzoom> <span class="st-pct">${mat.zoom?Math.round(mat.zoom*100)+'%':'fit'}</span></label>${mat.zoom?`<button class="linkbtn" data-matzoomreset>fit to token</button>`:''}`:''}</div></div></div>
       <div class="st-row"><div class="st-prev"><div class="st-back st-logo-prev"><span class="back"></span>${srcOf(lg)&&!lg.on?`<img src="${srcOf(lg)}" alt="" style="position:absolute;inset:${((1-(lg.size||.6))/2*100).toFixed(1)}%;width:${((lg.size||.6)*100).toFixed(0)}%;height:${((lg.size||.6)*100).toFixed(0)}%;object-fit:contain;opacity:${lg.on?1:.35}">`:''}</div></div>
         <div class="st-grow"><b>Logo on token backs</b><p class="muted st-small">Shows on every face-down token. Off until you switch it on.</p>
         <div class="st-acts"><button class="btn small" data-logoup>${srcOf(lg)?'Replace logo':'Upload logo'}</button>
@@ -1428,6 +1436,7 @@ function renderStudio(){
       <div class="st-row"><div class="st-grow"><b>Icon style for all tokens</b>
         <p class="muted st-small">How your uploaded icons sit on the material. Black-and-white drawings: pick Ink to keep only the dark lines, or Multiply to keep grey shading too. White always shows the material through.</p>
         <div class="st-acts"><select data-iconblend>${BLENDS.map(([v,l])=>`<option value="${v}" ${(E.iconBlend||'normal')===v?'selected':''}>${l}</option>`).join('')}</select>
+          <label class="st-color">Icon size <input type="range" min="30" max="150" step="5" value="${Math.round((E.iconSize||.84)*100)}" data-iconsize> <span class="st-pct">${Math.round((E.iconSize||.84)*100)}%</span></label>
           <label class="st-color">Ink color <input type="color" data-iconink value="${E.iconInk||(E.colors&&E.colors.burn)||COLOR_DEFAULTS.burn}"></label>
           ${E.iconInk?`<button class="btn small ghost" data-iconinkreset>Reset color</button>`:''}</div></div></div>
       <p class="muted">Upload an icon for any token. It sits on top of the token material (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style).</p>
@@ -1488,6 +1497,13 @@ function renderStudio(){
   on('[data-blend]',el=>saveTheme('tokens/'+el.dataset.blend+'/blend',el.value||null));
   on('[data-iconblend]',el=>saveTheme('iconBlend',el.value==='normal'?null:el.value));
   on('[data-iconink]',el=>saveTheme('iconInk',el.value));
+  on('[data-iconsize]',el=>saveTheme('iconSize',(+el.value)/100));
+  on('[data-size]',el=>saveTheme('tokens/'+el.dataset.size+'/size',(+el.value)/100));
+  on('[data-sizereset]',el=>saveTheme('tokens/'+el.dataset.sizereset+'/size',null));
+  on('[data-matzoom]',el=>saveTheme('material/zoom',(+el.value)/100));
+  on('[data-matzoomreset]',()=>saveTheme('material/zoom',null));
+  // show the number while a slider moves
+  b.querySelectorAll('input[type=range]').forEach(r=>r.addEventListener('input',()=>{ const o=r.parentElement.querySelector('.st-pct'); if(o) o.textContent=r.value+'%' }));
   on('[data-iconinkreset]',()=>saveTheme('iconInk',null));
   on('[data-logosize]',el=>saveTheme('backLogo/size',(+el.value)/100));
   on('[data-logoreset]',async()=>{ await removeOldAsset('backLogo'); saveTheme('backLogo',null) });
