@@ -161,6 +161,8 @@ p{margin:0}
   background:linear-gradient(180deg,rgba(6,40,46,.12),rgba(6,40,46,.3)),var(--water) center/cover no-repeat,#2f9ea3;transition:opacity .6s}
 .splash.out{opacity:0;pointer-events:none}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
+.title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
+.top h1 .hlogo{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em;object-fit:contain}
 .logo{font-size:clamp(3.6rem,15vw,6.5rem);color:var(--wood);text-shadow:0 4px 0 var(--wood-3),0 10px 24px rgba(0,0,0,.6);letter-spacing:.02em}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
   font-family:var(--credit,'Rubik'),var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
@@ -239,6 +241,11 @@ p{margin:0}
 .st-row{display:flex;gap:12px;align-items:center;background:var(--table-2);border-radius:14px;padding:12px}
 .st-row.slim{padding:8px 12px}
 .st-grow{flex:1;min-width:0}
+.st-input{width:100%;box-sizing:border-box;margin-top:6px;background:var(--table-2);color:var(--ink);border:1.5px solid var(--panel-2);border-radius:10px;padding:9px 11px;font:inherit;font-size:1rem}
+.st-appicon{position:relative;width:72px;height:72px;border-radius:17px;overflow:hidden;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.12);display:grid;place-items:center;font-size:2.4rem}
+.st-appicon img{position:absolute;inset:0;width:100%;height:100%;max-width:none;box-sizing:border-box;object-fit:contain}
+.st-titleprev{width:110px;height:64px;display:grid;place-items:center;flex:none}
+.st-titleprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-swatch{width:64px;height:96px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
 .st-color{display:inline-flex;gap:6px;align-items:center;font-size:.85rem}
 .st-list{display:flex;flex-direction:column;gap:8px}
@@ -361,6 +368,7 @@ p{margin:0}
 <div id="splash" class="splash" role="dialog" aria-label="Jelly Flip">
   <div class="sea" id="sea" aria-hidden="true"></div>
   <div class="splash-in">
+    <img id="splashLogo" class="title-logo" alt="" hidden>
     <h1 class="logo" data-t="title">Jelly Flip</h1>
     <button class="btn primary" id="splashGo" data-t="play">Play</button>
   </div>
@@ -414,7 +422,7 @@ const icon = t => `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" 
 // ---------- theme: the admin-editable look, sound and text ----------
 // THEME is stored in Firebase (jf/theme); uploaded files live in jf/assets/<id> and are cached on each device.
 const TEXT_DEFAULTS={
-  title:'Jelly Flip', tagline:'Push your luck. Remember the reef.',
+  title:'Jelly Flip', shortName:'', tagline:'Push your luck. Remember the reef.',
   credit:'Created by **Lydia Lichti**\nin partnership with **Grudge Match Games**',
   copyright:'Copyright © 2026 Grudge Match Games', play:'Play',
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
@@ -475,7 +483,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -530,8 +538,53 @@ function applyTheme(){
   let st=document.getElementById('themeStyle'); if(!st){ st=document.createElement('style'); st.id='themeStyle'; document.head.appendChild(st) }
   st.textContent=css.join('\n');
   document.title=T('title');
+  applyBrand();
   document.querySelectorAll('[data-t]').forEach(el=>{ el.innerHTML=TX(el.dataset.t) });
   themeDirty=true;
+}
+// Brand: the game's name and app icon wherever the browser or phone shows them
+// (tab title, home-screen name and icon, install manifest), plus the optional title logo.
+const BRAND={key:null,icons:null};
+function setHead(sel,make){ let el=document.head.querySelector(sel); if(!el){ el=make(); document.head.appendChild(el) } return el }
+function brandIconPNG(src,size,bg,pad){
+  return new Promise(res=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d');
+    if(bg){ g.fillStyle=bg; g.fillRect(0,0,size,size) }
+    const box=size*(1-2*pad), k=Math.min(box/(img.naturalWidth||box),box/(img.naturalHeight||box)), w=(img.naturalWidth||box)*k, h=(img.naturalHeight||box)*k;
+    g.drawImage(img,(size-w)/2,(size-h)/2,w,h); res(c.toDataURL('image/png')) }; img.onerror=()=>res(null); img.src=src });
+}
+function applyBrand(){
+  const name=T('title'), short=T('shortName')||name;
+  const sp=document.getElementById('splash'); if(sp) sp.setAttribute('aria-label',name);
+  setHead('meta[name="apple-mobile-web-app-title"]',()=>Object.assign(document.createElement('meta'),{name:'apple-mobile-web-app-title'})).content=short;
+  const tl=THEME.titleLogo, tsrc=srcOf(tl), lg=document.getElementById('splashLogo'), h=document.querySelector('#splash .logo');
+  if(lg){ if(tsrc){ if(lg.getAttribute('src')!==tsrc) lg.src=tsrc; lg.alt=tl.hideName?name:''; lg.hidden=false } else { lg.hidden=true; lg.removeAttribute('src') } }
+  if(h) h.hidden=!!(tsrc&&tl.hideName);
+  const ai=THEME.appIcon, asrc=srcOf(ai), bg=(ai&&ai.bg)||'', pad=ai&&ai.pad!=null?ai.pad:.08;
+  const key=JSON.stringify([name,short,asrc?(ai.asset||ai.url):'',bg,pad]);
+  if(key===BRAND.key) return; BRAND.key=key;
+  (async()=>{
+    let icons=null;
+    if(asrc){ const [i180,i192,i512,i32]=await Promise.all([brandIconPNG(asrc,180,bg||'#ffffff',pad),brandIconPNG(asrc,192,bg,pad),brandIconPNG(asrc,512,bg,pad),brandIconPNG(asrc,64,bg,0)]);
+      if(BRAND.key!==key) return; if(i180) icons={i180,i192,i512,i32} }
+    BRAND.icons=icons;
+    // remember the site's own icons so Reset brings them back
+    const touch=setHead('link[rel="apple-touch-icon"]',()=>Object.assign(document.createElement('link'),{rel:'apple-touch-icon'}));
+    if(!touch.dataset.orig) touch.dataset.orig=touch.getAttribute('href')||'';
+    touch.href=icons?icons.i180:(touch.dataset.orig||'');
+    document.head.querySelectorAll('link[rel="icon"]').forEach(l=>{ if(l.dataset.orig==null) l.dataset.orig=l.getAttribute('href')||''; l.href=icons?icons.i32:l.dataset.orig });
+    if(icons&&!document.head.querySelector('link[rel="icon"]')) document.head.appendChild(Object.assign(document.createElement('link'),{rel:'icon',href:icons.i32,dataset:{orig:''}}));
+    const mf=document.head.querySelector('link[rel="manifest"]');
+    if(mf){ if(mf.dataset.orig==null) mf.dataset.orig=mf.getAttribute('href')||'';
+      const custom=icons||name!==TEXT_DEFAULTS.title||T('shortName');
+      if(!custom){ mf.href=mf.dataset.orig; return }
+      const base=new URL(mf.dataset.orig||'./',location.href), here=new URL('./',location.href).href;
+      const m={name,short_name:short,start_url:here,scope:here,display:'standalone',background_color:'#2b211b',theme_color:'#2b211b',
+        icons:icons?[{src:icons.i192,sizes:'192x192',type:'image/png'},{src:icons.i512,sizes:'512x512',type:'image/png'}]
+          :[{src:new URL('icon-192.png',base).href,sizes:'192x192',type:'image/png'},{src:new URL('icon-512.png',base).href,sizes:'512x512',type:'image/png'}]};
+      if(BRAND.mfUrl) URL.revokeObjectURL(BRAND.mfUrl);
+      BRAND.mfUrl=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'})); mf.href=BRAND.mfUrl }
+    renderStudio();
+  })();
 }
 // Artwork sets: jf/sets/<id> each hold a whole theme; jf/active names the one players see.
 // An admin's device can preview any set without changing what players see.
@@ -550,6 +603,7 @@ function setTheme(th,fetchRemote){
   loadThemeAssets(fetchRemote).then(()=>{ applyTheme(); if(S&&!busy) render(); renderStudio() });
 }
 
+const titleHTML = () => { const tl=THEME.titleLogo, src=srcOf(tl); return src?`<img class="hlogo" src="${src}" alt="${tl.hideName?esc(T('title')):''}">${tl.hideName?'':TX('title')}`:TX('title') };
 const face = (t,cls='') => { const art=tokenArt(t);
   return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${cls}">${art?artHTML(art):icon(t)}</div>` };
 
@@ -1208,7 +1262,7 @@ function renderWait(){
   const g=NET.g, host=NET.role==='host', here=new Set(NET.peers.map(p=>p.peer));
   if(!app.querySelector('#waitSeats')){
     app.innerHTML=`
-      <header class="top"><div><h1>${TX('title')}</h1><p class="muted">Online game</p></div><div class="tools">${toggleHTML()}</div></header>
+      <header class="top"><div><h1>${titleHTML()}</h1><p class="muted">Online game</p></div><div class="tools">${toggleHTML()}</div></header>
       <div class="card">
         <div id="waitHead"></div>
         ${host?'':`<label class="name"><i style="background:var(--sea)"></i><input id="myName" maxlength="16" value="${esc(NET.myName)}" aria-label="Your name"></label>`}
@@ -1229,7 +1283,7 @@ function renderWait(){
     head.innerHTML=host
       ? `<h2>Waiting for players</h2><p class="muted">${NET.kind==='firebase'
           ?`Send your remote players this link: <b>${esc(location.origin+location.pathname)}</b>. Your game appears for them under <b>Online games</b> as “${esc(hostName(g))}’s game”.`
-          :'Ask your remote players to open this same Jelly Flip link while signed in to claude.ai. Your game appears for them under <b>Online games</b>. They need to be invited to this page from its Share menu.'}</p>`
+          :'Ask your remote players to open this same '+esc(T('title'))+' link while signed in to claude.ai. Your game appears for them under <b>Online games</b>. They need to be invited to this page from its Share menu.'}</p>`
       : mine!=null ? `<h2>You’re in!</h2><p class="muted">Waiting for ${esc(hostName(g))} to start${g.st==='play'?'… the game is already going, so you’ll jump straight in.':'.'}</p>`
       : `<h2>${esc(hostName(g))}’s game</h2><p class="muted">Type your name, then pick an open seat.</p>`;
     seats.innerHTML=g.names.map((n,i)=>{
@@ -1314,7 +1368,7 @@ async function studioSignIn(){
 async function finishSignIn(user){
   STUDIO.user=user; STUDIO.needSignIn=false;
   STUDIO.ok=!!user.email&&ADMIN_EMAILS.includes(user.email.toLowerCase())&&user.emailVerified!==false;
-  STUDIO.msg=STUDIO.ok?'':`${user.email||'This account'} isn’t a Jelly Flip admin.`;
+  STUDIO.msg=STUDIO.ok?'':`${user.email||'This account'} isn’t a ${T('title')} admin.`;
   if(STUDIO.ok){
     const {D,db}=await adminCore();
     for(let k=0;k<50&&THEME_LOADED!==3;k++) await new Promise(r=>setTimeout(r,100));
@@ -1422,12 +1476,32 @@ function pickFile(accept,cb){ const i=document.createElement('input'); i.type='f
 function renderStudio(){
   const b=studioBox(); if(b.hidden) return;
   const E=editTheme(), TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
-  const tabs=[['tokens','Tokens'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
+  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
   let body='';
   if(!STUDIO.ok){
-    body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in Jelly Flip. Only admins can open it.</p>
+    body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in ${esc(T('title'))}. Only admins can open it.</p>
       ${STUDIO.needSignIn?`<button class="btn primary" id="stSignIn">Sign in with Google</button>`:''}
       ${STUDIO.user&&!STUDIO.ok?`<button class="btn ghost" id="stSignOut">Use a different account</button>`:''}</div>`;
+  } else if(STUDIO.tab==='brand'){
+    const ai=E.appIcon||{}, asrc=srcOf(ai), tl=E.titleLogo||{}, tsrc=srcOf(tl), cust=k=>E.text&&E.text[k]!=null&&E.text[k]!=='';
+    const live=STUDIO.editId===(PREVIEW||ACTIVE);
+    body=`<p class="muted">Rename the game and change its logo. The name shows on the loading screen, every screen header, the browser tab, pop-up messages and the home-screen name.</p>
+      <div class="st-row"><div class="st-grow"><b>Game name</b>${cust('title')?` <button class="linkbtn" data-textreset="title">reset</button>`:''}
+        <input class="st-input" data-brandtext="title" value="${esc(TE('title'))}" maxlength="40" aria-label="Game name"></div></div>
+      <div class="st-row"><div class="st-grow"><b>Home-screen name</b> <span class="muted st-small">(optional, the short name under the app icon; about 12 letters fit)</span>${cust('shortName')?` <button class="linkbtn" data-textreset="shortName">reset</button>`:''}
+        <input class="st-input" data-brandtext="shortName" value="${esc(E.text&&E.text.shortName||'')}" placeholder="${esc(TE('title'))}" maxlength="30" aria-label="Home-screen name"></div></div>
+      <div class="st-row"><div class="st-appicon" style="background:${ai.bg||(asrc?'#fff':'transparent')}">${asrc?`<img src="${asrc}" alt="" style="padding:${((ai.pad!=null?ai.pad:.08)*100).toFixed(0)}%">`:`<img src="apple-touch-icon.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🪼'}))">`}</div>
+        <div class="st-grow"><b>App icon</b><p class="muted st-small">The picture on the home screen and the browser tab. Use a square image (PNG works best; 512×512 or bigger).</p>
+        <div class="st-acts"><button class="btn small" data-brandup="appIcon">${asrc?'Replace icon':'Upload icon'}</button>
+          ${asrc?`<label class="st-color">Background <input type="color" data-iconbg value="${ai.bg||'#ffffff'}"></label>
+          <label class="st-color">Padding <input type="range" min="0" max="30" step="2" value="${Math.round((ai.pad!=null?ai.pad:.08)*100)}" data-iconpad> <span class="st-pct">${Math.round((ai.pad!=null?ai.pad:.08)*100)}%</span></label>
+          <button class="btn small ghost" data-brandreset="appIcon">Reset</button>`:''}</div></div></div>
+      <div class="st-row"><div class="st-prev st-titleprev">${tsrc?`<img src="${tsrc}" alt="">`:`<span class="muted st-small">none</span>`}</div>
+        <div class="st-grow"><b>Title logo</b><p class="muted st-small">An optional picture of the game's name, shown on the loading screen and next to the name at the top of the setup and game screens.</p>
+        <div class="st-acts"><button class="btn small" data-brandup="titleLogo">${tsrc?'Replace logo':'Upload logo'}</button>
+          ${tsrc?`<label class="st-check"><input type="checkbox" data-titlehide ${tl.hideName?'checked':''}> Show the logo instead of the name text</label>
+          <button class="btn small ghost" data-brandreset="titleLogo">Remove</button>`:''}</div></div></div>
+      <p class="muted st-small">Phones keep the icon and name from when the game was added to the home screen. To see a new icon there, remove the old shortcut and add it again${live?'':' (with this set live or previewed)'}.</p>`;
   } else if(STUDIO.tab==='tokens'){
     const item=(key,label,prev)=>{ const e=key==='back'?E.back:E.tokens&&E.tokens[key], has=!!srcOf(e);
       return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
@@ -1498,7 +1572,7 @@ function renderStudio(){
     <div class="st-body">${STUDIO.ok&&!STUDIO.editId?`<div class="st-center"><p class="muted">There are no artwork sets yet. Start one from the original design.</p><button class="btn primary" id="stFirstSet">Create the first set</button></div>`:body}</div>
     ${STUDIO.ok?`<footer class="st-foot"><button class="btn small ghost" id="stResetAll" ${STUDIO.editId?'':'hidden'}>${STUDIO.armReset?'Tap again to clear this set':'Clear this set back to the original'}</button><button class="linkbtn" id="stSignOut">Sign out</button></footer>`:''}
   </div>`;
-  const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'||el.tagName==='SELECT'||['color','checkbox','range'].includes(el.type)?'change':'click',()=>fn(el)));
+  const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'||el.tagName==='SELECT'||['color','checkbox','range','text'].includes(el.type)?'change':'click',()=>fn(el)));
   on('#stClose',()=>{ b.hidden=true; STUDIO.msg=''; render() });
   on('#stSignIn',()=>studioSignIn());
   on('#stSignOut',async()=>{ const {AU,auth}=await adminCore(); await AU.signOut(auth); STUDIO.user=null; STUDIO.ok=false; STUDIO.needSignIn=true; STUDIO.msg=''; renderStudio() });
@@ -1541,6 +1615,13 @@ function renderStudio(){
   on('[data-font]',el=>saveTheme('fonts/'+el.dataset.font,el.value));
   on('[data-fontup]',el=>{ const r=el.dataset.fontup; pickFile('.woff2,.woff,.ttf,.otf',async f=>{ await uploadAsset('fontFiles/'+r,f,'font'); saveTheme('fonts/'+r,'__upload') }) });
   on('[data-fontreset]',async el=>{ const r=el.dataset.fontreset; await removeOldAsset('fontFiles/'+r); await saveTheme('fontFiles/'+r,null); saveTheme('fonts/'+r,null) });
+  on('[data-brandtext]',el=>{ const k=el.dataset.brandtext, v=el.value.trim(); saveTheme('text/'+k,v&&v!==TEXT_DEFAULTS[k]?v:null) });
+  on('[data-brandup]',el=>{ const k=el.dataset.brandup, cur=editTheme()[k]||{};
+    pickFile('image/*',f=>uploadAsset(k,f,'image',{max:k==='appIcon'?1024:900,keep:k==='appIcon'?{bg:cur.bg||null,pad:cur.pad??null}:{hideName:!!cur.hideName}})) });
+  on('[data-brandreset]',async el=>{ const k=el.dataset.brandreset; await removeOldAsset(k); saveTheme(k,null) });
+  on('[data-iconbg]',el=>saveTheme('appIcon/bg',el.value));
+  on('[data-iconpad]',el=>saveTheme('appIcon/pad',(+el.value)/100));
+  on('[data-titlehide]',el=>saveTheme('titleLogo/hideName',el.checked||null));
   on('[data-text]',el=>{ const v=el.value.trim(); saveTheme('text/'+el.dataset.text,v&&v!==TEXT_DEFAULTS[el.dataset.text]?v:null) });
   on('[data-textreset]',el=>saveTheme('text/'+el.dataset.textreset,null));
   on('#stMusicPlay',()=>{ audio(); if(MUSIC.playing) musicStop(); else { const was=PREFS.music; PREFS.music=true; musicStart(); PREFS.music=was } setTimeout(renderStudio,50) });
@@ -1949,7 +2030,7 @@ function renderSetup(){
   const st=S.setup, saved=load(), resume=saved&&saved.screen==='play'?saved:null;
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
-    <header class="top"><div><h1>${TX('title')}</h1><p class="muted">${TX('tagline')}</p></div><div class="tools">${toggleHTML()}</div></header>
+    <header class="top"><div><h1>${titleHTML()}</h1><p class="muted">${TX('tagline')}</p></div><div class="tools">${toggleHTML()}</div></header>
     ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div></div>`:''}
     <div class="card">
       <span class="label">${TX('players')}</span>
@@ -2038,7 +2119,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1>${TX('title')}</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button><button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
+      <header class="top"><h1>${titleHTML()}</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button><button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
