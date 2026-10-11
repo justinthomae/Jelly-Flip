@@ -42,8 +42,10 @@ body{
   margin:0;font-family:var(--body);font-size:16px;line-height:1.45;color:var(--ink);
   background:#2f9ea3;
 }
-body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,rgba(6,40,46,.18),rgba(6,40,46,.32)),var(--water) center/cover no-repeat,#2f9ea3}
+/* the same water again, clipped to the strip behind the phone's status bar and laid over the page, so text never scrolls under it */
+body::after{z-index:9;clip-path:inset(0 0 calc(100% - env(safe-area-inset-top,0px)) 0)}
 /* text that sits straight on the water gets a light color and a soft shadow so it stays readable */
 .top .muted,.info,.app > .foot,.splash .foot,.credit,.studio-link{color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55)}
 .top h1,.logo{text-shadow:0 2px 6px rgba(4,36,42,.45)}
@@ -163,7 +165,8 @@ p{margin:0}
 /* splash */
 .splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
   background:linear-gradient(180deg,rgba(6,40,46,.12),rgba(6,40,46,.3)),var(--water) center/cover no-repeat,#2f9ea3;transition:opacity .6s}
-.splash.out{opacity:0;pointer-events:none;transition:opacity .85s ease .1s,filter .85s ease .1s,transform .85s ease .1s;filter:blur(7px) saturate(1.2);transform:scale(1.06)}
+.splash.out{pointer-events:none}
+.splash.out.plain{opacity:0;transition:opacity .6s}
 .popfx{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
 .popfx i{position:absolute;border-radius:50%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,.75);
   background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.9) 0 12%,rgba(255,255,255,.18) 13% 45%,rgba(160,230,225,.12) 70%,rgba(255,255,255,.35) 100%);
@@ -530,7 +533,7 @@ function applyTheme(){
   // backgrounds
   const bgCss=(sel,e)=>{ if(!e) return; const src=srcOf(e), c=e.color||'var(--table)';
     if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat fixed !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
-  bgCss('body::before',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
+  bgCss('body::before,body::after',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
   // token material: the surface of every token, wood unless the admin picked a color or a picture
   const mat=THEME.material||{}, gloss='radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 45%)';
   const matSize=mat.zoom?`${Math.round(mat.zoom*100)}%`:'cover';
@@ -1244,7 +1247,7 @@ function renderLobby(){
   const list=NET.hosts.filter(h=>h.st!=='over');
   el.innerHTML=`<span class="label">${TX('onlineGames')}</span>
     ${list.length?`<div class="hosts">${list.map(h=>`<div class="hostrow"><div><b>${esc(cleanName(h.name)||'Someone')}’s game</b><small>${h.st==='play'?'In progress':'Waiting for players'} · ${h.open|0} open seat${(h.open|0)===1?'':'s'}</small></div><button class="btn primary small" data-code="${esc(String(h.code).replace(/[^a-z]/g,''))}">Join</button></div>`).join('')}</div>`
-      :`<p class="muted">No games open right now. A game shows up here when someone on this link sets a seat to <b>Remote player</b> and starts it.</p>`}
+      :`<p class="muted">No games open right now.</p>`}
     ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}${onlineStatusHTML()}`;
   el.querySelectorAll('[data-code]').forEach(b=>b.onclick=()=>guestJoin(b.dataset.code));
 }
@@ -1306,7 +1309,7 @@ const nudgePad=(key,dx,dy)=>`<div class="st-nudge" role="group" aria-label="Move
 const BLENDS=[['normal','Normal (as uploaded)'],['multiply','Multiply (white turns see-through)'],['ink','Ink (black lines only, recolorable)']];
 const GOOGLE_FONTS=['Gochi Hand','Atkinson Hyperlegible','Rubik','Fredoka','Baloo 2','Nunito','Quicksand','Comfortaa','Patrick Hand','Caveat','Amatic SC','Pacifico','Lilita One','Luckiest Guy','Chewy','Bubblegum Sans','Sniglet','Short Stack','Poppins','Montserrat','Lato','Open Sans','Merriweather','Playfair Display','Lora'];
 const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',seam:'Plank lines',wood:'Token wood (light)',"wood-2":'Token wood (dark)',"wood-3":'Token edge',burn:'Token artwork lines',ink:'Main text',"ink-2":'Secondary text',sea:'Accent (buttons, highlights)',"sea-ink":'Text on accent buttons',bust:'Warnings and busts',panel:'Cards, menus and pop-ups',"panel-2":'Raised buttons and inputs'};
-const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',aiNote:'AI explanation',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Angelfish (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
@@ -2044,7 +2047,6 @@ function renderSetup(){
       <span class="label">${TX('players')}</span>
       <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
       <div class="names">${st.names.slice(0,st.count).map((n,i)=>`<div class="name ${st.kinds[i]!=='human'?'bot':''}"><i style="background:${COLORS[i]}"></i><input id="name${i}" data-i="${i}" maxlength="16" value="${esc(n)}" aria-label="Player ${i+1} name"><select id="kind${i}" data-i="${i}" aria-label="Player ${i+1} type">${kinds.map(([v,l])=>`<option value="${v}" ${st.kinds[i]===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
-      <p class="muted">${TX('aiNote')}${NET.lobby?' A <b>Remote player</b> seat is for someone joining from their own device.':''}</p>
       ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}
       <button class="btn primary" id="start">${st.kinds.slice(0,st.count).includes('remote')?TX('openOnline'):TX('startGame')}</button>
     </div>
@@ -2258,23 +2260,45 @@ function bubbleBurst(btn){
   const r=btn.getBoundingClientRect(), layer=document.createElement('div'); layer.className='popfx'; document.body.appendChild(layer);
   btn.style.visibility='hidden';
   if(RM.matches){ setTimeout(()=>layer.remove(),50); return }
-  // the button itself: a quick swell, then it's gone
-  const ghost=btn.cloneNode(true); ghost.removeAttribute('id'); ghost.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;margin:0;visibility:visible`;
+  // the button gives a happy squish, swells fast and pops
+  const ghost=btn.cloneNode(true); ghost.removeAttribute('id');
+  ghost.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;margin:0;visibility:visible;transform-origin:50% 50%`;
   layer.appendChild(ghost);
-  ghost.animate([{transform:'scale(1)',opacity:1},{transform:'scale(1.22)',opacity:1,offset:.45},{transform:'scale(1.5)',opacity:0}],{duration:220,easing:'ease-out',fill:'forwards'});
-  const n=26;
+  ghost.animate([
+    {transform:'scale(1)',opacity:1,filter:'brightness(1)'},
+    {transform:'scale(.9,.94)',opacity:1,offset:.18},
+    {transform:'scale(1.3,1.22)',opacity:1,filter:'brightness(1.15)',offset:.55},
+    {transform:'scale(1.55)',opacity:0,filter:'brightness(1.4)'}],{duration:260,easing:'ease-out',fill:'forwards'});
+  // ...into a cloud of bubbles that balloon out, race upward and fade
+  const n=38, cx=r.left+r.width/2, cy=r.top+r.height/2;
   for(let k=0;k<n;k++){
-    const b=document.createElement('i'), sz=8+Math.random()*26, x=r.left+Math.random()*r.width, y=r.top+r.height*(.2+Math.random()*.6);
+    const b=document.createElement('i'), sz=12+Math.random()*34, a=Math.random()*Math.PI*2;
+    const x=cx+Math.cos(a)*r.width*.42*Math.random(), y=cy+Math.sin(a)*r.height*.4*Math.random();
     b.style.cssText=`left:${x-sz/2}px;top:${y-sz/2}px;width:${sz}px;height:${sz}px`; layer.appendChild(b);
-    const dx=(Math.random()-.5)*r.width*1.6, rise=160+Math.random()*Math.min(innerHeight*.55,420), w=10+Math.random()*18, d=1100+Math.random()*900;
+    const out=(Math.cos(a)*(40+Math.random()*90)), rise=260+Math.random()*Math.min(innerHeight*.7,560), w=8+Math.random()*16, d=900+Math.random()*700;
     b.animate([
-      {transform:'translate(0,0) scale(.2)',opacity:0},
-      {transform:`translate(${dx*.35}px,${-rise*.12}px) scale(1.05)`,opacity:1,offset:.12},
-      {transform:`translate(${dx*.6+w}px,${-rise*.45}px) scale(1)`,opacity:.9,offset:.45},
-      {transform:`translate(${dx*.8-w}px,${-rise*.78}px) scale(1.05)`,opacity:.7,offset:.78},
-      {transform:`translate(${dx}px,${-rise}px) scale(1.25)`,opacity:0}],{duration:d,delay:Math.random()*160,easing:'cubic-bezier(.2,.6,.4,1)',fill:'both'});
+      {transform:'translate(0,0) scale(.15)',opacity:0},
+      {transform:`translate(${out*.5}px,${-rise*.06}px) scale(1.25)`,opacity:1,offset:.14},
+      {transform:`translate(${out*.8+w}px,${-rise*.4}px) scale(1.1)`,opacity:.9,offset:.45},
+      {transform:`translate(${out-w}px,${-rise*.75}px) scale(1.2)`,opacity:.55,offset:.75},
+      {transform:`translate(${out*1.1}px,${-rise}px) scale(1.5)`,opacity:0}],{duration:d,delay:110+Math.random()*120,easing:'cubic-bezier(.15,.7,.35,1)',fill:'both'});
   }
-  setTimeout(()=>layer.remove(),2300);
+  setTimeout(()=>layer.remove(),2200);
+}
+// the water melts away: it ripples, blurs and swells as it clears to show the page underneath
+function waterDissolve(sp,done){
+  if(RM.matches||!sp.animate){ sp.classList.add('plain'); return setTimeout(done,650) }
+  const kids=sp.querySelectorAll('.splash-in,.credit,.foot,.sea');
+  kids.forEach(k=>k.animate([{opacity:1},{opacity:0}],{duration:420,delay:120,easing:'ease-in',fill:'forwards'}));
+  const a=sp.animate([
+    {opacity:1,filter:'blur(0) saturate(1)',transform:'scale(1) skew(0deg,0deg)'},
+    {opacity:1,filter:'blur(2px) saturate(1.15)',transform:'scale(1.015) skew(.8deg,-.4deg)',offset:.2},
+    {opacity:.85,filter:'blur(7px) saturate(1.25)',transform:'scale(1.05) skew(-1deg,.6deg)',offset:.45},
+    {opacity:.45,filter:'blur(14px) saturate(1.3)',transform:'scale(1.1) skew(.7deg,-.3deg)',offset:.72},
+    {opacity:0,filter:'blur(22px) saturate(1.3)',transform:'scale(1.16) skew(0deg,0deg)'}],{duration:1150,delay:120,easing:'ease-in-out',fill:'forwards'});
+  animDone(a,1300).then(done);
+  const app=document.getElementById('app');
+  if(app) app.animate([{filter:'blur(10px)',transform:'scale(.96)',opacity:.6},{filter:'blur(4px)',transform:'scale(.99) skewX(.8deg)',opacity:.9,offset:.55},{filter:'blur(0)',transform:'none',opacity:1}],{duration:1250,delay:120,easing:'ease-out',fill:'backwards'});
 }
 function startSplash(){
   const sp=document.getElementById('splash'), sea=document.getElementById('sea');
@@ -2297,7 +2321,8 @@ function startSplash(){
     for(let k=0;k<n;k++) bubble(t+k*(.08+Math.random()*.12),.035);
   },1400);
   try{ if(PREFS.sound&&navigator.userActivation&&navigator.userActivation.hasBeenActive) audio() }catch(e){}
-  const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); setTimeout(()=>sp.remove(),950) };
+  const close=(fx)=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out');
+    if(fx) waterDissolve(sp,()=>sp.remove()); else { sp.classList.add('plain'); setTimeout(()=>sp.remove(),650) } };
   // Play pops the moment it's pressed: the button bursts into bubbles that float up over the game while the water clears
   const go=document.getElementById('splashGo');
   // phones only let sound start when the finger lifts, so the pop happens on press and the sound on release
@@ -2307,15 +2332,13 @@ function startSplash(){
     musicStart() };
   const press=e=>{
     e.stopPropagation(); if(gone) return;
-    buzz(12); bubbleBurst(go); close();
-    const a=document.getElementById('app');
-    if(a&&!RM.matches) a.animate([{filter:'blur(6px)',transform:'scale(.97) skewX(1.5deg)'},{filter:'blur(2px)',transform:'scale(1.01) skewX(-1deg)',offset:.5},{filter:'none',transform:'none'}],{duration:1000,easing:'ease-out'});
+    buzz(12); bubbleBurst(go); close(true);
   };
   go.addEventListener('pointerdown',press);
   go.addEventListener('pointerup',sound);
   go.addEventListener('click',e=>{ press(e); sound() });
   sp.addEventListener('pointerdown',()=>{ touched=true });
-  setTimeout(()=>{ if(!touched){ close() } },8000);
+  setTimeout(()=>{ if(!touched){ close(true) } },8000);
 }
 
 // ---------- boot ----------
