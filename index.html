@@ -259,8 +259,15 @@ p{margin:0}
 /* Studio token material and logo */
 .st-material .st-prev .face,.st-material .st-back{width:60px;height:60px}
 .st-small{font-size:.8rem;margin:2px 0 0}
+.st-nudge{display:inline-grid;grid-template-columns:repeat(3,26px);grid-template-rows:repeat(3,22px);gap:2px;vertical-align:middle}
+.st-nudge .nb{border:0;border-radius:6px;background:var(--panel-2);color:var(--ink);padding:0;font-size:.8rem;line-height:1}
+.st-nudge .nb:active{background:var(--sea);color:var(--sea-ink)}
+.st-nudge .up{grid-column:2;grid-row:1}.st-nudge .lf{grid-column:1;grid-row:2}.st-nudge .ct{grid-column:2;grid-row:2}.st-nudge .rt{grid-column:3;grid-row:2}.st-nudge .dn{grid-column:2;grid-row:3}
 .st-pct{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block;font-size:.78rem}
 .st-check input[type=range]{width:90px}
+.st-item .st-check{flex-wrap:wrap;justify-content:center;max-width:100%;text-align:center}
+.st-item .st-check select{max-width:100%;min-width:0}
+.st-item{min-width:0;overflow:hidden}
 .st-logo-prev{position:relative}
 .st-back .back{overflow:hidden}
 
@@ -432,7 +439,7 @@ const TX = k => fmt(T(k));
 // an image, sound or font in the theme: either a file uploaded by the admin, or a file shipped with the site
 const srcOf = e => !e?null:e.url?e.url:(e.asset&&ASSET[e.asset])||null;
 const tokenArt = t => { const e=THEME.tokens&&THEME.tokens[t], src=srcOf(e);
-  return src?{src,full:!!e.full,key:e.asset||e.url,blend:e.blend||THEME.iconBlend||'normal',size:e.size||THEME.iconSize||(e.full?1:.84)}:null };
+  return src?{src,full:!!e.full,key:e.asset||e.url,blend:e.blend||THEME.iconBlend||'normal',size:e.size||THEME.iconSize||(e.full?1:.84),dx:e.dx||0,dy:e.dy||0}:null };
 // Ink style: turn a black-and-white picture into dark lines on a transparent background (darker = more solid),
 // worked out once per picture on this device; the lines are then painted in the chosen ink color.
 const INK={}, INKING={};
@@ -454,7 +461,7 @@ function inkSrc(key,src){
 }
 // the icon on a token, drawn the way the admin picked: as uploaded, multiplied onto the material, or as ink
 function artHTML(art){
-  const sz=`width:${(art.size*100).toFixed(0)}%;height:${(art.size*100).toFixed(0)}%;flex:none;`;
+  const sz=`width:${(art.size*100).toFixed(0)}%;height:${(art.size*100).toFixed(0)}%;flex:none;left:${50+art.dx}%;top:${50+art.dy}%;`;
   if(art.blend==='ink'){ const m=inkSrc(art.key,art.src);
     if(m) return `<span class="art ink" style="${sz}-webkit-mask-image:url('${m}');mask-image:url('${m}')"></span>`;
     return `<img class="art" src="${art.src}" alt="" draggable="false" style="${sz}mix-blend-mode:multiply">`; }
@@ -515,7 +522,8 @@ function applyTheme(){
   if(back) css.push(`.tok .back,.fly .back,.pile .stack i,.st-back .back{background:var(--wood) url("${back}") center/cover no-repeat !important}`);
   // optional logo on the back of every face-down token (off unless switched on)
   const lg=THEME.backLogo, logo=lg&&lg.on&&srcOf(lg);
-  if(logo){ const inset=((1-(lg.size||.6))/2*100).toFixed(1), sel='.tok .back::after,.fly .back::after,.st-back .back::after', base=`content:"";position:absolute;inset:${inset}%;pointer-events:none;`;
+  if(logo){ const ins=(1-(lg.size||.6))/2*100, ldx=lg.dx||0, ldy=lg.dy||0, sel='.tok .back::after,.fly .back::after,.st-back .back::after',
+      base=`content:"";position:absolute;top:${(ins+ldy).toFixed(1)}%;bottom:${(ins-ldy).toFixed(1)}%;left:${(ins+ldx).toFixed(1)}%;right:${(ins-ldx).toFixed(1)}%;pointer-events:none;`;
     const blend=lg.blend||'normal', m=blend==='ink'?inkSrc(lg.asset||lg.url,logo):null;
     if(m) css.push(`${sel}{${base}background:var(--icon-ink,var(--burn));-webkit-mask:url("${m}") center/contain no-repeat;mask:url("${m}") center/contain no-repeat}`);
     else css.push(`${sel}{${base}background:url("${logo}") center/contain no-repeat;${blend!=='normal'?'mix-blend-mode:multiply;':''}}`) }
@@ -1241,6 +1249,14 @@ function renderWait(){
 
 // ---------- Studio: the admins' editor for every image, color, font, word and sound, in several sets ----------
 const ADMIN_EMAILS=['justinthomae@gmail.com','lydialichti@gmail.com'];
+// four arrows and a center button that move an image 2% of the token at a time
+const nudgePad=(key,dx,dy)=>`<div class="st-nudge" role="group" aria-label="Move the image">
+  <button class="nb up" data-nudge="${key}" data-d="0,-2" aria-label="Move up">↑</button>
+  <button class="nb lf" data-nudge="${key}" data-d="-2,0" aria-label="Move left">←</button>
+  <button class="nb ct" data-nudge="${key}" data-d="center" aria-label="Center" title="Center">${dx||dy?'⦿':'·'}</button>
+  <button class="nb rt" data-nudge="${key}" data-d="2,0" aria-label="Move right">→</button>
+  <button class="nb dn" data-nudge="${key}" data-d="0,2" aria-label="Move down">↓</button>
+</div>`;
 const BLENDS=[['normal','Normal (as uploaded)'],['multiply','Multiply (white turns see-through)'],['ink','Ink (black lines only, recolorable)']];
 const GOOGLE_FONTS=['Gochi Hand','Atkinson Hyperlegible','Rubik','Fredoka','Baloo 2','Nunito','Quicksand','Comfortaa','Patrick Hand','Caveat','Amatic SC','Pacifico','Lilita One','Luckiest Guy','Chewy','Bubblegum Sans','Sniglet','Short Stack','Poppins','Montserrat','Lato','Open Sans','Merriweather','Playfair Display','Lora'];
 const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',seam:'Plank lines',wood:'Token wood (light)',"wood-2":'Token wood (dark)',"wood-3":'Token edge',burn:'Token artwork lines',ink:'Main text',"ink-2":'Secondary text',sea:'Accent (buttons, highlights)',"sea-ink":'Text on accent buttons',bust:'Warnings and busts',panel:'Cards, menus and pop-ups',"panel-2":'Raised buttons and inputs'};
@@ -1418,7 +1434,8 @@ function renderStudio(){
         <div class="st-acts"><button class="btn small" data-up="${key}">${key==='back'?'Upload picture':'Upload icon'}</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
         ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token (covers the material too)</label>
         <label class="st-check">Style <select data-blend="${key}"><option value="">Same as all tokens</option>${BLENDS.map(([v,l])=>`<option value="${v}" ${e.blend===v?'selected':''}>${l}</option>`).join('')}</select></label>
-        <label class="st-check">Size <input type="range" min="30" max="150" step="5" value="${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}" data-size="${key}"> <span class="st-pct">${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}%</span>${e.size?` <button class="linkbtn" data-sizereset="${key}">reset</button>`:''}</label>`:''}</div>` };
+        <label class="st-check">Size <input type="range" min="30" max="150" step="5" value="${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}" data-size="${key}"> <span class="st-pct">${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}%</span>${e.size?` <button class="linkbtn" data-sizereset="${key}">reset</button>`:''}</label>
+        <div class="st-check">Position ${nudgePad(key,e.dx,e.dy)}</div>`:''}</div>` };
     const mat=E.material||{}, mt=mat.type||'wood', lg=E.backLogo||{};
     body=`<div class="st-row st-material"><div class="st-prev">${face('fish')}</div><div class="st-prev"><div class="st-back"><span class="back"></span></div></div>
         <div class="st-grow"><b>Token material</b><p class="muted st-small">The surface of every token, front and back.</p>
@@ -1431,6 +1448,7 @@ function renderStudio(){
         <div class="st-acts"><button class="btn small" data-logoup>${srcOf(lg)?'Replace logo':'Upload logo'}</button>
           ${srcOf(lg)?`<label class="st-check"><input type="checkbox" data-logoon ${lg.on?'checked':''}> Show on token backs</label>
           <label class="st-color">Size <input type="range" min="30" max="95" step="5" value="${Math.round((lg.size||.6)*100)}" data-logosize></label>
+          <div class="st-color">Position ${nudgePad('backLogo',lg.dx,lg.dy)}</div>
           <label class="st-color">Style <select data-logoblend>${BLENDS.map(([v,l])=>`<option value="${v}" ${(lg.blend||'normal')===v?'selected':''}>${l}</option>`).join('')}</select></label>
           <button class="btn small ghost" data-logoreset>Remove</button>`:''}</div></div></div>
       <div class="st-row"><div class="st-grow"><b>Icon style for all tokens</b>
@@ -1502,6 +1520,13 @@ function renderStudio(){
   on('[data-sizereset]',el=>saveTheme('tokens/'+el.dataset.sizereset+'/size',null));
   on('[data-matzoom]',el=>saveTheme('material/zoom',(+el.value)/100));
   on('[data-matzoomreset]',()=>saveTheme('material/zoom',null));
+  on('[data-nudge]',el=>{
+    const k=el.dataset.nudge, base=k==='backLogo'?'backLogo':'tokens/'+k, cur=getPath(base)||{};
+    if(el.dataset.d==='center'){ saveTheme(base+'/dx',null); return saveTheme(base+'/dy',null) }
+    const [ax,ay]=el.dataset.d.split(',').map(Number), clamp=v=>Math.max(-40,Math.min(40,v));
+    if(ax) saveTheme(base+'/dx',clamp((cur.dx||0)+ax)||null);
+    if(ay) saveTheme(base+'/dy',clamp((cur.dy||0)+ay)||null);
+  });
   // show the number while a slider moves
   b.querySelectorAll('input[type=range]').forEach(r=>r.addEventListener('input',()=>{ const o=r.parentElement.querySelector('.st-pct'); if(o) o.textContent=r.value+'%' }));
   on('[data-iconinkreset]',()=>saveTheme('iconInk',null));
