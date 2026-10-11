@@ -163,7 +163,11 @@ p{margin:0}
 /* splash */
 .splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
   background:linear-gradient(180deg,rgba(6,40,46,.12),rgba(6,40,46,.3)),var(--water) center/cover no-repeat,#2f9ea3;transition:opacity .6s}
-.splash.out{opacity:0;pointer-events:none}
+.splash.out{opacity:0;pointer-events:none;transition:opacity .85s ease .1s,filter .85s ease .1s,transform .85s ease .1s;filter:blur(7px) saturate(1.2);transform:scale(1.06)}
+.popfx{position:fixed;inset:0;z-index:70;pointer-events:none;overflow:hidden}
+.popfx i{position:absolute;border-radius:50%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,.75);
+  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.9) 0 12%,rgba(255,255,255,.18) 13% 45%,rgba(160,230,225,.12) 70%,rgba(255,255,255,.35) 100%);
+  box-shadow:0 0 6px rgba(255,255,255,.25)}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
 .top h1 .hlogo{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em;object-fit:contain}
@@ -1477,7 +1481,7 @@ function renderStudio(){
         <input class="st-input" data-brandtext="title" value="${esc(TE('title'))}" maxlength="40" aria-label="Game name"></div></div>
       <div class="st-row"><div class="st-grow"><b>Home-screen name</b> <span class="muted st-small">(optional, the short name under the app icon; about 12 letters fit)</span>${cust('shortName')?` <button class="linkbtn" data-textreset="shortName">reset</button>`:''}
         <input class="st-input" data-brandtext="shortName" value="${esc(E.text&&E.text.shortName||'')}" placeholder="${esc(TE('title'))}" maxlength="30" aria-label="Home-screen name"></div></div>
-      <div class="st-row"><div class="st-appicon" style="background:${ai.bg||(asrc?'#fff':'transparent')}">${asrc?`<img src="${asrc}" alt="" style="padding:${((ai.pad!=null?ai.pad:.08)*100).toFixed(0)}%">`:`<img src="apple-touch-icon.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'🪼'}))">`}</div>
+      <div class="st-row"><div class="st-appicon" style="background:${ai.bg||(asrc?'#fff':'transparent')}">${asrc?`<img src="${asrc}" alt="" style="padding:${((ai.pad!=null?ai.pad:.08)*100).toFixed(0)}%">`:`<img src="apple-touch-icon.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))">`}</div>
         <div class="st-grow"><b>App icon</b><p class="muted st-small">The picture on the home screen and the browser tab. Use a square image (PNG works best; 512×512 or bigger).</p>
         <div class="st-acts"><button class="btn small" data-brandup="appIcon">${asrc?'Replace icon':'Upload icon'}</button>
           ${asrc?`<label class="st-color">Background <input type="color" data-iconbg value="${ai.bg||'#ffffff'}"></label>
@@ -2249,6 +2253,28 @@ function renderOver(){
 }
 
 // ---------- splash ----------
+function bubbleBurst(btn){
+  const r=btn.getBoundingClientRect(), layer=document.createElement('div'); layer.className='popfx'; document.body.appendChild(layer);
+  btn.style.visibility='hidden';
+  if(RM.matches){ setTimeout(()=>layer.remove(),50); return }
+  // the button itself: a quick swell, then it's gone
+  const ghost=btn.cloneNode(true); ghost.removeAttribute('id'); ghost.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;margin:0;visibility:visible`;
+  layer.appendChild(ghost);
+  ghost.animate([{transform:'scale(1)',opacity:1},{transform:'scale(1.22)',opacity:1,offset:.45},{transform:'scale(1.5)',opacity:0}],{duration:220,easing:'ease-out',fill:'forwards'});
+  const n=26;
+  for(let k=0;k<n;k++){
+    const b=document.createElement('i'), sz=8+Math.random()*26, x=r.left+Math.random()*r.width, y=r.top+r.height*(.2+Math.random()*.6);
+    b.style.cssText=`left:${x-sz/2}px;top:${y-sz/2}px;width:${sz}px;height:${sz}px`; layer.appendChild(b);
+    const dx=(Math.random()-.5)*r.width*1.6, rise=160+Math.random()*Math.min(innerHeight*.55,420), w=10+Math.random()*18, d=1100+Math.random()*900;
+    b.animate([
+      {transform:'translate(0,0) scale(.2)',opacity:0},
+      {transform:`translate(${dx*.35}px,${-rise*.12}px) scale(1.05)`,opacity:1,offset:.12},
+      {transform:`translate(${dx*.6+w}px,${-rise*.45}px) scale(1)`,opacity:.9,offset:.45},
+      {transform:`translate(${dx*.8-w}px,${-rise*.78}px) scale(1.05)`,opacity:.7,offset:.78},
+      {transform:`translate(${dx}px,${-rise}px) scale(1.25)`,opacity:0}],{duration:d,delay:Math.random()*160,easing:'cubic-bezier(.2,.6,.4,1)',fill:'both'});
+  }
+  setTimeout(()=>layer.remove(),2300);
+}
 function startSplash(){
   const sp=document.getElementById('splash'), sea=document.getElementById('sea');
   const rows=[.14,.3,.62,.78], out=[];
@@ -2270,12 +2296,23 @@ function startSplash(){
     for(let k=0;k<n;k++) bubble(t+k*(.08+Math.random()*.12),.035);
   },1400);
   try{ if(PREFS.sound&&navigator.userActivation&&navigator.userActivation.hasBeenActive) audio() }catch(e){}
-  const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); setTimeout(()=>sp.remove(),650) };
-  document.getElementById('splashGo').onclick=e=>{
-    e.stopPropagation(); audio();
-    if(PREFS.sound&&actx){ if(srcOf(customSfx('bubble'))) playCustom(customSfx('bubble')); else { const t=actx.currentTime; for(let k=0;k<5;k++) bubble(t+k*.07,.045) } }
-    close(); musicStart();
+  const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); setTimeout(()=>sp.remove(),950) };
+  // Play pops the moment it's pressed: the button bursts into bubbles that float up over the game while the water clears
+  const go=document.getElementById('splashGo');
+  // phones only let sound start when the finger lifts, so the pop happens on press and the sound on release
+  let sounded=false;
+  const sound=()=>{ if(sounded) return; sounded=true; audio();
+    if(PREFS.sound&&actx){ if(srcOf(customSfx('bubble'))) playCustom(customSfx('bubble')); else { const t=actx.currentTime; for(let k=0;k<7;k++) bubble(t+k*.05,.05) } }
+    musicStart() };
+  const press=e=>{
+    e.stopPropagation(); if(gone) return;
+    buzz(12); bubbleBurst(go); close();
+    const a=document.getElementById('app');
+    if(a&&!RM.matches) a.animate([{filter:'blur(6px)',transform:'scale(.97) skewX(1.5deg)'},{filter:'blur(2px)',transform:'scale(1.01) skewX(-1deg)',offset:.5},{filter:'none',transform:'none'}],{duration:1000,easing:'ease-out'});
   };
+  go.addEventListener('pointerdown',press);
+  go.addEventListener('pointerup',sound);
+  go.addEventListener('click',e=>{ press(e); sound() });
   sp.addEventListener('pointerdown',()=>{ touched=true });
   setTimeout(()=>{ if(!touched){ close() } },8000);
 }
