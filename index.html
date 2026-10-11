@@ -161,7 +161,7 @@ p{margin:0}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .logo{font-size:clamp(3.6rem,15vw,6.5rem);color:var(--wood);text-shadow:0 4px 0 var(--wood-3),0 10px 24px rgba(0,0,0,.6);letter-spacing:.02em}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
-  font-family:'Rubik',var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
+  font-family:var(--credit,'Rubik'),var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
 .credit b{font-weight:400;color:var(--ink)}
 .iconbtn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--panel-2);background:transparent;display:grid;place-items:center;color:var(--ink-2);padding:0}
 .iconbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -205,6 +205,46 @@ p{margin:0}
 .hide-spot{position:absolute;aspect-ratio:1;padding:0;border-radius:50%;border:2px dashed color-mix(in srgb,var(--sea) 75%,transparent);background:color-mix(in srgb,var(--sea) 14%,transparent);cursor:pointer;animation:hidespot 1.6s ease-in-out infinite}
 @keyframes hidespot{50%{background:color-mix(in srgb,var(--sea) 28%,transparent)}}
 @media (prefers-reduced-motion:reduce){ .hide-spot{animation:none} }
+
+/* custom token art */
+.face img.art{width:84%;height:84%;object-fit:contain;pointer-events:none}
+.face.fullart img.art{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.face.fullart{background:none}
+
+/* Studio */
+.studio{position:fixed;inset:0;z-index:70;background:rgba(10,7,5,.78);display:flex;justify-content:center;align-items:flex-start;overflow:auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+.st-panel{width:100%;max-width:760px;background:var(--panel);border-radius:20px;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.st-head{display:flex;align-items:center;gap:12px;padding:16px 18px 8px}
+.st-head h2{flex:1}
+.st-who{font-size:.8rem}
+.st-tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 18px 10px}
+.st-tabs button{border:0;border-radius:999px;padding:.45em 1em;background:var(--table-2);color:var(--ink-2);white-space:nowrap;font-size:.88rem}
+.st-tabs button.on{background:var(--sea);color:var(--sea-ink);font-weight:700}
+.st-msg{margin:0 18px 6px;padding:8px 12px;border-radius:10px;background:var(--table-2);font-size:.85rem;color:var(--ink)}
+.st-body{padding:4px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.st-body > p{font-size:.9rem}
+.st-center{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:20px 0}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.st-item{background:var(--table-2);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;font-size:.85rem}
+.st-prev .face{width:72px;height:72px}
+.st-back{position:relative;width:72px;height:72px}
+.st-back .back{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 42%),radial-gradient(circle, var(--wood) 0 50%, var(--wood-2) 100%);box-shadow:inset 0 0 0 1px rgba(80,40,10,.2), 0 2px 0 var(--wood-3), 0 4px 7px rgba(0,0,0,.5)}
+.st-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.st-row .st-acts{justify-content:flex-start;margin-top:6px}
+.st-check{display:flex;gap:6px;align-items:center;font-size:.8rem;color:var(--ink-2)}
+.st-row{display:flex;gap:12px;align-items:center;background:var(--table-2);border-radius:14px;padding:12px}
+.st-row.slim{padding:8px 12px}
+.st-grow{flex:1;min-width:0}
+.st-swatch{width:64px;height:96px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.st-color{display:inline-flex;gap:6px;align-items:center;font-size:.85rem}
+.st-list{display:flex;flex-direction:column;gap:8px}
+.st-row input[type=color],.st-color input{width:40px;height:32px;border:0;background:none;padding:0}
+.st-sample{font-size:1.25rem;margin-top:4px}
+.st-text{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--ink-2)}
+.st-text textarea,.st-row select{width:100%;box-sizing:border-box;background:var(--table-2);color:var(--ink);border:1.5px solid var(--panel-2);border-radius:10px;padding:8px 10px;font:inherit;font-size:.95rem;resize:vertical}
+.st-row select{width:auto}
+.st-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px 18px;border-top:1px solid var(--panel-2)}
+.studio-link{font-size:inherit;color:var(--ink-2)}
 
 /* online */
 .err{color:var(--bust);font-size:.9rem}
@@ -287,11 +327,11 @@ p{margin:0}
 <div id="splash" class="splash" role="dialog" aria-label="Jelly Flip">
   <div class="sea" id="sea" aria-hidden="true"></div>
   <div class="splash-in">
-    <h1 class="logo">Jelly Flip</h1>
-    <button class="btn primary" id="splashGo">Play</button>
+    <h1 class="logo" data-t="title">Jelly Flip</h1>
+    <button class="btn primary" id="splashGo" data-t="play">Play</button>
   </div>
-  <p class="credit">Created by <b>Lydia Lichti</b><br>in partnership with <b>Grudge Match Games</b></p>
-  <footer class="foot">Copyright © 2026 Grudge Match Games</footer>
+  <p class="credit" data-t="credit">Created by <b>Lydia Lichti</b><br>in partnership with <b>Grudge Match Games</b></p>
+  <footer class="foot" data-t="copyright">Copyright © 2026 Grudge Match Games</footer>
 </div>
 
 
@@ -337,7 +377,95 @@ const ART = {
   g1:G(1), g2:G(2), g3:G(3),
 };
 const icon = t => `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ART[t]}</svg>`;
-const face = (t,cls='') => `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${cls}">${icon(t)}</div>`;
+// ---------- theme: the admin-editable look, sound and text ----------
+// THEME is stored in Firebase (jf/theme); uploaded files live in jf/assets/<id> and are cached on each device.
+const TEXT_DEFAULTS={
+  title:'Jelly Flip', tagline:'Push your luck. Remember the reef.',
+  credit:'Created by **Lydia Lichti**\nin partnership with **Grudge Match Games**',
+  copyright:'Copyright © 2026 Grudge Match Games', play:'Play',
+  players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
+  startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
+  howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
+  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends when 3 or fewer tokens are left on the table. Most points wins; ties go to whoever has fewer jellyfish.',
+  rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
+  rulesNote:'Scrapped tokens go to a face-down scrap pile. The shark and dolphin stay on the table unless a hook pulls them off.',
+  bank:'Bank', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
+  gameOver:'Game over', grudge:'Grudge Match', newPlayers:'New players',
+};
+for(const t of ORDER){ TEXT_DEFAULTS['name_'+t]=TYPES[t].name; TEXT_DEFAULTS['say_'+t]=TYPES[t].say }
+const COLOR_DEFAULTS={table:'#2b211b','table-2':'#241b16',seam:'#120c09',wood:'#efdcc0','wood-2':'#dcbb94','wood-3':'#b98a62',burn:'#4b2816',ink:'#f4ebde','ink-2':'#bba997',sea:'#6cc4b6','sea-ink':'#0e2724',bust:'#f08a6e',panel:'#3a2d25','panel-2':'#463830'};
+const FONT_DEFAULTS={display:'Gochi Hand',body:'Atkinson Hyperlegible',credit:'Rubik'};
+const FONT_FALLBACK={display:"'Comic Sans MS','Chalkboard SE',cursive",body:"system-ui,-apple-system,'Segoe UI',sans-serif",credit:"system-ui,sans-serif"};
+let THEME=(()=>{ try{ return JSON.parse(localStorage.getItem('jellyflip.theme')||'{}')||{} }catch(e){ return {} } })();
+const ASSET={};
+let themeDirty=false;
+const T = k => { const v=THEME.text&&THEME.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
+const fmt = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+const TX = k => fmt(T(k));
+// an image, sound or font in the theme: either a file uploaded by the admin, or a file shipped with the site
+const srcOf = e => !e?null:e.url?e.url:(e.asset&&ASSET[e.asset])||null;
+const tokenArt = t => { const e=THEME.tokens&&THEME.tokens[t], src=srcOf(e); return src?{src,full:!!e.full}:null };
+
+// device cache for uploaded files, so they only download once
+const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=indexedDB.open('jellyflip',1); r.onupgradeneeded=()=>r.result.createObjectStore('assets'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error) }));
+  return { get:async k=>{ try{ const d=await open(); return await new Promise(r=>{ const q=d.transaction('assets').objectStore('assets').get(k); q.onsuccess=()=>r(q.result||null); q.onerror=()=>r(null) }) }catch(e){ return null } },
+           set:async (k,v)=>{ try{ const d=await open(); d.transaction('assets','readwrite').objectStore('assets').put(v,k) }catch(e){} } } })();
+
+function themeAssetIds(th=THEME){
+  const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
+  Object.values(th.tokens||{}).forEach(add); add(th.back); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
+  return ids;
+}
+async function loadThemeAssets(fetchRemote){
+  for(const id of themeAssetIds()){
+    if(ASSET[id]) continue;
+    let v=await idb.get(id);
+    if(!v&&fetchRemote){ try{ v=await fetchRemote(id) }catch(e){} if(v) idb.set(id,v) }
+    if(v) ASSET[id]=v;
+  }
+}
+let fontLinkKey='';
+function applyTheme(){
+  // token names and descriptions
+  for(const t of ORDER){ TYPES[t].name=T('name_'+t); TYPES[t].say=T('say_'+t) }
+  const css=[], col=THEME.colors||{};
+  const vars=Object.keys(COLOR_DEFAULTS).filter(k=>col[k]).map(k=>`--${k}:${col[k]}`);
+  // fonts: a Google font by name, or a font file the admin uploaded
+  const fam={}, google=[];
+  for(const role of ['display','body','credit']){
+    const f=(THEME.fonts&&THEME.fonts[role])||FONT_DEFAULTS[role];
+    if(f==='__upload'&&srcOf(THEME.fontFiles&&THEME.fontFiles[role])){
+      const name='JF-'+role;
+      if(!document.fonts.check(`12px "${name}"`)) try{ const ff=new FontFace(name,`url(${srcOf(THEME.fontFiles[role])})`); ff.load().then(x=>{document.fonts.add(x)}).catch(()=>{}) }catch(e){}
+      fam[role]=`"${name}"`;
+    } else { fam[role]=`'${String(f).replace(/'/g,'')}'`; if(f!==FONT_DEFAULTS[role]||role==='credit') google.push(f) }
+  }
+  vars.push(`--display:${fam.display},${FONT_FALLBACK.display}`,`--body:${fam.body},${FONT_FALLBACK.body}`,`--credit:${fam.credit},${FONT_FALLBACK.credit}`);
+  css.push(`html:root{${vars.join(";")}}`);
+  const key=google.filter(f=>f!=='Gochi Hand'&&f!=='Atkinson Hyperlegible'&&f!=='Rubik').sort().join('|');
+  if(key!==fontLinkKey){ fontLinkKey=key; let l=document.getElementById('themeFonts'); if(!l){ l=document.createElement('link'); l.id='themeFonts'; l.rel='stylesheet'; document.head.appendChild(l) }
+    l.href=key?'https://fonts.googleapis.com/css2?'+key.split('|').map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+':wght@400;700').join('&')+'&display=swap':'' }
+  // backgrounds
+  const bgCss=(sel,e)=>{ if(!e) return; const src=srcOf(e), c=e.color||'var(--table)';
+    if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat fixed !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
+  bgCss('body',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
+  const back=srcOf(THEME.back);
+  if(back) css.push(`.tok .back,.fly .back,.pile .stack i{background:var(--wood) url("${back}") center/cover no-repeat !important}`);
+  let st=document.getElementById('themeStyle'); if(!st){ st=document.createElement('style'); st.id='themeStyle'; document.head.appendChild(st) }
+  st.textContent=css.join('\n');
+  document.title=T('title');
+  document.querySelectorAll('[data-t]').forEach(el=>{ el.innerHTML=TX(el.dataset.t) });
+  themeDirty=true;
+}
+function setTheme(th,fetchRemote){
+  THEME=th||{};
+  try{ localStorage.setItem('jellyflip.theme',JSON.stringify(THEME)) }catch(e){}
+  loadThemeAssets(fetchRemote).then(()=>{ applyTheme(); if(S&&!busy) render(); renderStudio() });
+}
+
+const face = (t,cls='') => { const art=tokenArt(t);
+  return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${cls}">${art?`<img class="art" src="${art.src}" alt="" draggable="false">`:icon(t)}</div>` };
 
 
 // ---------- state ----------
@@ -616,9 +744,19 @@ function buzz(p){
   try{ if(navigator.vibrate){ navigator.vibrate(p); return } }catch(e){}
   try{ hapticLabel&&hapticLabel.click() }catch(e){}
 }
+// a sound the admin uploaded, decoded once and played through the same volume as the built-in ones
+const BUF={};
+async function playCustom(e,vol=1){
+  const a=audio(), src=srcOf(e); if(!a||!src) return;
+  const key=e.asset||e.url; let b=BUF[key];
+  if(!b){ try{ b=BUF[key]=await a.decodeAudioData(await (await fetch(src)).arrayBuffer()) }catch(x){ return } }
+  const n=a.createBufferSource(), g=a.createGain(); g.gain.value=vol; n.buffer=b; n.connect(g).connect(master); n.start();
+}
+const customSfx = name => THEME.audio&&THEME.audio.sfx&&THEME.audio.sfx[name];
+function playBubbleSound(vol=.04){ const c=customSfx('bubble'); if(srcOf(c)) return playCustom(c,1); if(actx) bubble(actx.currentTime,vol) }
 function sfx(name,...args){
   if(NET.ff) return;
-  if(PREFS.sound){ try{ SFX[name]&&SFX[name](...args) }catch(e){} }
+  if(PREFS.sound){ try{ const c=customSfx(name); if(srcOf(c)) playCustom(c); else SFX[name]&&SFX[name](...args) }catch(e){} }
   buzz(HAPTIC[name]);
 }
 const ICONS={
@@ -693,14 +831,18 @@ function musicTick(){
 }
 function musicStart(){
   if(!PREFS.music||MUSIC.playing) return;
+  const custom=srcOf(THEME.audio&&THEME.audio.music);
+  if(custom){ MUSIC.el=new Audio(custom); MUSIC.el.loop=true; MUSIC.el.volume=.45; MUSIC.el.play().catch(()=>{}); MUSIC.playing=true; return }
   const a=audio(); if(!a||!musicBus()) return;
   MUSIC.playing=true; MUSIC.next=a.currentTime+.15; MUSIC.step=0;
   MUSIC.bus.gain.cancelScheduledValues(a.currentTime);
   MUSIC.bus.gain.setValueAtTime(MUSIC.bus.gain.value,a.currentTime); MUSIC.bus.gain.linearRampToValueAtTime(.55,a.currentTime+4);
   clearInterval(MUSIC.timer); MUSIC.timer=setInterval(musicTick,120); musicTick();
 }
+function musicRestart(){ if(MUSIC.playing){ musicStop(); setTimeout(musicStart,950) } }
 function musicStop(){
   if(!MUSIC.playing) return; MUSIC.playing=false;
+  if(MUSIC.el){ MUSIC.el.pause(); MUSIC.el=null; return }
   const a=actx; if(a&&MUSIC.bus){ MUSIC.bus.gain.cancelScheduledValues(a.currentTime); MUSIC.bus.gain.setValueAtTime(MUSIC.bus.gain.value,a.currentTime); MUSIC.bus.gain.linearRampToValueAtTime(0,a.currentTime+.8) }
   setTimeout(()=>{ if(!MUSIC.playing) clearInterval(MUSIC.timer) },900);
 }
@@ -713,7 +855,9 @@ function bubble(t,vol=.05){
   o.connect(g).connect(master); o.start(t); o.stop(t+.1);
 }
 // pause everything while the page is hidden
-document.addEventListener('visibilitychange',()=>{ if(!actx) return; if(document.hidden) actx.suspend().catch(()=>{}); else actx.resume().catch(()=>{}) });
+document.addEventListener('visibilitychange',()=>{
+  if(MUSIC.el){ if(document.hidden) MUSIC.el.pause(); else if(MUSIC.playing) MUSIC.el.play().catch(()=>{}) }
+  if(!actx) return; if(document.hidden) actx.suspend().catch(()=>{}); else actx.resume().catch(()=>{}) });
 
 // Firebase settings for the stand-alone site (the claude.ai version uses claude.ai's own live room instead).
 const FIREBASE_CONFIG = {
@@ -729,12 +873,19 @@ const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
 
 // The same calls as claude.ai's room, backed by Firebase Realtime Database:
 // each open page writes one record per room with its presence, removed automatically when the page closes.
+let FB=null;
+function fbCore(){
+  return FB||(FB=(async()=>{
+    const [A,AU,D]=await Promise.all(['firebase-app.js','firebase-auth.js','firebase-database.js'].map(f=>import(FIREBASE_SDK+f)));
+    const app=A.initializeApp(FIREBASE_CONFIG);
+    return {A,AU,D,app,db:D.getDatabase(app)};
+  })());
+}
 async function firebaseRoom(cfg,report){
-  const [{initializeApp},{getAuth,signInAnonymously},{getDatabase,ref,set,onValue,onDisconnect,remove,serverTimestamp}] =
-    await Promise.all(['firebase-app.js','firebase-auth.js','firebase-database.js'].map(f=>import(FIREBASE_SDK+f)));
-  const app=initializeApp(cfg);
+  const {AU,D,app,db}=await fbCore();
+  const {getAuth,signInAnonymously}=AU, {ref,set,onValue,onDisconnect,remove,serverTimestamp}=D;
   report('signing-in');
-  const uid=(await signInAnonymously(getAuth(app))).user.uid, db=getDatabase(app);
+  const uid=(await signInAnonymously(getAuth(app))).user.uid;
   report('connecting');
   onValue(ref(db,'.info/connected'),snap=>report(snap.val()?'online':'connecting'));
   const me=Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
@@ -956,10 +1107,10 @@ function onlineStatusHTML(){
 }
 function renderLobby(){
   const el=document.getElementById('lobby'); if(!el) return;
-  if(!NET.lobby){ el.hidden=!NET.kind; if(NET.kind) el.innerHTML=`<span class="label">Online games</span>${onlineStatusHTML()}`; return }
+  if(!NET.lobby){ el.hidden=!NET.kind; if(NET.kind) el.innerHTML=`<span class="label">${TX('onlineGames')}</span>${onlineStatusHTML()}`; return }
   el.hidden=false;
   const list=NET.hosts.filter(h=>h.st!=='over');
-  el.innerHTML=`<span class="label">Online games</span>
+  el.innerHTML=`<span class="label">${TX('onlineGames')}</span>
     ${list.length?`<div class="hosts">${list.map(h=>`<div class="hostrow"><div><b>${esc(cleanName(h.name)||'Someone')}’s game</b><small>${h.st==='play'?'In progress':'Waiting for players'} · ${h.open|0} open seat${(h.open|0)===1?'':'s'}</small></div><button class="btn primary small" data-code="${esc(String(h.code).replace(/[^a-z]/g,''))}">Join</button></div>`).join('')}</div>`
       :`<p class="muted">No games open right now. A game shows up here when someone on this link sets a seat to <b>Remote player</b> and starts it.</p>`}
     ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}${onlineStatusHTML()}`;
@@ -971,14 +1122,14 @@ function renderWait(){
   const g=NET.g, host=NET.role==='host', here=new Set(NET.peers.map(p=>p.peer));
   if(!app.querySelector('#waitSeats')){
     app.innerHTML=`
-      <header class="top"><div><h1>Jelly Flip</h1><p class="muted">Online game</p></div><div class="tools">${toggleHTML()}</div></header>
+      <header class="top"><div><h1>${TX('title')}</h1><p class="muted">Online game</p></div><div class="tools">${toggleHTML()}</div></header>
       <div class="card">
         <div id="waitHead"></div>
         ${host?'':`<label class="name"><i style="background:var(--sea)"></i><input id="myName" maxlength="16" value="${esc(NET.myName)}" aria-label="Your name"></label>`}
         <div class="seats" id="waitSeats"></div>
         <div class="btnrow" id="waitBtns"></div>
       </div>
-      <footer class="foot">Copyright © 2026 Grudge Match Games</footer>`;
+      <footer class="foot">${TX('copyright')}</footer>`;
     bindToggles(app);
     const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{NET.myName=cleanName(mn.value)};
   }
@@ -1002,12 +1153,187 @@ function renderWait(){
       return `<div class="seat"><i style="background:${COLORS[i]}"></i><b>${esc(n)}</b><small>${status}</small>${canSit?`<button class="btn primary small" data-sit="${i}">Sit here</button>`:''}</div>`;
     }).join('');
     btns.innerHTML=host
-      ? `<button class="btn primary" id="startOnline" ${allIn?'':'disabled'}>${allIn?'Start game':'Waiting for players…'}</button><button class="btn ghost" id="leaveWait">Cancel</button>`
+      ? `<button class="btn primary" id="startOnline" ${allIn?'':'disabled'}>${allIn?TX('startGame'):'Waiting for players…'}</button><button class="btn ghost" id="leaveWait">Cancel</button>`
       : `<button class="btn ghost" id="leaveWait">Leave</button>`;
     seats.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{ sfx('tap'); NET.room.presence({claim:+b.dataset.sit,name:NET.myName||'Friend'}).catch(()=>{}) });
     const so=btns.querySelector('#startOnline'); if(so) so.onclick=()=>{ sfx('turn'); hostStart() };
   }
   const lw=btns.querySelector('#leaveWait'); if(lw) lw.onclick=async()=>{ await leaveOnline(); S=setupState(S.setup||NET.setup); render() };
+}
+
+// ---------- Studio: the admin's editor for every image, color, font, word and sound ----------
+const ADMIN_EMAILS=['justinthomae@gmail.com'];
+const GOOGLE_FONTS=['Gochi Hand','Atkinson Hyperlegible','Rubik','Fredoka','Baloo 2','Nunito','Quicksand','Comfortaa','Patrick Hand','Caveat','Amatic SC','Pacifico','Lilita One','Luckiest Guy','Chewy','Bubblegum Sans','Sniglet','Short Stack','Poppins','Montserrat','Lato','Open Sans','Merriweather','Playfair Display','Lora'];
+const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',seam:'Plank lines',wood:'Token wood (light)',"wood-2":'Token wood (dark)',"wood-3":'Token edge',burn:'Token artwork lines',ink:'Main text',"ink-2":'Secondary text',sea:'Accent (buttons, highlights)',"sea-ink":'Text on accent buttons',bust:'Warnings and busts',panel:'Cards, menus and pop-ups',"panel-2":'Raised buttons and inputs'};
+const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',aiNote:'AI explanation',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Angelfish (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
+const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:''};
+const studioAllowed = () => !!FIREBASE_CONFIG && !(window.claude&&window.claude.use);
+
+async function adminCore(){
+  if(STUDIO.core) return STUDIO.core;
+  const {A,AU,D}=await fbCore();
+  let app; try{ app=A.getApp('admin') }catch(e){ app=A.initializeApp(FIREBASE_CONFIG,'admin') }
+  const auth=AU.getAuth(app);
+  STUDIO.core={AU,D,auth,db:D.getDatabase(app)};
+  return STUDIO.core;
+}
+async function openStudio(){
+  const box=studioBox(); box.hidden=false; STUDIO.msg='Checking your sign-in…'; renderStudio();
+  try{
+    const {AU,auth}=await adminCore();
+    await auth.authStateReady();
+    if(!auth.currentUser||auth.currentUser.isAnonymous){
+      STUDIO.msg=''; STUDIO.needSignIn=true; return renderStudio();
+    }
+    finishSignIn(auth.currentUser);
+  }catch(e){ STUDIO.msg='Couldn’t reach the Studio: '+(e.code||e.message); renderStudio() }
+}
+async function studioSignIn(){
+  const {AU,auth}=await adminCore(), prov=new AU.GoogleAuthProvider();
+  try{ const r=await AU.signInWithPopup(auth,prov); finishSignIn(r.user) }
+  catch(e){
+    if(['auth/popup-blocked','auth/operation-not-supported-in-this-environment','auth/cancelled-popup-request'].includes(e.code)){ try{ sessionStorage.setItem('jfStudio','1') }catch(x){} return AU.signInWithRedirect(auth,prov) }
+    STUDIO.msg='Sign-in didn’t finish: '+(e.code||e.message); renderStudio();
+  }
+}
+function finishSignIn(user){
+  STUDIO.user=user; STUDIO.needSignIn=false;
+  STUDIO.ok=!!user.email&&ADMIN_EMAILS.includes(user.email.toLowerCase())&&user.emailVerified!==false;
+  STUDIO.msg=STUDIO.ok?'':`${user.email||'This account'} isn’t a Jelly Flip admin.`;
+  renderStudio();
+}
+async function resumeStudioRedirect(){
+  try{ if(sessionStorage.getItem('jfStudio')!=='1') return; sessionStorage.removeItem('jfStudio') }catch(e){ return }
+  const {AU,auth}=await adminCore();
+  try{ await AU.getRedirectResult(auth) }catch(e){}
+  openStudio();
+}
+function studioBox(){
+  let b=document.getElementById('studio');
+  if(!b){ b=document.createElement('div'); b.id='studio'; b.className='studio'; b.hidden=true; document.body.appendChild(b) }
+  return b;
+}
+// ---- saving ----
+async function saveTheme(path,value){
+  const {D,db}=await adminCore();
+  try{ await D.set(D.ref(db,path?'jf/theme/'+path:'jf/theme'),value===undefined?null:value); STUDIO.msg='Saved. Everyone gets it the next time they open the game.' }
+  catch(e){ STUDIO.msg='Couldn’t save: '+(e.code||e.message)+'. Check the database rules include the Studio section.' }
+  renderStudio();
+}
+const getPath=(path)=>path.split('/').reduce((o,k)=>o&&o[k],THEME);
+async function removeOldAsset(path){
+  const old=getPath(path); if(!old||!old.asset) return;
+  const {D,db}=await adminCore(); try{ await D.remove(D.ref(db,'jf/assets/'+old.asset)) }catch(e){}
+}
+function readFile(file,as){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); as==='text'?r.readAsText(file):r.readAsDataURL(file) }) }
+// shrink photos so every player downloads them quickly; keeps transparency
+async function shrinkImage(file,max){
+  if(file.type==='image/svg+xml'){ if(file.size>400e3) throw new Error('SVG is over 400 KB'); return readFile(file) }
+  const url=await readFile(file), img=new Image(); img.src=url; await img.decode();
+  const k=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement('canvas');
+  c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  return c.toDataURL('image/webp',.88);
+}
+async function uploadAsset(path,file,kind,extra={}){
+  STUDIO.msg='Uploading…'; renderStudio();
+  try{
+    let data;
+    if(kind==='image') data=await shrinkImage(file,extra.max||768);
+    else if(kind==='audio'){ if(file.size>4.5e6) throw new Error('Sound files must be under 4.5 MB'); data=await readFile(file) }
+    else { if(file.size>1.5e6) throw new Error('Font files must be under 1.5 MB'); data=await readFile(file) }
+    const id=Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+    const {D,db}=await adminCore();
+    await D.set(D.ref(db,'jf/assets/'+id),data);
+    ASSET[id]=data; idb.set(id,data);
+    await removeOldAsset(path);
+    const prev=getPath(path)||{};
+    await saveTheme(path,{...(typeof prev==='object'?prev:{}),url:null,asset:id,...(extra.keep||{})});
+  }catch(e){ STUDIO.msg='Upload failed: '+(e.message||e); renderStudio() }
+}
+function pickFile(accept,cb){ const i=document.createElement('input'); i.type='file'; i.accept=accept; i.onchange=()=>{ if(i.files[0]) cb(i.files[0]) }; i.click() }
+
+// ---- screens ----
+function renderStudio(){
+  const b=studioBox(); if(b.hidden) return;
+  const tabs=[['tokens','Tokens'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
+  let body='';
+  if(!STUDIO.ok){
+    body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in Jelly Flip. Only admins can open it.</p>
+      ${STUDIO.needSignIn?`<button class="btn primary" id="stSignIn">Sign in with Google</button>`:''}
+      ${STUDIO.user&&!STUDIO.ok?`<button class="btn ghost" id="stSignOut">Use a different account</button>`:''}</div>`;
+  } else if(STUDIO.tab==='tokens'){
+    const item=(key,label,prev)=>{ const e=key==='back'?THEME.back:THEME.tokens&&THEME.tokens[key], has=!!srcOf(e);
+      return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
+        <div class="st-acts"><button class="btn small" data-up="${key}">Upload</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
+        ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token</label>`:''}</div>` };
+    body=`<p class="muted">Upload a picture for any token (PNG with a transparent background works best; SVG and JPG work too). “Fill whole token” replaces the wood as well.</p>
+      <div class="st-grid">${ORDER.map(t=>item(t,TYPES[t].name,face(t))).join('')}${item('back','Token back (face down)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
+  } else if(STUDIO.tab==='bg'){
+    const row=(key,label)=>{ const e=THEME.bg&&THEME.bg[key]||{}, src=srcOf(e);
+      return `<div class="st-row"><div class="st-swatch" style="background:${e.color||'var(--table)'} ${src?`url('${src}') center/cover`:''}"></div>
+        <div class="st-grow"><b>${label}</b><div class="st-acts">
+          <button class="btn small" data-bgup="${key}">Upload picture</button>
+          <button class="btn small" data-bgocean="${key}">Use the ocean picture</button>
+          <label class="st-color">Color <input type="color" data-bgcolor="${key}" value="${e.color||COLOR_DEFAULTS.table}"></label>
+          ${e.color||src?`<button class="btn small ghost" data-bgreset="${key}">Reset</button>`:''}</div></div></div>` };
+    body=`<p class="muted">Pictures fill the screen behind everything. Pick a color too: it shows while the picture loads and around its edges.</p>${row('game','Game and setup screens')}${row('splash','Loading screen')}`;
+  } else if(STUDIO.tab==='colors'){
+    body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(THEME.colors&&THEME.colors[k])||COLOR_DEFAULTS[k];
+      return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${THEME.colors&&THEME.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
+  } else if(STUDIO.tab==='fonts'){
+    const roles=[['display','Titles and headings'],['body','Everything else'],['credit','Loading-screen credits']];
+    body=`<p class="muted">Choose from Google Fonts or upload your own font file (WOFF2, WOFF, TTF or OTF).</p>${roles.map(([r,l])=>{ const cur=(THEME.fonts&&THEME.fonts[r])||FONT_DEFAULTS[r], up=srcOf(THEME.fontFiles&&THEME.fontFiles[r]);
+      return `<div class="st-row"><div class="st-grow"><b>${l}</b><div class="st-sample" style="font-family:var(--${r})">The quick fish flips the jelly</div>
+        <div class="st-acts"><select data-font="${r}">${GOOGLE_FONTS.map(f=>`<option ${f===cur?'selected':''}>${f}</option>`).join('')}${up?`<option value="__upload" ${cur==='__upload'?'selected':''}>My uploaded font</option>`:''}</select>
+        <button class="btn small" data-fontup="${r}">Upload font</button>${THEME.fonts&&THEME.fonts[r]?`<button class="btn small ghost" data-fontreset="${r}">Reset</button>`:''}</div></div></div>` }).join('')}`;
+  } else if(STUDIO.tab==='text'){
+    const keys=[...Object.keys(TEXT_LABELS),...ORDER.flatMap(t=>['name_'+t,'say_'+t])];
+    const label=k=>TEXT_LABELS[k]||(k.startsWith('name_')?`Token name: ${TEXT_DEFAULTS[k]}`:`Token description: ${TEXT_DEFAULTS['name_'+k.slice(4)]}`);
+    body=`<p class="muted">Edit any wording. Wrap words in **double stars** for bold; press Enter for a new line. Changes save when you leave a box.</p><div class="st-list">${keys.map(k=>{ const custom=THEME.text&&THEME.text[k]!=null&&THEME.text[k]!=='';
+      return `<label class="st-text"><span>${esc(label(k))}${custom?` <button class="linkbtn" data-textreset="${k}">reset</button>`:''}</span><textarea data-text="${k}" rows="${T(k).length>70?3:1}">${esc(T(k))}</textarea></label>` }).join('')}</div>`;
+  } else if(STUDIO.tab==='sound'){
+    const m=THEME.audio&&THEME.audio.music;
+    body=`<p class="muted">Upload MP3, M4A, WAV or OGG files (under 4.5 MB). Keep sound effects short; music loops.</p>
+      <div class="st-row"><div class="st-grow"><b>Background music</b><span class="muted"> ${srcOf(m)?'Your track':'Built-in calm loop'}</span><div class="st-acts">
+        <button class="btn small" id="stMusicPlay">${MUSIC.playing?'Stop':'Play'}</button><button class="btn small" data-audioup="music">Upload</button>${srcOf(m)?`<button class="btn small ghost" data-audioreset="music">Reset</button>`:''}</div></div></div>
+      <div class="st-list">${Object.keys(SFX_LABELS).map(n=>{ const e=THEME.audio&&THEME.audio.sfx&&THEME.audio.sfx[n];
+        return `<div class="st-row slim"><button class="btn small" data-sfxplay="${n}">▶</button><span class="st-grow">${SFX_LABELS[n]}${srcOf(e)?' <span class="muted">(yours)</span>':''}</span><button class="btn small" data-sfxup="${n}">Upload</button>${srcOf(e)?`<button class="btn small ghost" data-sfxreset="${n}">Reset</button>`:''}</div>` }).join('')}</div>`;
+  }
+  b.innerHTML=`<div class="st-panel">
+    <header class="st-head"><h2>Studio</h2>${STUDIO.ok?`<span class="muted st-who">${esc(STUDIO.user.email)}</span>`:''}<button class="btn small ghost" id="stClose">Close</button></header>
+    ${STUDIO.ok?`<nav class="st-tabs">${tabs.map(([k,l])=>`<button class="${STUDIO.tab===k?'on':''}" data-tab="${k}">${l}</button>`).join('')}</nav>`:''}
+    ${STUDIO.msg?`<p class="st-msg">${esc(STUDIO.msg)}</p>`:''}
+    <div class="st-body">${body}</div>
+    ${STUDIO.ok?`<footer class="st-foot"><button class="btn small ghost" id="stResetAll">${STUDIO.armReset?'Tap again to reset everything':'Reset everything to the original'}</button><button class="linkbtn" id="stSignOut">Sign out</button></footer>`:''}
+  </div>`;
+  const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'?'change':el.type==='color'?'change':el.tagName==='SELECT'||el.type==='checkbox'?'change':'click',()=>fn(el)));
+  on('#stClose',()=>{ b.hidden=true; STUDIO.msg=''; render() });
+  on('#stSignIn',()=>studioSignIn());
+  on('#stSignOut',async()=>{ const {AU,auth}=await adminCore(); await AU.signOut(auth); STUDIO.user=null; STUDIO.ok=false; STUDIO.needSignIn=true; STUDIO.msg=''; renderStudio() });
+  on('[data-tab]',el=>{ STUDIO.tab=el.dataset.tab; STUDIO.msg=''; renderStudio() });
+  on('[data-up]',el=>{ const k=el.dataset.up; pickFile('image/*',f=>uploadAsset(k==='back'?'back':'tokens/'+k,f,'image',{max:512})) });
+  on('[data-reset]',async el=>{ const k=el.dataset.reset, p=k==='back'?'back':'tokens/'+k; await removeOldAsset(p); saveTheme(p,null) });
+  on('[data-full]',el=>saveTheme('tokens/'+el.dataset.full+'/full',el.checked));
+  on('[data-bgup]',el=>pickFile('image/*',f=>uploadAsset('bg/'+el.dataset.bgup,f,'image',{max:1800})));
+  on('[data-bgocean]',async el=>{ const p='bg/'+el.dataset.bgocean; await removeOldAsset(p); saveTheme(p,{url:'assets/ocean.jpg',color:'#2f9ea3'}) });
+  on('[data-bgcolor]',el=>saveTheme('bg/'+el.dataset.bgcolor+'/color',el.value));
+  on('[data-bgreset]',async el=>{ const p='bg/'+el.dataset.bgreset; await removeOldAsset(p); saveTheme(p,null) });
+  on('[data-color]',el=>saveTheme('colors/'+el.dataset.color,el.value));
+  on('[data-colorreset]',el=>saveTheme('colors/'+el.dataset.colorreset,null));
+  on('[data-font]',el=>saveTheme('fonts/'+el.dataset.font,el.value));
+  on('[data-fontup]',el=>{ const r=el.dataset.fontup; pickFile('.woff2,.woff,.ttf,.otf',async f=>{ await uploadAsset('fontFiles/'+r,f,'font'); saveTheme('fonts/'+r,'__upload') }) });
+  on('[data-fontreset]',async el=>{ const r=el.dataset.fontreset; await removeOldAsset('fontFiles/'+r); await saveTheme('fontFiles/'+r,null); saveTheme('fonts/'+r,null) });
+  on('[data-text]',el=>{ const v=el.value.trim(); saveTheme('text/'+el.dataset.text,v&&v!==TEXT_DEFAULTS[el.dataset.text]?v:null) });
+  on('[data-textreset]',el=>saveTheme('text/'+el.dataset.textreset,null));
+  on('#stMusicPlay',()=>{ audio(); if(MUSIC.playing) musicStop(); else { const was=PREFS.music; PREFS.music=true; musicStart(); PREFS.music=was } setTimeout(renderStudio,50) });
+  on('[data-audioup]',()=>pickFile('audio/*',async f=>{ await uploadAsset('audio/music',f,'audio'); musicRestart() }));
+  on('[data-audioreset]',async()=>{ await removeOldAsset('audio/music'); await saveTheme('audio/music',null); musicRestart() });
+  on('[data-sfxplay]',el=>{ audio(); const was=PREFS.sound; PREFS.sound=true; if(el.dataset.sfxplay==='bubble') playBubbleSound(.05); else sfx(el.dataset.sfxplay); PREFS.sound=was });
+  on('[data-sfxup]',el=>pickFile('audio/*',f=>uploadAsset('audio/sfx/'+el.dataset.sfxup,f,'audio')));
+  on('[data-sfxreset]',async el=>{ const p='audio/sfx/'+el.dataset.sfxreset; await removeOldAsset(p); saveTheme(p,null) });
+  on('#stResetAll',async()=>{ if(!STUDIO.armReset){ STUDIO.armReset=true; renderStudio(); setTimeout(()=>{ STUDIO.armReset=false; renderStudio() },3000); return }
+    STUDIO.armReset=false; for(const id of themeAssetIds()){ const {D,db}=await adminCore(); try{ await D.remove(D.ref(db,'jf/assets/'+id)) }catch(e){} } saveTheme('',null) });
 }
 
 // ---------- AI players ----------
@@ -1374,6 +1700,7 @@ const app=document.getElementById('app'), bar=document.getElementById('bar'), ov
 let boardEl=null;
 
 function render(){
+  if(themeDirty&&!busy){ themeDirty=false; boardEl=null }
   save();
   if(S.screen==='setup') return renderSetup();
   if(S.screen==='over') return renderOver();
@@ -1382,13 +1709,13 @@ function render(){
 }
 
 function rulesHTML(){
-  const li=t=>`<li>${face(t)}<span><b>${TYPES[t].name}</b> ×${TYPES[t].n}<br><span class="muted">${TYPES[t].say}</span></span></li>`;
+  const li=t=>`<li>${face(t)}<span><b>${fmt(TYPES[t].name)}</b> ×${TYPES[t].n}<br><span class="muted">${fmt(TYPES[t].say)}</span></span></li>`;
   return `<div class="rules">
-    <p>Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends when 3 or fewer tokens are left on the table. Most points wins; ties go to whoever has fewer jellyfish.</p>
-    <section><h3>Keep going</h3><ul>${['fish','star','extra'].map(li).join('')}</ul></section>
-    <section><h3>Bank and stop</h3><ul>${['bigeye','hook','g1','g2','g3','dolphin','whirl'].map(li).join('')}</ul></section>
-    <section><h3>Bust: bank nothing</h3><ul>${['jelly','shark'].map(li).join('')}</ul></section>
-    <p class="muted">Scrapped tokens go to a face-down scrap pile. The shark and dolphin stay on the table unless a hook pulls them off.</p>
+    <p>${TX('rulesIntro')}</p>
+    <section><h3>${TX('rulesKeep')}</h3><ul>${['fish','star','extra'].map(li).join('')}</ul></section>
+    <section><h3>${TX('rulesStop')}</h3><ul>${['bigeye','hook','g1','g2','g3','dolphin','whirl'].map(li).join('')}</ul></section>
+    <section><h3>${TX('rulesBust')}</h3><ul>${['jelly','shark'].map(li).join('')}</ul></section>
+    <p class="muted">${TX('rulesNote')}</p>
   </div>`;
 }
 
@@ -1397,23 +1724,24 @@ function renderSetup(){
   const st=S.setup, saved=load(), resume=saved&&saved.screen==='play'?saved:null;
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
-    <header class="top"><div><h1>Jelly Flip</h1><p class="muted">Push your luck. Remember the reef.</p></div><div class="tools">${toggleHTML()}</div></header>
+    <header class="top"><div><h1>${TX('title')}</h1><p class="muted">${TX('tagline')}</p></div><div class="tools">${toggleHTML()}</div></header>
     ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div></div>`:''}
     <div class="card">
-      <span class="label">Players</span>
+      <span class="label">${TX('players')}</span>
       <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
       <div class="names">${st.names.slice(0,st.count).map((n,i)=>`<div class="name ${st.kinds[i]!=='human'?'bot':''}"><i style="background:${COLORS[i]}"></i><input id="name${i}" data-i="${i}" maxlength="16" value="${esc(n)}" aria-label="Player ${i+1} name"><select id="kind${i}" data-i="${i}" aria-label="Player ${i+1} type">${kinds.map(([v,l])=>`<option value="${v}" ${st.kinds[i]===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
-      <p class="muted">AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.${NET.lobby?' A <b>Remote player</b> seat is for someone joining from their own device.':''}</p>
+      <p class="muted">${TX('aiNote')}${NET.lobby?' A <b>Remote player</b> seat is for someone joining from their own device.':''}</p>
       ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}
-      <button class="btn primary" id="start">${st.kinds.slice(0,st.count).includes('remote')?'Open online game':'Start game'}</button>
+      <button class="btn primary" id="start">${st.kinds.slice(0,st.count).includes('remote')?TX('openOnline'):TX('startGame')}</button>
     </div>
     <div class="card" id="lobby" hidden></div>
-    <div class="card"><span class="label">In the bag · 42 tokens</span>
+    <div class="card"><span class="label">${TX('inBag')}</span>
       <div class="tray">${ORDER.map(t=>`<figure>${face(t)}<figcaption><b>×${TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
     </div>
-    <div class="card"><h2>How to play</h2>${rulesHTML()}</div>
-    <footer class="foot">Copyright © 2026 Grudge Match Games</footer>`;
+    <div class="card"><h2>${TX('howTo')}</h2>${rulesHTML()}</div>
+    <footer class="foot">${TX('copyright')}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>`;
   bindToggles(app);
+  const sb=app.querySelector('#studioBtn'); if(sb) sb.onclick=openStudio;
   const sync=()=>app.querySelectorAll('.name input').forEach(inp=>st.names[+inp.dataset.i]=inp.value);
   app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save()}));
   app.querySelectorAll('.name select').forEach(sel=>sel.onchange=()=>{
@@ -1483,7 +1811,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1>Jelly Flip</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button><button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
+      <header class="top"><h1>${TX('title')}</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button><button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
@@ -1518,7 +1846,7 @@ function renderGame(){
     title=esc(S.card.title); sub=esc(S.card.body);
     if(S.phase==='swap'&&me&&swapPick!=null) sub='Now tap the token to swap it with. Tap the first one again to change your mind.';
     if(S.phase==='dolphin'&&me&&DOL.confirmed){ const left=DOL.picks.length-DOL.spots.length; sub=`Tap glowing empty spots to hide your ${DOL.picks.length===1?'token':'tokens'} (${left} left). Tap a chosen spot to undo it.` }
-    if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>Continue</button>`;
+    if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>${TX('continue')}</button>`;
   } else {
     const fd=faceDown().length;
     mini=avatar;
@@ -1527,9 +1855,9 @@ function renderGame(){
     else if(bot) sub=pend?`This turn: +${pend}. Thinking…`:'Thinking…';
     else if(!me) sub=pend?`This turn: +${pend}. Waiting for ${esc(p.name)}…`:`Waiting for ${esc(p.name)}…`;
     else sub=pend?(fd?`This turn: +${pend}. Flip again or bank it.`:'No face-down tokens left. Bank your catch.'):'Tap any face-down token to flip it.';
-    if(me) acts=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>Bank${pend?' +'+pend:''}</button>`;
+    if(me) acts=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
   }
-  bar.innerHTML=`<div class="in">${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">Copyright © 2026 Grudge Match Games</div>`;
+  bar.innerHTML=`<div class="in">${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">${TX('copyright')}</div>`;
   const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
   const cb=bar.querySelector('#contBtn'); if(cb) cb.onclick=()=>{sfx('tap');act('c')};
   if(!S.layout||fitPending){fitPending=false;fitBoard()}
@@ -1538,11 +1866,11 @@ function renderGame(){
   // overlays
   if(S.rulesOpen){
     ov.hidden=false;
-    ov.innerHTML=`<div class="sheet left"><h2>Rules</h2>${rulesHTML()}<div class="btnrow"><button class="btn primary" id="closeRules">Back to the game</button></div></div>`;
+    ov.innerHTML=`<div class="sheet left"><h2>${TX('rules')}</h2>${rulesHTML()}<div class="btnrow"><button class="btn primary" id="closeRules">${TX('backToGame')}</button></div></div>`;
     ov.querySelector('#closeRules').onclick=()=>{S.rulesOpen=false;render()};
   } else if(S.phase==='handoff'){
     ov.hidden=false;
-    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">Pass the device to</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">Start my turn</button></div>`;
+    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button></div>`;
     ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
   } else if(S.phase==='dolphin'&&mine(S.cur)&&!DOL.confirmed&&!busy&&!NET.pending){
     const groups={}; S.scrap.forEach((t,k)=>{(groups[t]=groups[t]||[]).push(k)});
@@ -1591,11 +1919,11 @@ function renderOver(){
   const fish=p=>p.bank.filter(t=>t==='fish').length, star=p=>p.bank.filter(t=>t==='star').length;
   let place=0;
   ov.hidden=false;
-  ov.innerHTML=`<div class="sheet"><span class="label">Game over</span>
+  ov.innerHTML=`<div class="sheet"><span class="label">${TX('gameOver')}</span>
     <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>
     <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
       return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
-    <div class="btnrow"><button class="btn primary" id="again">Grudge Match</button><button class="btn ghost" id="setup">New players</button></div><p class="foot">Copyright © 2026 Grudge Match Games</p></div>`;
+    <div class="btnrow"><button class="btn primary" id="again">${TX('grudge')}</button><button class="btn ghost" id="setup">${TX('newPlayers')}</button></div><p class="foot">${TX('copyright')}</p></div>`;
   app.innerHTML='';
   const again=ov.querySelector('#again');
   if(S.net&&!S.net.host){ again.textContent='Waiting for the host…'; again.disabled=true }
@@ -1620,6 +1948,7 @@ function startSplash(){
   // soft bubbles every second or two while the loading screen is up (once the browser allows sound)
   const bubbles=setInterval(()=>{
     if(gone||!PREFS.sound||!actx||actx.state!=='running') return;
+    if(srcOf(customSfx('bubble'))) return playCustom(customSfx('bubble'),.8);
     const t=actx.currentTime, n=1+Math.floor(Math.random()*3);
     for(let k=0;k<n;k++) bubble(t+k*(.08+Math.random()*.12),.035);
   },1400);
@@ -1627,7 +1956,7 @@ function startSplash(){
   const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); setTimeout(()=>sp.remove(),650) };
   document.getElementById('splashGo').onclick=e=>{
     e.stopPropagation(); audio();
-    if(PREFS.sound&&actx){ const t=actx.currentTime; for(let k=0;k<5;k++) bubble(t+k*.07,.045) }
+    if(PREFS.sound&&actx){ if(srcOf(customSfx('bubble'))) playCustom(customSfx('bubble')); else { const t=actx.currentTime; for(let k=0;k<5;k++) bubble(t+k*.07,.045) } }
     close(); musicStart();
   };
   sp.addEventListener('pointerdown',()=>{ touched=true });
@@ -1636,7 +1965,16 @@ function startSplash(){
 
 // ---------- boot ----------
 window.claude?.hot?.snapshot?.(()=>({S}));
+function startTheme(){
+  applyTheme(); loadThemeAssets(null).then(()=>{ applyTheme(); if(S&&!busy) render() });
+  if(!studioAllowed()) return;
+  fbCore().then(({D,db})=>{
+    D.onValue(D.ref(db,'jf/theme'),snap=>setTheme(snap.val(),async id=>(await D.get(D.ref(db,'jf/assets/'+id))).val()),e=>console.warn('theme',e&&e.code));
+  }).catch(e=>console.warn('theme',e));
+  resumeStudioRedirect();
+}
 function start(d){
+  startTheme();
   const sp=document.getElementById('splash');
   if(d&&d.S){ if(sp) sp.remove() } else if(sp) startSplash();
   const saved=load();
