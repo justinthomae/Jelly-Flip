@@ -1651,7 +1651,7 @@ function pickFile(accept,cb){ const i=document.createElement('input'); i.type='f
 function renderStudio(){
   const b=studioBox(); if(b.hidden) return;
   const E=editTheme(), TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
-  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
+  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['fish','Fish pairs'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
   let body='';
   if(!STUDIO.ok){
     body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in ${esc(T('title'))}. Only admins can open it.</p>
@@ -1677,7 +1677,7 @@ function renderStudio(){
           ${tsrc?`<label class="st-check"><input type="checkbox" data-titlehide ${tl.hideName?'checked':''}> Show the logo instead of the name text</label>
           <button class="btn small ghost" data-brandreset="titleLogo">Remove</button>`:''}</div></div></div>
       <p class="muted st-small">Phones keep the icon and name from when the game was added to the home screen. To see a new icon there, remove the old shortcut and add it again${live?'':' (with this set live or previewed)'}.</p>`;
-  } else if(STUDIO.tab==='tokens'){
+  } else if(STUDIO.tab==='tokens'||STUDIO.tab==='fish'){
     const item=(key,label,prev)=>{ const e=key==='back'?E.back:E.tokens&&E.tokens[key], has=!!srcOf(e);
       return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
         <div class="st-acts"><button class="btn small" data-up="${key}">${key==='back'?'Upload picture':'Upload icon'}</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
@@ -1713,8 +1713,10 @@ function renderStudio(){
           <label class="st-color">Icon size <input type="range" min="30" max="150" step="5" value="${Math.round((E.iconSize||.84)*100)}" data-iconsize> <span class="st-pct">${Math.round((E.iconSize||.84)*100)}%</span></label>
           <label class="st-color">Ink color <input type="color" data-iconink value="${E.iconInk||(E.colors&&E.colors.burn)||COLOR_DEFAULTS.burn}"></label>
           ${E.iconInk?`<button class="btn small ghost" data-iconinkreset>Reset color</button>`:''}</div></div></div>
-      <p class="muted">Fish 1 to Fish 10 are the ten fish designs; each is printed on two tokens, and a matching pair in hand scores a bonus point. Upload an icon for any token. It sits on top of the token material (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style).</p>
-      <div class="st-grid">${ORDER.map(t=>item(t,isFish(t)?`${TYPES[t].name} ${fishNo(t)} (pair)`:TYPES[t].name,face(t))).join('')}${item('back','Token back picture (replaces the material on backs)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
+      <p class="muted">The ten fish designs are in the <button class="linkbtn" data-tab="fish">Fish pairs</button> tab. Upload an icon for any token. It sits on top of the token material (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style).</p>
+      <div class="st-grid">${ORDER.filter(t=>!isFish(t)).map(t=>item(t,TYPES[t].name,face(t))).join('')}${item('back','Token back picture (replaces the material on backs)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
+    if(STUDIO.tab==='fish') body=`<p class="muted">There are 10 fish designs, and each one is printed on two tokens. A player holding both tokens of a design at the end of the game scores +1 bonus point. Upload one picture per design (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style in the Tokens tab). Designs without a picture use the built-in fish with its own markings.</p>
+      <div class="st-grid">${FISH.map(t=>item(t,`Fish ${fishNo(t)}`,face(t))).join('')}</div>`;
   } else if(STUDIO.tab==='bg'){
     const row=(key,label)=>{ const e=E.bg&&E.bg[key]||{}, src=srcOf(e);
       return `<div class="st-row"><div class="st-swatch" style="background:${src?`url('${src}') center/cover,`:e.color?'':'var(--water) center/cover,'}${e.color||'#2f9ea3'}"></div>
@@ -2641,7 +2643,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122048;
+const BUILD=2610122051;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
