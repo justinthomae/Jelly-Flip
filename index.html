@@ -21,7 +21,7 @@
 <body>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gochi+Hand&family=Atkinson+Hyperlegible:wght@400;700&family=Rubik:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&family=Gochi+Hand&display=swap">
 <style>
 /* Layout: one column on a dark plank table; wooden tokens scattered at random spots, a sticky action bar at the bottom. Single dark look by design. */
 :root{
@@ -32,8 +32,8 @@
   --sea:#6cc4b6; --sea-ink:#0e2724;
   --bust:#f08a6e;
   --panel:#3a2d25; --panel-2:#463830;
-  --display:'Gochi Hand','Comic Sans MS','Chalkboard SE',cursive;
-  --body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --display:'Rubik',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --body:'Rubik',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme:dark;
 }
 html,body{height:100%}
@@ -56,7 +56,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
 /* --safe-top is how much of the top the phone's status bar covers (measured in script) */
 .app{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:calc(var(--safe-top,0px) + 14px) 140px;display:flex;flex-direction:column;gap:14px}
-h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.05}
+h1,h2,h3{font-family:var(--display);font-weight:var(--dw,600);margin:0;text-wrap:balance;line-height:1.05}
 h1{font-size:2.6rem;letter-spacing:.01em}
 h2{font-size:1.9rem}
 h3{font-size:1.35rem}
@@ -75,7 +75,7 @@ p{margin:0}
 /* header */
 .menu-top{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:4px}
 .menu-top h1{margin:0}
-.menu-logo img{display:block;width:min(86vw,440px);height:auto;filter:drop-shadow(0 6px 14px rgba(0,30,40,.35))}
+.menu-logo img{display:block;width:min(69vw,352px);height:auto;filter:drop-shadow(0 6px 14px rgba(0,30,40,.35))}
 .menu-top .muted{color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55);margin:0}
 .sharebtn{display:inline-flex;align-items:center;gap:8px;margin-top:8px;background:var(--sea);color:var(--sea-ink)}
 .sharebtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -231,8 +231,8 @@ p{margin:0}
 .splash.art #splashGo{font-size:1.15rem;padding:.75em 2.4em;box-shadow:0 6px 18px rgba(0,30,40,.35)}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
-.top h1.roomname{font-family:var(--room);font-size:1.7rem;line-height:1.05;min-width:0;flex:1;overflow-wrap:anywhere}
-@media (max-width:440px){ .top h1.roomname{font-size:1.45rem} }
+.top h1.roomname{font-family:var(--room);font-size:1.5rem;line-height:1.05;min-width:0;flex:1;overflow-wrap:anywhere}
+@media (max-width:440px){ .top h1.roomname{font-size:1.3rem} }
 .top h1 .hlogo{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em;object-fit:contain}
 .logo{font-size:clamp(3.6rem,15vw,6.5rem);color:var(--wood);text-shadow:0 4px 0 var(--wood-3),0 10px 24px rgba(0,0,0,.6);letter-spacing:.02em}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
@@ -329,7 +329,7 @@ p{margin:0}
 .bar.cardpreview .in{max-width:520px}
 .st-narrprev{width:72px;height:72px;display:grid;place-items:center;flex:none}
 .st-narrprev img{max-width:100%;max-height:100%;object-fit:contain}
-.st-h3{margin:14px 0 2px;font-family:var(--display);font-weight:400}
+.st-h3{margin:14px 0 2px;font-family:var(--display);font-weight:var(--dw,600)}
 .st-titleprev{width:110px;height:64px;display:grid;place-items:center;flex:none}
 .st-titleprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-swatch{width:64px;height:96px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
@@ -429,7 +429,7 @@ p{margin:0}
 .sheet .narrator.big{width:calc(120px * var(--ns,1));height:calc(120px * var(--ns,1));object-fit:contain;margin:-60px auto -4px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45));animation:narrIn .5s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes narrIn{from{transform:translateY(16px) scale(.85);opacity:0}to{transform:none;opacity:1}}
 .bar .msg{grid-area:msg;min-width:0;display:flex;flex-direction:column;gap:2px}
-.bar .msg strong{font-family:var(--display);font-weight:400;font-size:1.35rem;line-height:1.1}
+.bar .msg strong{font-family:var(--display);font-weight:var(--dw,600);font-size:1.35rem;line-height:1.1}
 .bar .msg span{font-size:.9rem;line-height:1.3;color:var(--ink-2)}
 .bar .mini{grid-area:face;width:56px;height:56px}
 .bar .mini .face{width:100%;height:100%}
@@ -602,8 +602,8 @@ const MSG_DEFAULTS={
 };
 Object.assign(TEXT_DEFAULTS,MSG_DEFAULTS);
 const COLOR_DEFAULTS={table:'#2b211b','table-2':'#241b16',seam:'#120c09',wood:'#efdcc0','wood-2':'#dcbb94','wood-3':'#b98a62',burn:'#4b2816',ink:'#f4ebde','ink-2':'#bba997',sea:'#6cc4b6','sea-ink':'#0e2724',bust:'#f08a6e',panel:'#3a2d25','panel-2':'#463830'};
-const FONT_DEFAULTS={display:'Gochi Hand',body:'Atkinson Hyperlegible',credit:'Rubik',room:'Gochi Hand'};
-const FONT_FALLBACK={room:"'Comic Sans MS','Chalkboard SE',cursive",display:"'Comic Sans MS','Chalkboard SE',cursive",body:"system-ui,-apple-system,'Segoe UI',sans-serif",credit:"system-ui,sans-serif"};
+const FONT_DEFAULTS={display:'Rubik',body:'Rubik',credit:'Rubik',room:'Rubik'};
+const FONT_FALLBACK={room:"system-ui,-apple-system,'Segoe UI',sans-serif",display:"system-ui,-apple-system,'Segoe UI',sans-serif",body:"system-ui,-apple-system,'Segoe UI',sans-serif",credit:"system-ui,sans-serif"};
 let THEME=(()=>{ try{ return JSON.parse(localStorage.getItem('jellyflip.theme')||'{}')||{} }catch(e){ return {} } })();
 const ASSET={};
 let themeDirty=false;
@@ -681,9 +681,10 @@ function applyTheme(){
     } else { fam[role]=`'${String(f).replace(/'/g,'')}'`; if(f!==FONT_DEFAULTS[role]||role==='credit') google.push(f) }
   }
   vars.push(`--room:${fam.room},${FONT_FALLBACK.room}`,`--display:${fam.display},${FONT_FALLBACK.display}`,`--body:${fam.body},${FONT_FALLBACK.body}`,`--credit:${fam.credit},${FONT_FALLBACK.credit}`);
+  { const df=(THEME.fonts&&THEME.fonts.display)||FONT_DEFAULTS.display; vars.push(`--dw:${['Rubik','Atkinson Hyperlegible','Nunito','Poppins','Montserrat','Lato','Open Sans','Quicksand','Comfortaa','Fredoka','Baloo 2','Merriweather','Playfair Display','Lora'].includes(df)?600:400}`) }
   css.push(`html:root{${vars.join(";")}}`);
   for(const c of Object.values(THEME.cards||{})) for(const pt of ['title','body']){ const f=c&&c[pt]&&c[pt].font; if(f&&!['display','body','credit'].includes(f)) google.push(f) }
-  const key=google.filter(f=>f!=='Gochi Hand'&&f!=='Atkinson Hyperlegible'&&f!=='Rubik').sort().join('|');
+  const key=google.filter(f=>f!=='Gochi Hand'&&f!=='Rubik').sort().join('|');
   if(key!==fontLinkKey){ fontLinkKey=key; let l=document.getElementById('themeFonts'); if(!l){ l=document.createElement('link'); l.id='themeFonts'; l.rel='stylesheet'; document.head.appendChild(l) }
     l.href=key?'https://fonts.googleapis.com/css2?'+key.split('|').map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+':wght@400;700').join('&')+'&display=swap':'' }
   // backgrounds
@@ -2892,7 +2893,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122300;
+const BUILD=2610122302;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
