@@ -14,6 +14,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" as="image" href="assets/splash-tall.jpg" media="(max-aspect-ratio: 9/10)">
+<link rel="preload" as="image" href="assets/splash-wide.jpg" media="(min-aspect-ratio: 9/10)">
 <style>:root{padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -205,6 +207,15 @@ p{margin:0}
 .popfx i{position:absolute;border-radius:50%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,.75);
   background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.9) 0 12%,rgba(255,255,255,.18) 13% 45%,rgba(160,230,225,.12) 70%,rgba(255,255,255,.35) 100%);
 }
+:root{--splash-wide:url(assets/splash-wide.jpg);--splash-tall:url(assets/splash-tall.jpg)}
+/* loading screen artwork: the picture already carries the Fliptide logo, so the text title is hidden and Play sits just under the logo */
+.splash.art{background:#1b8f9b var(--splash-wide) center/cover no-repeat}
+@media (max-aspect-ratio:9/10){ .splash.art{background-image:var(--splash-tall)} }
+.splash.art .logo,.splash.art #splashLogo{display:none!important}
+.splash.art .splash-in{position:absolute;left:0;right:0;top:62%;padding:0 16px}
+.splash.art .credit,.splash.art .foot{color:#f1fbfa;text-shadow:0 1px 3px rgba(0,25,35,.95),0 0 10px rgba(0,25,35,.6)}
+.splash.art .credit b{color:#fff}
+.splash.art #splashGo{font-size:1.15rem;padding:.75em 2.4em;box-shadow:0 6px 18px rgba(0,30,40,.35)}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
 .top h1 .hlogo{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em;object-fit:contain}
@@ -423,7 +434,7 @@ p{margin:0}
 <div class="bar" id="bar" hidden></div>
 <div class="overlay" id="ov" hidden></div>
 <div id="fx"></div>
-<div id="splash" class="splash" role="dialog" aria-label="Fliptide">
+<div id="splash" class="splash art" role="dialog" aria-label="Fliptide">
   <div class="sea" id="sea" aria-hidden="true"></div>
   <div class="splash-in">
     <img id="splashLogo" class="title-logo" alt="" hidden>
@@ -619,6 +630,7 @@ function applyTheme(){
   const bgCss=(sel,e)=>{ if(!e) return; const src=srcOf(e), c=e.color||'var(--table)';
     if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat fixed !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
   bgCss('body::before,body::after',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
+  { const sb=THEME.bg&&THEME.bg.splash, own=!!(sb&&(srcOf(sb)||sb.color)), sp=document.getElementById('splash'); if(sp){ sp.classList.toggle('art',!own); layoutSplash() } }
   // token material: the surface of every token, wood unless the admin picked a color or a picture
   const mat=THEME.material||{}, gloss='radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 45%)';
   const matSize=mat.zoom?`${Math.round(mat.zoom*100)}%`:'cover';
@@ -2503,18 +2515,29 @@ function waterDissolve(sp,done){
   const app=document.getElementById('app'); if(app){ app.classList.add('reveal'); setTimeout(()=>app.classList.remove('reveal'),1500) }
   setTimeout(done,1400);
 }
+// Place Play just under the logo in the loading-screen picture (wherever the picture's cropping puts it), with the credits below,
+// keeping clear of the copyright line.
+function layoutSplash(){
+  const SPLASH_ART={tall:{w:941,h:1672,logoBottom:.70},wide:{w:1672,h:941,logoBottom:.86}};
+  const sp=document.getElementById('splash'); if(!sp) return;
+  const inn=sp.querySelector('.splash-in'), cr=sp.querySelector('.credit'), ft=sp.querySelector('.foot');
+  const tall=innerWidth/innerHeight<0.9;
+  // on wide screens the credits go on one line just above the copyright, leaving room under the logo for Play
+  cr.innerHTML=sp.classList.contains('art')&&!tall?TX('credit').replace(/<br>/g,' '):TX('credit');
+  if(!sp.classList.contains('art')){ inn.style.top=''; cr.style.top=''; cr.style.bottom=''; return }
+  const W=innerWidth, H=innerHeight, a=tall?SPLASH_ART.tall:SPLASH_ART.wide;
+  const sc=Math.max(W/a.w,H/a.h), y=(H-a.h*sc)/2+a.logoBottom*a.h*sc;
+  const footTop=ft?ft.getBoundingClientRect().top:H-30, bh=inn.offsetHeight, ch=cr.offsetHeight;
+  let top=y+10, ctop=tall?top+bh+16:footTop-ch-6;
+  if(tall){ const over=ctop+ch-(footTop-8); if(over>0){ top-=over; ctop-=over } }
+  else if(top+bh>ctop-10) top=ctop-10-bh;
+  inn.style.top=Math.round(top)+'px'; cr.style.top=Math.round(ctop)+'px'; cr.style.bottom='auto';
+}
+addEventListener('resize',layoutSplash);
 function startSplash(){
   const sp=document.getElementById('splash'), sea=document.getElementById('sea');
-  const rows=[.14,.3,.62,.78], out=[];
-  rows.forEach((y,k)=>{
-    const s=44+Math.random()*40, d=9+Math.random()*7;
-    out.push(`<div class="swim ${k%2?'r':''}" style="--y:${(y*100).toFixed(0)}%;--x:${(10+Math.random()*70).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="bob" style="animation-delay:${(-Math.random()*1.5).toFixed(2)}s">${icon(k===1?'bigfish':'fish')}</span></div>`);
-  });
-  [.14,.76].forEach(x=>{
-    const s=50+Math.random()*30, d=14+Math.random()*6;
-    out.push(`<div class="drift" style="--x:${(x*100).toFixed(0)}%;--y:${(20+Math.random()*60).toFixed(0)}%;--s:${s.toFixed(0)}px;--d:${d.toFixed(1)}s;--dl:${(-Math.random()*d).toFixed(1)}s"><span class="pulse" style="animation-delay:${(-Math.random()*1.6).toFixed(2)}s">${icon('jelly')}</span></div>`);
-  });
-  sea.innerHTML=out.join('');
+  sea.innerHTML='';
+  layoutSplash(); setTimeout(layoutSplash,300); if(document.fonts) document.fonts.ready.then(layoutSplash);
   let gone=false;
   // soft bubbles every second or two while the loading screen is up (once the browser allows sound)
   const bubbles=setInterval(()=>{
@@ -2567,7 +2590,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610121653;
+const BUILD=2610121724;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
