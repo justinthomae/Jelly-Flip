@@ -436,7 +436,7 @@ p{margin:0}
 const TYPES = {
   fish:   {name:'Fish', kind:'catch', pts:1, n:20, say:'+1 point. Keep flipping or bank.'},
   star:   {name:'Starfish', kind:'catch', pts:3, n:5, say:'+3 points. Keep flipping or bank.'},
-  extra:  {name:'Angelfish', kind:'go', n:2, say:'Go again: bank your catch, scrap it, then take another turn.'},
+  extra:  {name:'Sea Turtle', kind:'go', n:2, say:'Go again: bank your catch, scrap it, then take another turn.'},
   bigeye: {name:'Snorkel Mask', kind:'stop', n:2, say:'Bank, scrap it, then secretly peek at 3 tokens. Turn ends.'},
   hook:   {name:'Fish Hook', kind:'stop', n:2, say:'Bank, scrap it, then reveal and scrap any face-down token. Turn ends.'},
   g1:     {name:'Submarine · 1 window', kind:'stop', n:1, picks:1, say:'Bank, scrap it, show 1 token to everyone. Turn ends.'},
@@ -498,7 +498,7 @@ const MSG_DEFAULTS={
   statusThinking:'Thinking…', statusThinkingPts:'This turn: +{pts}. Thinking…', statusWaiting:'Waiting for {name}…', statusWaitingPts:'This turn: +{pts}. Waiting for {name}…',
   handBtn:'Hand', saveHome:'Save and go home',
   bankedPrefix:'Banked {points}.', noteBanked:'banked {points}', noteNothing:'banked nothing',
-  extraTitle:'Angelfish! Go again', extraBody:'{banked}{name} takes another turn.',
+  extraTitle:'Sea Turtle! Go again', extraBody:'{banked}{name} takes another turn.',
   whirlTitle:'Whirlpool!', whirlBody:'{banked}The whole table is about to swirl into new spots.',
   dolphinTitle:'Dolphin!', dolphinMine:'{banked}Others, look away! {name}, pick up to {tokens} from the scrap pile to hide with the dolphin.',
   dolphinEmpty:'{banked}The scrap pile is empty. Hide the dolphin in any glowing spot.', dolphinWatch:'{banked}{name} is secretly hiding the dolphin.',
@@ -1416,7 +1416,7 @@ const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',
 const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',statusFlip:'Card: start of a turn',statusMore:'Card: after a catch',statusNoneLeft:'Card: nothing left to flip',
   statusThinking:'Card: AI thinking',statusThinkingPts:'Card: AI thinking with a catch',statusWaiting:'Card: waiting for another player',statusWaitingPts:'Card: waiting, with a catch',
   handBtn:'Hand button',saveHome:'Pass-the-device: save and go home link',bankedPrefix:'“Banked” at the start of action cards',noteBanked:'Summary piece: banked points',noteNothing:'Summary piece: banked nothing',
-  extraTitle:'Angelfish card title',extraBody:'Angelfish card',whirlTitle:'Whirlpool card title',whirlBody:'Whirlpool card',dolphinTitle:'Dolphin card title',dolphinMine:'Dolphin card (your turn)',
+  extraTitle:'Sea Turtle card title',extraBody:'Sea Turtle card',whirlTitle:'Whirlpool card title',whirlBody:'Whirlpool card',dolphinTitle:'Dolphin card title',dolphinMine:'Dolphin card (your turn)',
   dolphinEmpty:'Dolphin card (empty scrap pile)',dolphinWatch:'Dolphin card (watching)',dolphinPlace:'Dolphin: choosing hiding spots',maskTitle:'Snorkel mask card title',maskMine:'Snorkel mask card (your turn)',
   maskWatch:'Snorkel mask card (watching)',peekMore:'Snorkel mask: more peeks',peekMoreWatch:'Snorkel mask: more peeks (watching)',hookTitle:'Hook card title',hookMine:'Hook card (your turn)',
   hookWatch:'Hook card (watching)',hookedTitle:'Hooked card title',hookedBody:'Hooked card',subTitle:'Submarine card title',subMine:'Submarine card (your turn)',subWatch:'Submarine card (watching)',
@@ -1429,7 +1429,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
 const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
-const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Angelfish (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
+const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
 const setName = id => id==='original'?'Original design':((SETS[id]&&SETS[id].meta&&SETS[id].meta.name)||'Untitled set');
@@ -1884,7 +1884,7 @@ async function aiAct(){
 
 // ---------- turn flow ----------
 // A tap on the board by a player at this device.
-// the angelfish card's Continue leads straight into another flip, so a token tap does both
+// the sea turtle card's Continue leads straight into another flip, so a token tap does both
 const goAgainCard = () => S.phase==='card'&&S.turn.pending&&S.turn.pending.type==='extra';
 function onSlot(i){
   const s=S.slots[i]; if(busy||!s||s.up||!mine(S.cur)||NET.pending) return;
@@ -2544,7 +2544,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610120659;
+const BUILD=2610121527;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
