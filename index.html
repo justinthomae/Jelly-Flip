@@ -45,7 +45,9 @@ body{
 body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,rgba(6,40,46,.18),rgba(6,40,46,.32)),var(--water) center/cover no-repeat,#2f9ea3}
 /* the same water again, clipped to the strip behind the phone's status bar and laid over the page, so text never scrolls under it */
-body::after{z-index:9;clip-path:inset(0 0 calc(100% - env(safe-area-inset-top,0px)) 0)}
+body::after{z-index:9;-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(env(safe-area-inset-top,0px) * .7),transparent env(safe-area-inset-top,0px));
+  mask-image:linear-gradient(to bottom,#000 0,#000 calc(env(safe-area-inset-top,0px) * .7),transparent env(safe-area-inset-top,0px))}
+@media (display-mode:standalone){ .app{padding-top:26px} }
 /* text that sits straight on the water gets a light color and a soft shadow so it stays readable */
 .top .muted,.info,.app > .foot,.splash .foot,.credit,.studio-link{color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55)}
 .top h1,.logo{text-shadow:0 2px 6px rgba(4,36,42,.45)}
@@ -213,6 +215,10 @@ p{margin:0}
 .iconbtn[aria-pressed="true"]{color:var(--ink)}
 .hbtn svg{display:none;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .hbtn.armed{color:var(--bust);border-color:var(--bust)}
+.setwrap{position:relative;display:inline-flex}
+.setpop{position:absolute;top:calc(100% + 8px);right:0;z-index:20;display:flex;gap:8px;padding:8px;border-radius:999px;background:var(--panel);box-shadow:0 8px 22px rgba(0,0,0,.45)}
+.setpop[hidden]{display:none}
+.top .tools > *{flex:none}
 .top .tools{align-items:center}
 @media (max-width:440px){ .top h1{font-size:1.9rem} .top .tools{gap:5px} .iconbtn{width:32px;height:32px}
   .hbtn{width:32px;height:32px;padding:0;display:grid;place-items:center;border-radius:50%} .hbtn svg{display:block} .hbtn .lbl{display:none} .hbtn.armed{width:auto;padding:0 .7em;border-radius:999px} }
@@ -361,7 +367,7 @@ p{margin:0}
 @keyframes got{30%{transform:scale(1.12)}}
 
 /* action bar */
-.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+.bar{position:fixed;left:0;right:0;bottom:0;padding:12px 16px max(10px,calc(env(safe-area-inset-bottom,0px) - 12px));
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 30%);z-index:5}
 /* fixed-height card so the board never sits under it */
 .bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
@@ -734,6 +740,17 @@ function centerOf(el){const r=el.getBoundingClientRect();return {x:r.left+r.widt
 function spotCenter(i){const br=boardEl.getBoundingClientRect(),sp=S.layout.spots[i];return {x:br.left+sp.x*br.width,y:br.top+sp.y*br.width,s:S.layout.D*br.width}}
 const tokEl = i => tokMap.get(S.slots[i].id);
 const chipDot = () => document.querySelector(`.chip[data-p="${S.cur}"] i`);
+// where a player's tokens land: the middle of their name in the scoreboard, at about the size of their color dot
+// tapping anywhere else closes the in-game sound settings
+document.addEventListener('pointerdown',e=>{ const sp=document.getElementById('setPop'); if(sp&&!sp.hidden&&!e.target.closest('.setwrap')){ sp.hidden=true; const b=document.getElementById('setBtn'); if(b) b.setAttribute('aria-expanded','false') } });
+function chipTarget(p=S.cur){
+  const c=document.querySelector(`.chip[data-p="${p}"]`), d=c&&c.querySelector('i'), n=c&&c.querySelector('span');
+  if(!c||!n) return centerOf(chipDot());
+  const rg=document.createRange(); rg.selectNodeContents(n); let r=rg.getBoundingClientRect();
+  if(!r.width) r=n.getBoundingClientRect();
+  const nr=n.getBoundingClientRect(), x=Math.min(r.left+r.width/2,nr.right-6);
+  return {x,y:nr.top+nr.height/2,s:(d?d.offsetWidth:20)};
+}
 const pileEl = () => document.querySelector('#pile .stack');
 const cardFace = () => document.getElementById('cardFace');
 
@@ -770,7 +787,7 @@ async function bankFlights(){
   if(!items.length) return 0;
   const from=items.map(i=>centerOf(tokEl(i)));
   items.forEach(i=>away.add(S.slots[i].id)); render();
-  const dot=centerOf(chipDot()), to={...dot,s:dot.s*1.3};
+  const dot=chipTarget(), to={...dot,s:dot.s*1.3};
   items.forEach((_,k)=>setTimeout(()=>sfx('plip',k),(560+k*130)*M()));
   await Promise.all(items.map((i,k)=>fly(from[k],to,{t:S.slots[i].t,up:true,dur:620,delay:k*130})));
   let pts=0;
@@ -804,7 +821,7 @@ async function flipDownAll(){ if(S.slots.some(s=>s&&s.up)){ S.slots.forEach(s=>{
 // The larger half of the hand drops back onto the table all at once; the table gets mixed right after, so there is nothing to track.
 async function sharkReturn(){
   const p=P(), lose=Math.ceil(p.bank.length/2); gshuffle(p.bank);
-  const from=centerOf(chipDot()), moves=[];
+  const from=chipTarget(), moves=[];
   for(let k=0;k<lose;k++){
     const t=p.bank.pop(), e=empties();
     if(!e.length){ S.scrap.push(t); scrapSeen(t); continue }
@@ -1996,7 +2013,7 @@ async function doContinue(){
       S.phase='flip'; return;
     case 'jelly': {
       const s=S.slots[pd.slot], from=centerOf(cardFace()); cardHidden=true; render();
-      const dot=centerOf(chipDot());
+      const dot=chipTarget();
       await fly(from,{...dot,s:dot.s*1.3},{t:'jelly',up:true,dur:650}); sfx('thud');
       p.bank.push('jelly'); away.delete(s.id); S.slots[pd.slot]=null; forget(pd.slot); S.card=null; cardHidden=false; bump(S.cur); render();
       await flipDownAll();
@@ -2234,7 +2251,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1>${titleHTML()}</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
+      <header class="top"><h1>${titleHTML()}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
@@ -2242,6 +2259,9 @@ function renderGame(){
     boardEl.addEventListener('click',e=>{const b=e.target.closest('.tok');if(b) onSlot(+b.dataset.i)});
     fitPending=true; bindToggles(app);
     app.querySelector('#rulesBtn').onclick=()=>{S.rulesOpen=true;render()};
+    const sbt=app.querySelector('#setBtn'), spop=app.querySelector('#setPop');
+    const setOpen=o=>{ spop.hidden=!o; sbt.setAttribute('aria-expanded',o) };
+    sbt.onclick=e=>{ e.stopPropagation(); setOpen(spop.hidden) };
     const hb=app.querySelector('#homeBtn'); if(hb) hb.onclick=goHome;
     app.querySelector('#quitBtn').onclick=()=>{
       if(busy) return;
@@ -2450,7 +2470,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610120624;
+const BUILD=2610120637;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
