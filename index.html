@@ -774,7 +774,7 @@ function refreshTheme(){ setTheme(displayedTheme(),FETCH_ASSET) }
 function setTheme(th,fetchRemote){
   THEME=th||{};
   try{ localStorage.setItem('jellyflip.theme',JSON.stringify(THEME)) }catch(e){}
-  loadThemeAssets(fetchRemote).then(()=>{ applyTheme(); if(S&&!busy) render(); renderStudio() });
+  loadThemeAssets(fetchRemote).then(()=>{ applyTheme(); if(S&&!busy) render(); laterStudio() });
 }
 
 // The main menu's header: the Fliptide logo centred at the top, unless an admin has renamed the game
@@ -1747,8 +1747,10 @@ async function saveTheme(path,value){
     STUDIO.msg=ACTIVE===id?'Saved. Players see this set, so they get the change too.':'Saved to this set. Players won’t see it until you make the set live.';
   }
   catch(e){ STUDIO.msg='Couldn’t save: '+(e.code||e.message)+'. Check the database rules include the Studio section.' }
-  renderStudio();
+  laterStudio();
 }
+// redraw the Studio a moment later, after a tap has finished moving into the next box
+let studioT=null; function laterStudio(){ clearTimeout(studioT); studioT=setTimeout(renderStudio,30) }
 const getPath=(path)=>path.split('/').reduce((o,k)=>o&&o[k],editTheme());
 async function removeOldAsset(path){
   const old=getPath(path); if(!old||!old.asset) return;
@@ -1806,6 +1808,23 @@ function cardSample(slot){
   const [mini,title,sub,acts,bust]=S2[slot==='all'?'extra':slot];
   return {mini,title:fmt(title),sub:fmt(sub),acts,bust};
 }
+// the wording behind each card: its title, and every message it can show (first one is what the preview uses)
+const CARD_WORDS={turn:[['turnTitle'],['statusFlip','statusMore','statusNoneLeft','statusThinking','statusThinkingPts','statusWaiting','statusWaitingPts']],
+  summary:[['turnTitle'],['sumBanked','sumAction','sumStung','sumShark','sumSharkEmpty','sumSharkLast','sumWhirl','sumHook','sumSub','sumPeek','sumDolphin','sumDolphinPlus']],
+  extra:[['extraTitle'],['extraBody']], whirl:[['whirlTitle'],['whirlBody']], dolphin:[['dolphinTitle'],['dolphinMine','dolphinEmpty','dolphinWatch','dolphinPlace']],
+  mask:[['maskTitle'],['maskMine','maskWatch','peekMore','peekMoreWatch']], hook:[['hookTitle'],['hookMine','hookWatch']], hooked:[['hookedTitle'],['hookedBody']],
+  sub:[['subTitle'],['subMine','subWatch','subMore','subMoreWatch']], look:[['lookTitle'],['lookBody']], jelly:[['bustTitle'],['jellyBody']],
+  shark:[['bustTitle'],['sharkBody','sharkEmpty']], last:[['bustTitle'],['jellyBody','sharkLast','sharkLastEmpty','lastFlip']]};
+const SHARED_WORDS={turnTitle:'the turn card and the turn summary',bustTitle:'the jellyfish, shark and last-flip cards',jellyBody:'the jellyfish card and its last-flip version'};
+function cardWordsHTML(slot,E){
+  if(slot==='all') return `<div class="st-row"><div class="st-grow"><b>What the card says</b><p class="muted st-small">Pick a single card above to edit its title and message.</p></div></div>`;
+  const [titles,bodies]=CARD_WORDS[slot], TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
+  const box=(k,first)=>{ const custom=E.text&&E.text[k]!=null&&E.text[k]!=='';
+    return `<label class="st-text"><span>${esc(MSG_LABELS[k]||k)}${SHARED_WORDS[k]?` <small class="muted">(also used on ${SHARED_WORDS[k]})</small>`:''}${custom?` <button class="linkbtn" data-textreset="${k}">reset</button>`:''}</span><textarea data-text="${k}" data-live="${first?1:0}" rows="${TE(k).length>70?3:2}">${esc(TE(k))}</textarea></label>` };
+  return `<div class="st-row"><div class="st-grow"><b>What the card says</b>
+    <p class="muted st-small">Words in {braces} are filled in by the game: {name} is the player, {points} and {tokens} are counts like “3 points”, {token} is a token’s name, {banked} is what was just banked. **Double stars** make bold. The preview shows the first message.</p>
+    <div class="st-list">${titles.map(k=>box(k,true)).join('')}${bodies.map((k,i)=>box(k,i===0)).join('')}</div></div></div>`;
+}
 function cardPreviewHTML(E){
   const keep=THEME; THEME=E; try{ const slot=STUDIO.cardSlot||'all', d=cardSample(slot);
     return `<div class="bar cardpreview${d.bust?' bust':''}">${cardHTML(slot,d)}</div>` } finally{ THEME=keep }
@@ -1831,6 +1850,7 @@ function cardEditorHTML(E){
       ${range('narr','size',40,250,5,1,{label:'Size',u:'%'},100)}${range('narr','rot',-45,45,1,0,{label:'Rotate',u:'°'})}
       <label class="st-check"><input type="checkbox" data-cset="narr.flip" data-kind="bool" ${v('narr','flip',false)?'checked':''}> Mirror</label>
       ${nudge('narr')}${reset('narr','narrator')}</div></div></div>
+    ${cardWordsHTML(slot,E)}
     <div class="st-row"><div class="st-grow"><b>Title</b><div class="st-acts">${show('title','title')}${fontSel('title')}${range('title','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('title')}${range('title','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('title')}${reset('title','title')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Message</b><div class="st-acts">${show('body','message')}${fontSel('body')}${range('body','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('body')}${range('body','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('body')}${reset('body','message')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Text alignment</b><div class="st-acts"><select data-cset=".align">${['left','center','right'].map(a=>`<option value="${a}" ${v(null,'align','left')===a?'selected':''}>${a[0].toUpperCase()+a.slice(1)}</option>`).join('')}</select></div></div></div>
@@ -1961,6 +1981,9 @@ function renderStudio(){
       <div class="st-list">${Object.keys(SFX_LABELS).map(n=>{ const e=E.audio&&E.audio.sfx&&E.audio.sfx[n];
         return `<div class="st-row slim"><button class="btn small" data-sfxplay="${n}">▶</button><span class="st-grow">${SFX_LABELS[n]}${srcOf(e)?' <span class="muted">(yours)</span>':''}</span><button class="btn small" data-sfxup="${n}">Upload</button>${srcOf(e)?`<button class="btn small ghost" data-sfxreset="${n}">Reset</button>`:''}</div>` }).join('')}</div>`;
   }
+  // keep whatever box is being typed in (and what's in it) when the Studio redraws after a save
+  const act=document.activeElement, keepFocus=act&&b.contains(act)&&/^(INPUT|TEXTAREA)$/.test(act.tagName)&&act.type!=='range'&&act.type!=='checkbox'&&act.type!=='color'?(()=>{ const n=act.getAttributeNames().find(x=>x.startsWith('data-'))||(act.id?'id':null); return n?{sel:n==='id'?'#'+act.id:`[${n}="${act.getAttribute(n)}"]`,value:act.value,a:act.selectionStart,z:act.selectionEnd}:null })():null;
+  const scrollY0=b.scrollTop;
   b.innerHTML=`<div class="st-panel">
     <header class="st-head"><h2>Studio</h2>${STUDIO.ok?`<span class="muted st-who">${esc(STUDIO.user.email)}</span>`:''}<button class="btn small ghost" id="stClose">Close</button></header>
     ${STUDIO.ok?setsBarHTML():''}
@@ -1969,6 +1992,8 @@ function renderStudio(){
     <div class="st-body">${STUDIO.ok&&!STUDIO.editId?`<div class="st-center"><p class="muted">There are no artwork sets yet. Start one from the original design.</p><button class="btn primary" id="stFirstSet">Create the first set</button></div>`:body}</div>
     ${STUDIO.ok?`<footer class="st-foot"><button class="btn small ghost" id="stResetAll" ${STUDIO.editId?'':'hidden'}>${STUDIO.armReset?'Tap again to clear this set':'Clear this set back to the original'}</button><button class="linkbtn" id="stSignOut">Sign out</button></footer>`:''}
   </div>`;
+  if(keepFocus){ const el=b.querySelector(keepFocus.sel); if(el){ el.value=keepFocus.value; el.focus({preventScroll:true}); try{ el.setSelectionRange(keepFocus.a,keepFocus.z) }catch(e){} } }
+  b.scrollTop=scrollY0;
   const on=(sel,fn)=>b.querySelectorAll(sel).forEach(el=>el.addEventListener(el.tagName==='TEXTAREA'||el.tagName==='SELECT'||['color','checkbox','range','text'].includes(el.type)?'change':'click',()=>fn(el)));
   on('#stClose',()=>{ b.hidden=true; STUDIO.msg=''; render() });
   on('#stSignIn',()=>studioSignIn());
@@ -2017,6 +2042,7 @@ function renderStudio(){
   const cval=el=>{ if(el.dataset.kind==='bool') return el.checked; if(el.type==='range') return (+el.value)/(+el.dataset.scale||1); return el.value };
   const cpreview=()=>{ const pv=document.getElementById('cardPrev'); if(pv) pv.innerHTML=cardPreviewHTML(editTheme()) };
   const clocal=(path,val)=>{ const E=editTheme(), parts=path.split('/'); let o=E; for(let i=0;i<parts.length-1;i++){ o[parts[i]]=o[parts[i]]||{}; o=o[parts[i]] } if(val==null) delete o[parts[parts.length-1]]; else o[parts[parts.length-1]]=val };
+  b.querySelectorAll('textarea[data-live="1"]').forEach(el=>el.addEventListener('input',()=>{ const E=editTheme(); E.text=E.text||{}; E.text[el.dataset.text]=el.value; cpreview() }));
   on('[data-cardslot]',el=>{ STUDIO.cardSlot=el.value; STUDIO.armCard=false; renderStudio() });
   b.querySelectorAll('input[type=range][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.cset.endsWith('rot')?'°':'%'); cpreview() }));
   b.querySelectorAll('input[type=color][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),el.value); cpreview() }));
@@ -2893,7 +2919,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122302;
+const BUILD=2610122327;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
