@@ -77,6 +77,11 @@ p{margin:0}
 .menu-top h1{margin:0}
 .menu-logo img{display:block;width:min(86vw,440px);height:auto;filter:drop-shadow(0 6px 14px rgba(0,30,40,.35))}
 .menu-top .muted{color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55);margin:0}
+.sharebtn{display:inline-flex;align-items:center;gap:8px;margin-top:8px;background:var(--sea);color:var(--sea-ink)}
+.sharebtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.installtip{border:1.5px solid color-mix(in srgb,var(--sea) 55%,transparent)}
+.installtip h3{margin:0}
+.btnrow.left{justify-content:flex-start}
 .menu-top .tools{display:flex;gap:8px;margin-top:4px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .top .tools{display:flex;gap:8px}
@@ -515,6 +520,12 @@ const TEXT_DEFAULTS={
   title:'Fliptide', shortName:'', tagline:'Push your luck. Remember the reef.',
   credit:'Created by **Lydia Lichti**\nin partnership with **Grudge Match Games**',
   copyright:'Copyright © 2026 Grudge Match Games', play:'Play',
+  shareBtn:'Share with a friend', shareText:'Come play {title} with me! A push-your-luck memory game you can play on your phone or computer.', shareCopied:'Link copied! Paste it to a friend.',
+  installTitle:'Get {title} as an app', installIntro:'Add it to your device so it opens in its own window, like any other app.',
+  installDesktop:'Click the **install icon** at the right end of Chrome’s address bar, then **Install**. Or open Chrome’s **⋮ menu → Cast, save, and share → Install page as app**.',
+  installAndroid:'Tap Chrome’s **⋮ menu** (top right), then **Add to Home screen** and **Install**.',
+  installIOS:'Tap the **Share** button in Chrome’s address bar, then **Add to Home Screen**.',
+  installNow:'Install now', installLater:'Got it',
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
   howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
@@ -735,10 +746,42 @@ function setTheme(th,fetchRemote){
 // The main menu's header: the Fliptide logo centred at the top, unless an admin has renamed the game
 // or given it their own title logo in the Studio (then their logo, or the name as text).
 const MENU_LOGO='assets/menu-logo.webp';
+// "Share with a friend": the phone's share sheet with an invite, or the link copied where there isn't one
+const SHARE={note:''};
+const appLink=()=>{ const u=new URL(location.href); u.search=''; u.hash=''; return u.href };
+async function shareApp(){
+  const text=TT('shareText',{title:T('title')}), url=appLink();
+  try{
+    if(navigator.share){ await navigator.share({title:T('title'),text,url}); return }
+    await navigator.clipboard.writeText(text+' '+url); SHARE.note=T('shareCopied');
+  }catch(e){ if(e&&e.name==='AbortError') return; SHARE.note=url }
+  render(); setTimeout(()=>{ SHARE.note=''; if(S&&S.screen==='setup') render() },5000);
+}
+// The first time someone opens the game in Chrome (not already installed), show how to make it an app on their device.
+const INSTALL={prompt:null, seen:(()=>{ try{ return !!localStorage.getItem('jellyflip.installTip') }catch(e){ return true } })()};
+addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); INSTALL.prompt=e; if(S&&S.screen==='setup') render() });
+addEventListener('appinstalled',()=>{ INSTALL.prompt=null; dismissInstall() });
+function installPlatform(){
+  const ua=navigator.userAgent, top=(()=>{ try{ return window.top===window }catch(e){ return false } })();
+  const standalone=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
+  if(!top||standalone||!/^https?:$/.test(location.protocol)) return null;
+  if(/CriOS/.test(ua)) return 'ios';
+  if(!/Chrome\//.test(ua)||/Edg\/|OPR\/|SamsungBrowser/.test(ua)) return null;
+  return /Android/.test(ua)?'android':/Mobile/.test(ua)?null:'desktop';
+}
+function dismissInstall(){ INSTALL.seen=true; try{ localStorage.setItem('jellyflip.installTip','1') }catch(e){} if(S&&S.screen==='setup') render() }
+function installCardHTML(){
+  const pf=installPlatform(); if(INSTALL.seen||!pf) return '';
+  const steps=TX(pf==='ios'?'installIOS':pf==='android'?'installAndroid':'installDesktop');
+  return `<div class="card installtip"><h3>${fmt(TT('installTitle',{title:T('title')}))}</h3><p class="muted">${TX('installIntro')}</p><p>${steps}</p>
+    <div class="btnrow left">${INSTALL.prompt?`<button class="btn primary" id="installNow">${TX('installNow')}</button>`:''}<button class="btn ghost" id="installLater">${TX('installLater')}</button></div></div>`;
+}
 function menuHeaderHTML(){
   const tl=THEME.titleLogo, own=srcOf(tl), useDefault=!own&&T('title')===TEXT_DEFAULTS.title, src=own||(useDefault?MENU_LOGO:'');
   return `<header class="menu-top">${src?`<h1 class="menu-logo"><img src="${src}" alt="${esc(T('title'))}"></h1>`:`<h1>${TX('title')}</h1>`}
-    <p class="muted">${TX('tagline')}</p><div class="tools">${toggleHTML()}</div></header>`;
+    <p class="muted">${TX('tagline')}</p><div class="tools">${toggleHTML()}</div>
+    <button class="btn small sharebtn" id="shareApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg><span>${TX('shareBtn')}</span></button>
+    ${SHARE.note?`<p class="muted st-small">${esc(SHARE.note)}</p>`:''}</header>`;
 }
 const titleHTML = () => { const tl=THEME.titleLogo, src=srcOf(tl); return src?`<img class="hlogo" src="${src}" alt="${tl.hideName?esc(T('title')):''}">${tl.hideName?'':TX('title')}`:TX('title') };
 const face = (t,cls='') => { const art=tokenArt(t);
@@ -1489,7 +1532,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
-const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const TEXT_LABELS={shareBtn:'Share button',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
@@ -2308,6 +2351,7 @@ function renderSetup(){
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
     ${menuHeaderHTML()}
+    ${installCardHTML()}
     ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
       ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
         <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
@@ -2330,6 +2374,9 @@ function renderSetup(){
     ${PREVIEW&&SETS[PREVIEW]&&PREVIEW!==ACTIVE?`<div class="preview-bar">Previewing “${esc((SETS[PREVIEW].meta&&SETS[PREVIEW].meta.name)||'Untitled set')}” on this device only <button class="btn small" id="endPreview">Show what players see</button></div>`:''}`;
   bindToggles(app);
   const sb=app.querySelector('#studioBtn'); if(sb) sb.onclick=openStudio;
+  const sa=app.querySelector('#shareApp'); if(sa) sa.onclick=()=>{ sfx('tap'); shareApp() };
+  const inow=app.querySelector('#installNow'); if(inow) inow.onclick=async()=>{ const pr=INSTALL.prompt; if(!pr) return; INSTALL.prompt=null; pr.prompt(); try{ const r=await pr.userChoice; if(r&&r.outcome==='accepted') dismissInstall(); else render() }catch(e){ render() } };
+  const ilater=app.querySelector('#installLater'); if(ilater) ilater.onclick=()=>{ sfx('tap'); dismissInstall() };
   const ep=app.querySelector('#endPreview'); if(ep) ep.onclick=()=>{ setPreview(''); render() };
   const sync=()=>app.querySelectorAll('.name input').forEach(inp=>st.names[+inp.dataset.i]=inp.value);
   app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save()}));
@@ -2643,7 +2690,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122051;
+const BUILD=2610122112;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
