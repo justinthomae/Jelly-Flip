@@ -81,6 +81,8 @@ p{margin:0}
 .sharebtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .installtip{border:1.5px solid color-mix(in srgb,var(--sea) 55%,transparent)}
 .installtip h3{margin:0}
+.installhead{display:flex;align-items:center;gap:14px}
+.installtip .appicon{width:64px;height:64px;border-radius:15px;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.12)}
 .btnrow.left{justify-content:flex-start}
 .menu-top .tools{display:flex;gap:8px;margin-top:4px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -229,6 +231,8 @@ p{margin:0}
 .splash.art #splashGo{font-size:1.15rem;padding:.75em 2.4em;box-shadow:0 6px 18px rgba(0,30,40,.35)}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
+.top h1.roomname{font-family:var(--room);font-size:1.7rem;line-height:1.05;min-width:0;flex:1;overflow-wrap:anywhere}
+@media (max-width:440px){ .top h1.roomname{font-size:1.45rem} }
 .top h1 .hlogo{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em;object-fit:contain}
 .logo{font-size:clamp(3.6rem,15vw,6.5rem);color:var(--wood);text-shadow:0 4px 0 var(--wood-3),0 10px 24px rgba(0,0,0,.6);letter-spacing:.02em}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
@@ -373,6 +377,7 @@ p{margin:0}
 .err{color:var(--bust);font-size:.9rem}
 .roomcode{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0 4px}
 .roomcode .code{font-size:2rem;letter-spacing:.22em;color:var(--wood);font-variant-numeric:tabular-nums}
+.resroom{font-family:var(--room)}
 .savecode{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .savecode .code{font-size:1.25rem;letter-spacing:.12em;font-variant-numeric:tabular-nums;color:var(--wood)}
 .card.slim{gap:8px;padding:14px 18px}
@@ -597,8 +602,8 @@ const MSG_DEFAULTS={
 };
 Object.assign(TEXT_DEFAULTS,MSG_DEFAULTS);
 const COLOR_DEFAULTS={table:'#2b211b','table-2':'#241b16',seam:'#120c09',wood:'#efdcc0','wood-2':'#dcbb94','wood-3':'#b98a62',burn:'#4b2816',ink:'#f4ebde','ink-2':'#bba997',sea:'#6cc4b6','sea-ink':'#0e2724',bust:'#f08a6e',panel:'#3a2d25','panel-2':'#463830'};
-const FONT_DEFAULTS={display:'Gochi Hand',body:'Atkinson Hyperlegible',credit:'Rubik'};
-const FONT_FALLBACK={display:"'Comic Sans MS','Chalkboard SE',cursive",body:"system-ui,-apple-system,'Segoe UI',sans-serif",credit:"system-ui,sans-serif"};
+const FONT_DEFAULTS={display:'Gochi Hand',body:'Atkinson Hyperlegible',credit:'Rubik',room:'Gochi Hand'};
+const FONT_FALLBACK={room:"'Comic Sans MS','Chalkboard SE',cursive",display:"'Comic Sans MS','Chalkboard SE',cursive",body:"system-ui,-apple-system,'Segoe UI',sans-serif",credit:"system-ui,sans-serif"};
 let THEME=(()=>{ try{ return JSON.parse(localStorage.getItem('jellyflip.theme')||'{}')||{} }catch(e){ return {} } })();
 const ASSET={};
 let themeDirty=false;
@@ -667,7 +672,7 @@ function applyTheme(){
   if(THEME.iconInk) vars.push(`--icon-ink:${THEME.iconInk}`);
   // fonts: a Google font by name, or a font file the admin uploaded
   const fam={}, google=[];
-  for(const role of ['display','body','credit']){
+  for(const role of ['display','body','credit','room']){
     const f=(THEME.fonts&&THEME.fonts[role])||FONT_DEFAULTS[role];
     if(f==='__upload'&&srcOf(THEME.fontFiles&&THEME.fontFiles[role])){
       const name='JF-'+role;
@@ -675,7 +680,7 @@ function applyTheme(){
       fam[role]=`"${name}"`;
     } else { fam[role]=`'${String(f).replace(/'/g,'')}'`; if(f!==FONT_DEFAULTS[role]||role==='credit') google.push(f) }
   }
-  vars.push(`--display:${fam.display},${FONT_FALLBACK.display}`,`--body:${fam.body},${FONT_FALLBACK.body}`,`--credit:${fam.credit},${FONT_FALLBACK.credit}`);
+  vars.push(`--room:${fam.room},${FONT_FALLBACK.room}`,`--display:${fam.display},${FONT_FALLBACK.display}`,`--body:${fam.body},${FONT_FALLBACK.body}`,`--credit:${fam.credit},${FONT_FALLBACK.credit}`);
   css.push(`html:root{${vars.join(";")}}`);
   for(const c of Object.values(THEME.cards||{})) for(const pt of ['title','body']){ const f=c&&c[pt]&&c[pt].font; if(f&&!['display','body','credit'].includes(f)) google.push(f) }
   const key=google.filter(f=>f!=='Gochi Hand'&&f!=='Atkinson Hyperlegible'&&f!=='Rubik').sort().join('|');
@@ -801,7 +806,8 @@ function dismissInstall(){ INSTALL.seen=true; try{ localStorage.setItem('jellyfl
 function installCardHTML(){
   const pf=installPlatform(); if(INSTALL.seen||!pf) return '';
   const steps=TX(pf==='ios'?'installIOS':pf==='android'?'installAndroid':'installDesktop');
-  return `<div class="card installtip"><h3>${fmt(TT('installTitle',{title:T('title')}))}</h3><p class="muted">${TX('installIntro')}</p><p>${steps}</p>
+  const icon=(BRAND.icons&&BRAND.icons.i180)||'apple-touch-icon.png';
+  return `<div class="card installtip"><div class="installhead"><img class="appicon" src="${icon}" alt="${esc(T('title'))} app icon"><h3>${fmt(TT('installTitle',{title:T('title')}))}</h3></div><p class="muted">${TX('installIntro')}</p><p>${steps}</p>
     <div class="btnrow left">${INSTALL.prompt?`<button class="btn primary" id="installNow">${TX('installNow')}</button>`:''}<button class="btn ghost" id="installLater">${TX('installLater')}</button></div></div>`;
 }
 function menuHeaderHTML(){
@@ -900,9 +906,19 @@ function setupState(prev){
   st.count = Math.max(2,Math.min(8,st.count||3));
   return {screen:'setup', setup:st};
 }
+// Every game gets its own ocean-themed name, picked from the game's seed (so online players all see the same one).
+const ROOM_ADJ=['Coral','Moonlit','Sunken','Glimmering','Drifting','Sapphire','Pearl','Whispering','Hidden','Shimmering','Salty','Starlit','Misty','Turquoise','Lantern','Driftwood','Bubbling','Golden','Silver','Sleepy','Tumbling','Velvet','Wandering','Breezy'];
+const ROOM_PLACE=['Cove','Lagoon','Reef','Shoals','Grotto','Bay','Tidepool','Atoll','Current','Shallows','Trench','Harbor','Kelp Forest','Sandbar','Inlet','Deep','Sea Caves','Shipwreck','Tides','Waters'];
+const ROOM_WHO=['Barnacle','Turtle','Starfish','Octopus','Mermaid','Dolphin','Seahorse','Pelican','Narwhal','Captain','Jellyfish','Sea Otter','Pufferfish','Manta'];
+function roomNameFrom(seed){
+  let a=(seed^0x5bd1e995)>>>0; const r=()=>{ a=(a+0x6D2B79F5)|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296 }, pk=l=>l[Math.floor(r()*l.length)];
+  const k=r(); return k<.45?`${pk(ROOM_ADJ)} ${pk(ROOM_PLACE)}`:k<.8?`${pk(ROOM_WHO)}’s ${pk(ROOM_PLACE)}`:`The ${pk(ROOM_ADJ)} ${pk(ROOM_PLACE)}`;
+}
+const roomName=()=>S&&(S.roomName||(S.roomName=roomNameFrom(S.rs||1)));
 function newGame(setup,seed){
   const names = setup.names.slice(0,setup.count).map((n,i)=>n.trim()||`Player ${i+1}`);
-  S = {screen:'play', setup, h:null, layout:null, tick:0, turnNo:0, rs:seed??Math.floor(Math.random()*2147483647), net:null,
+  const rs0=seed??Math.floor(Math.random()*2147483647);
+  S = {screen:'play', setup, h:null, layout:null, tick:0, turnNo:0, rs:rs0, roomName:roomNameFrom(rs0), net:null,
     players:names.map((name,i)=>({name,color:COLORS[i],bank:[],jellies:0,kind:setup.kinds[i]||'human',mem:{}})),
     cur:0, slots:[], nextId:0, scrap:[], turn:freshTurn(),
     phase:'handoff', summary:null, card:null, quitArm:false, rulesOpen:false};
@@ -1926,7 +1942,7 @@ function renderStudio(){
     body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(E.colors&&E.colors[k])||COLOR_DEFAULTS[k];
       return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${E.colors&&E.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
   } else if(STUDIO.tab==='fonts'){
-    const roles=[['display','Titles and headings'],['body','Everything else'],['credit','Loading-screen credits']];
+    const roles=[['display','Titles and headings'],['room','Game room names'],['body','Everything else'],['credit','Loading-screen credits']];
     body=`<p class="muted">Choose from Google Fonts or upload your own font file (WOFF2, WOFF, TTF or OTF).</p>${roles.map(([r,l])=>{ const cur=(E.fonts&&E.fonts[r])||FONT_DEFAULTS[r], up=srcOf(E.fontFiles&&E.fontFiles[r]);
       return `<div class="st-row"><div class="st-grow"><b>${l}</b><div class="st-sample" style="font-family:var(--${r})">The quick fish flips the jelly</div>
         <div class="st-acts"><select data-font="${r}">${GOOGLE_FONTS.map(f=>`<option ${f===cur?'selected':''}>${f}</option>`).join('')}${up?`<option value="__upload" ${cur==='__upload'?'selected':''}>My uploaded font</option>`:''}</select>
@@ -2537,7 +2553,7 @@ function renderSetup(){
   app.innerHTML=`
     ${menuHeaderHTML()}
     ${installCardHTML()}
-    ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
+    ${resume?`<div class="card"><h3>Game in progress${resume.roomName?` · <span class="resroom">${esc(resume.roomName)}</span>`:''}</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
       ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
         <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
         <span class="muted st-small">${CLOUD.status==='saving'?'Saving online…':CLOUD.status==='error'?'Couldn’t save online yet; it’s still saved on this device.':CLOUD.status==='saved'?'Saved online.':''}</span></div>`:''}</div>`:''}
@@ -2642,7 +2658,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1>${titleHTML()}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
+      <header class="top"><h1 class="roomname" title="${esc(roomName())}">${esc(roomName())}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
@@ -2765,7 +2781,7 @@ function renderOver(){
   const fish=p=>p.bank.filter(isFish).length, star=p=>p.bank.filter(t=>t==='star').length;
   let place=0;
   ov.hidden=false;
-  ov.innerHTML=`<div class="sheet">${narrHTML('over','narrator big')}<span class="label">${TX('gameOver')}</span>
+  ov.innerHTML=`<div class="sheet">${narrHTML('over','narrator big')}<span class="label">${TX('gameOver')} · ${esc(roomName()||'')}</span>
     <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>${S.endNote?`<p class="muted">${esc(S.endNote)}</p>`:''}
     <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
       return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish${r.pairs?' · '+fmt(TT('overPairs',{pairs:plural(r.pairs,'fish pair'),bonus:r.pairs})):''}</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
@@ -2876,7 +2892,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122256;
+const BUILD=2610122300;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
