@@ -320,6 +320,9 @@ p{margin:0}
 .st-appicon img{position:absolute;inset:0;width:100%;height:100%;max-width:none;box-sizing:border-box;object-fit:contain}
 .st-swimprev{width:110px;height:64px;display:grid;place-items:center;flex:none;color:var(--wood)}
 .st-swimprev img,.st-swimprev svg{max-width:100%;max-height:100%;object-fit:contain}
+.st-narrprev{width:72px;height:72px;display:grid;place-items:center;flex:none}
+.st-narrprev img{max-width:100%;max-height:100%;object-fit:contain}
+.st-h3{margin:14px 0 2px;font-family:var(--display);font-weight:400}
 .st-titleprev{width:110px;height:64px;display:grid;place-items:center;flex:none}
 .st-titleprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-swatch{width:64px;height:96px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
@@ -402,6 +405,11 @@ p{margin:0}
 /* fixed-height card so the board never sits under it */
 .bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
   display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;height:92px;box-sizing:border-box}
+.bar .in{position:relative}
+.bar .in.has-narr{padding-right:calc(14px + 62px * var(--nsz,1))}
+.bar .narrator{position:absolute;right:6px;bottom:calc(100% - 26px);width:calc(84px * var(--ns,1));height:calc(84px * var(--ns,1));object-fit:contain;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));animation:narrIn .45s cubic-bezier(.2,1.4,.4,1) both}
+.sheet .narrator.big{width:calc(120px * var(--ns,1));height:calc(120px * var(--ns,1));object-fit:contain;margin:-60px auto -4px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45));animation:narrIn .5s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes narrIn{from{transform:translateY(16px) scale(.85);opacity:0}to{transform:none;opacity:1}}
 .bar .msg{grid-area:msg;min-width:0;display:flex;flex-direction:column;gap:2px}
 .bar .msg strong{font-family:var(--display);font-weight:400;font-size:1.35rem;line-height:1.1}
 .bar .msg span{font-size:.9rem;line-height:1.3;color:var(--ink-2)}
@@ -624,7 +632,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.sharkSwim); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.sharkSwim); add(th.cardBg); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -677,6 +685,9 @@ function applyTheme(){
     const blend=lg.blend||'normal', m=blend==='ink'?inkSrc(lg.asset||lg.url,logo):null;
     if(m) css.push(`${sel}{${base}background:var(--icon-ink,var(--burn));-webkit-mask:url("${m}") center/contain no-repeat;mask:url("${m}") center/contain no-repeat}`);
     else css.push(`${sel}{${base}background:url("${logo}") center/contain no-repeat;${blend!=='normal'?'mix-blend-mode:multiply;':''}}`) }
+  // a picture behind the game's cards and pop-ups, darkened so the words stay readable
+  const cb=THEME.cardBg, cbs=srcOf(cb);
+  if(cbs){ const d=cb.dark!=null?cb.dark:.45; css.push(`.bar .in,.overlay .sheet{background:linear-gradient(rgba(10,6,4,${d}),rgba(10,6,4,${d})),url("${cbs}") center/cover no-repeat,var(--panel) !important}`,`.bar.bust .in{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}`) }
   let st=document.getElementById('themeStyle'); if(!st){ st=document.createElement('style'); st.id='themeStyle'; document.head.appendChild(st) }
   st.textContent=css.join('\n');
   document.title=T('title');
@@ -786,6 +797,20 @@ function menuHeaderHTML(){
     ${SHARE.note?`<p class="muted st-small">${esc(SHARE.note)}</p>`:''}</header>`;
 }
 const titleHTML = () => { const tl=THEME.titleLogo, src=srcOf(tl); return src?`<img class="hlogo" src="${src}" alt="${tl.hideName?esc(T('title')):''}">${tl.hideName?'':TX('title')}`:TX('title') };
+// Narrators: characters (uploaded in the Studio) who appear on chosen cards. cardNarrator maps a card slot to a narrator,
+// with 'all' as the default for every card and 'none' to keep a card narrator-free.
+const NARR_SLOTS=()=>[['all','Every card (default)'],['turn','Turn card: whose turn it is'],['summary','Turn summary card'],['extra',TYPES.extra.name+' card'],
+  ['whirl',TYPES.whirl.name+' card'],['dolphin',TYPES.dolphin.name+' card'],['mask',TYPES.bigeye.name+' card'],['hook',TYPES.hook.name+' card'],['hooked','Hooked token card'],
+  ['sub','Submarine card'],['look','Submarine: memorize card'],['jelly',TYPES.jelly.name+' card'],['shark',TYPES.shark.name+' card'],['last','Last-flip bust card'],
+  ['handoff','Pass-the-device screen'],['over','Game over screen']];
+function narratorFor(slot){
+  const map=THEME.cardNarrator||{}, id=map[slot]!=null?map[slot]:slot==='handoff'||slot==='over'?null:map.all;
+  const n=id&&id!=='none'&&THEME.narrators&&THEME.narrators[id], src=srcOf(n);
+  return src?{src,name:n.name||'',size:n.size||1}:null;
+}
+// room above the bottom card for a narrator peeking over its top edge, so it never covers tokens
+const narrOverhang=()=>{ const N=THEME.narrators||{}, used=Object.values(THEME.cardNarrator||{}).filter(v=>v&&v!=='none'&&srcOf(N[v])); return used.length?Math.round(60*Math.max(...used.map(v=>N[v].size||1))):0 };
+const narrHTML=(slot,cls='narrator')=>{ const n=narratorFor(slot); return n?`<img class="${cls}" src="${n.src}" alt="${esc(n.name)}" style="--ns:${n.size}">`:'' };
 const face = (t,cls='') => { const art=tokenArt(t), mir=THEME.tokens&&THEME.tokens[t]&&THEME.tokens[t].mirror;
   return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${mir?'mirror':''} ${cls}">${art?artHTML(art):icon(t)}</div>` };
 
@@ -1709,7 +1734,7 @@ function pickFile(accept,cb){ const i=document.createElement('input'); i.type='f
 function renderStudio(){
   const b=studioBox(); if(b.hidden) return;
   const E=editTheme(), TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
-  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['fish','Fish pairs'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
+  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['fish','Fish pairs'],['narr','Narrators'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
   let body='';
   if(!STUDIO.ok){
     body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in ${esc(T('title'))}. Only admins can open it.</p>
@@ -1783,7 +1808,25 @@ function renderStudio(){
           <button class="btn small" data-bgocean="${key}">Use the water picture</button>
           <label class="st-color">Color <input type="color" data-bgcolor="${key}" value="${e.color||COLOR_DEFAULTS.table}"></label>
           ${e.color||src?`<button class="btn small ghost" data-bgreset="${key}">Reset</button>`:''}</div></div></div>` };
-    body=`<p class="muted">Pictures fill the screen behind everything. Pick a color too: it shows while the picture loads and around its edges.</p>${row('game','Game and setup screens')}${row('splash','Loading screen')}`;
+    body=`<p class="muted">Pictures fill the screen behind everything. Pick a color too: it shows while the picture loads and around its edges.</p>${row('game','Game and setup screens')}${row('splash','Loading screen')}
+      <div class="st-row"><div class="st-swatch" style="height:64px;background:${srcOf(E.cardBg)?`linear-gradient(rgba(10,6,4,${E.cardBg.dark!=null?E.cardBg.dark:.45}),rgba(10,6,4,${E.cardBg.dark!=null?E.cardBg.dark:.45})),url('${srcOf(E.cardBg)}') center/cover`:'var(--panel)'}"></div>
+        <div class="st-grow"><b>Card background</b><p class="muted st-small">A picture behind the game’s cards (the bottom card and pop-ups) instead of the plain card color.</p><div class="st-acts">
+          <button class="btn small" data-cardbgup>${srcOf(E.cardBg)?'Replace picture':'Upload picture'}</button>
+          ${srcOf(E.cardBg)?`<label class="st-color">Darken <input type="range" min="0" max="85" step="5" value="${Math.round((E.cardBg.dark!=null?E.cardBg.dark:.45)*100)}" data-cardbgdark> <span class="st-pct">${Math.round((E.cardBg.dark!=null?E.cardBg.dark:.45)*100)}%</span></label><button class="btn small ghost" data-cardbgreset>Remove</button>`:''}</div></div></div>`;
+  } else if(STUDIO.tab==='narr'){
+    const N=E.narrators||{}, ids=Object.keys(N), map=E.cardNarrator||{};
+    body=`<p class="muted">Narrators are characters who appear on the game’s cards. Add a narrator, upload their picture (PNG with a see-through background works best), then choose which cards they appear on.</p>
+      ${ids.map(id=>{ const n=N[id], src=srcOf(n); return `<div class="st-row"><div class="st-prev st-narrprev">${src?`<img src="${src}" alt="">`:'<span class="muted st-small">no picture</span>'}</div>
+        <div class="st-grow"><input class="st-input" data-narrname="${id}" value="${esc(n.name||'')}" maxlength="30" aria-label="Narrator name">
+          <div class="st-acts"><button class="btn small" data-narrup="${id}">${src?'Replace picture':'Upload picture'}</button>
+          ${src?`<label class="st-color">Size <input type="range" min="50" max="160" step="10" value="${Math.round((n.size||1)*100)}" data-narrsize="${id}"> <span class="st-pct">${Math.round((n.size||1)*100)}%</span></label>`:''}
+          <button class="btn small ghost" data-narrdel="${id}">${STUDIO.armNarr===id?'Tap again to remove':'Remove'}</button></div></div></div>` }).join('')}
+      <div class="st-row"><div class="st-grow"><b>Add a narrator</b><div class="coderow"><input class="st-input" id="narrNew" maxlength="30" placeholder="Name, e.g. Sea Turtle" aria-label="New narrator name"><button class="btn small" id="narrAdd">Add</button></div></div></div>
+      ${ids.length?`<h3 class="st-h3">Who narrates each card</h3><p class="muted st-small">“Every card” is the default; any card can pick someone else or nobody. The pass-the-device and game-over screens only show a narrator if you pick one for them.</p>
+      <div class="st-list">${NARR_SLOTS().map(([k,l])=>`<label class="st-row slim"><span class="st-grow">${esc(l)}</span><select data-narrslot="${k}">
+        ${k==='all'?'':`<option value="" ${map[k]==null?'selected':''}>${k==='handoff'||k==='over'?'Nobody':'Same as every card'}</option>`}
+        <option value="none" ${(map[k]==='none'||(k==='all'&&!map.all))?'selected':''}>Nobody</option>
+        ${ids.map(id=>`<option value="${id}" ${map[k]===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></label>`).join('')}</div>`:''}`;
   } else if(STUDIO.tab==='colors'){
     body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(E.colors&&E.colors[k])||COLOR_DEFAULTS[k];
       return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${E.colors&&E.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
@@ -1857,6 +1900,17 @@ function renderStudio(){
   on('[data-bgup]',el=>pickFile('image/*',f=>uploadAsset('bg/'+el.dataset.bgup,f,'image',{max:1800})));
   on('[data-bgocean]',async el=>{ const p='bg/'+el.dataset.bgocean; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-bgcolor]',el=>saveTheme('bg/'+el.dataset.bgcolor+'/color',el.value));
+  on('[data-cardbgup]',()=>pickFile('image/*',f=>uploadAsset('cardBg',f,'image',{max:1200,keep:{dark:(editTheme().cardBg&&editTheme().cardBg.dark)??null}})));
+  on('[data-cardbgdark]',el=>saveTheme('cardBg/dark',(+el.value)/100));
+  on('[data-cardbgreset]',async()=>{ await removeOldAsset('cardBg'); saveTheme('cardBg',null) });
+  on('#narrAdd',()=>{ const inp=document.getElementById('narrNew'), name=(inp.value||'').trim().slice(0,30)||'Narrator'; const id='n'+newId(); saveTheme('narrators/'+id,{name}) });
+  on('[data-narrname]',el=>{ const v=el.value.trim().slice(0,30); if(v) saveTheme('narrators/'+el.dataset.narrname+'/name',v) });
+  on('[data-narrup]',el=>{ const id=el.dataset.narrup, cur=(editTheme().narrators||{})[id]||{}; pickFile('image/*',f=>uploadAsset('narrators/'+id,f,'image',{max:600,keep:{name:cur.name||'Narrator',size:cur.size||null}})) });
+  on('[data-narrsize]',el=>saveTheme('narrators/'+el.dataset.narrsize+'/size',(+el.value)/100));
+  on('[data-narrdel]',async el=>{ const id=el.dataset.narrdel; if(STUDIO.armNarr!==id){ STUDIO.armNarr=id; return renderStudio() } STUDIO.armNarr=null;
+    await removeOldAsset('narrators/'+id); await saveTheme('narrators/'+id,null);
+    const map=editTheme().cardNarrator||{}; for(const k in map) if(map[k]===id) await saveTheme('cardNarrator/'+k,null) });
+  on('[data-narrslot]',el=>saveTheme('cardNarrator/'+el.dataset.narrslot,el.value===''?null:el.value==='none'&&el.dataset.narrslot==='all'?null:el.value));
   on('[data-bgreset]',async el=>{ const p='bg/'+el.dataset.bgreset; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-color]',el=>saveTheme('colors/'+el.dataset.color,el.value));
   on('[data-colorreset]',el=>saveTheme('colors/'+el.dataset.colorreset,null));
@@ -2055,7 +2109,7 @@ async function hookTap(i){
     sfx('hook'); s.up=true; S.turn.rev.push(i); seeAll(i); render(); await wait(480);
     await cardToScrap(S.turn.act);
     S.turn.pending={type:'hook',slot:i};
-    await toCard(i,{t:s.t,title:TT('hookedTitle',{token:TYPES[s.t].name}),body:TT('hookedBody')});
+    await toCard(i,{k:'hooked',t:s.t,title:TT('hookedTitle',{token:TYPES[s.t].name}),body:TT('hookedBody')});
     S.phase='card';
   }
 }
@@ -2068,7 +2122,7 @@ async function goggleTap(i){
     if(S.turn.picks<=0||!faceDown().length){
       await cardToScrap(S.turn.act);
       S.turn.pending={type:'look'};
-      S.card={t:null,title:TT('lookTitle'),body:TT('lookBody')};
+      S.card={k:'look',t:null,title:TT('lookTitle'),body:TT('lookBody')};
       S.phase='card';
     }
   }
@@ -2118,7 +2172,7 @@ async function doFlip(i){
   if(T.kind==='catch') return;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
-    await toCard(i,{t:s.t,title:TT('bustTitle',{token:T.name}),body:bustBody(s.t),bust:true});
+    await toCard(i,{k:s.t,t:s.t,title:TT('bustTitle',{token:T.name}),body:bustBody(s.t),bust:true});
     S.phase='card'; return;
   }
   // action token: bank the catch, then the token moves into the card and later on to the scrap pile
@@ -2126,33 +2180,33 @@ async function doFlip(i){
   const banked=pts?TT('bankedPrefix',{points:plural(pts,'point')})+' ':'';
   if(s.t==='extra'){
     S.turn.pending={type:'extra'};
-    await toCard(i,{t:'extra',title:TT('extraTitle'),body:TT('extraBody',{banked,name:p.name})});
+    await toCard(i,{k:'extra',t:'extra',title:TT('extraTitle'),body:TT('extraBody',{banked,name:p.name})});
     S.phase='card'; return;
   }
   if(s.t==='whirl'){
     S.turn.pending={type:'whirl'};
-    await toCard(i,{t:'whirl',title:TT('whirlTitle'),body:TT('whirlBody',{banked})});
+    await toCard(i,{k:'whirl',t:'whirl',title:TT('whirlTitle'),body:TT('whirlBody',{banked})});
     S.phase='card'; return;
   }
   if(s.t==='dolphin'){
     const max=dolMax();
-    await toCard(i,{t:'dolphin',title:TT('dolphinTitle'),body:TT(!mine(S.cur)?'dolphinWatch':max?'dolphinMine':'dolphinEmpty',{banked,name:p.name,tokens:plural(max,'token')})});
+    await toCard(i,{k:'dolphin',t:'dolphin',title:TT('dolphinTitle'),body:TT(!mine(S.cur)?'dolphinWatch':max?'dolphinMine':'dolphinEmpty',{banked,name:p.name,tokens:plural(max,'token')})});
     resetDol(); if(!max) DOL.confirmed=true; S.phase='dolphin'; return;
   }
   const fd=faceDown().length;
   if(s.t==='bigeye'){
     S.turn.picks=Math.min(3,fd);
-    await toCard(i,{t:s.t,title:TT('maskTitle'),body:TT(!mine(S.cur)?'maskWatch':'maskMine',{banked,name:p.name,tokens:plural(S.turn.picks,'token')})});
+    await toCard(i,{k:'mask',t:s.t,title:TT('maskTitle'),body:TT(!mine(S.cur)?'maskWatch':'maskMine',{banked,name:p.name,tokens:plural(S.turn.picks,'token')})});
     if(!fd){ await cardToScrap(i); return endTurn(TT('sumAction',{name:p.name,banked:bankedNote()})) }
     S.phase='peek'; return;
   }
   if(s.t==='hook'){
-    await toCard(i,{t:s.t,title:TT('hookTitle'),body:TT(!mine(S.cur)?'hookWatch':'hookMine',{banked,name:p.name})});
+    await toCard(i,{k:'hook',t:s.t,title:TT('hookTitle'),body:TT(!mine(S.cur)?'hookWatch':'hookMine',{banked,name:p.name})});
     if(!fd){ await cardToScrap(i); return endTurn(TT('sumAction',{name:p.name,banked:bankedNote()})) }
     S.phase='hook'; return;
   }
   S.turn.picks=Math.min(T.picks,fd);
-  await toCard(i,{t:s.t,title:TT('subTitle'),body:TT(!mine(S.cur)?'subWatch':'subMine',{banked,name:p.name,tokens:plural(S.turn.picks,'token')})});
+  await toCard(i,{k:'sub',t:s.t,title:TT('subTitle'),body:TT(!mine(S.cur)?'subWatch':'subMine',{banked,name:p.name,tokens:plural(S.turn.picks,'token')})});
   if(!S.turn.picks){ await cardToScrap(i); return endTurn(TT('sumAction',{name:p.name,banked:bankedNote()})) }
   S.phase='goggles';
 }
@@ -2162,7 +2216,7 @@ async function lastFlip(i){
   const s=S.slots[i], T=TYPES[s.t], p=P(); S.final=true;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
-    await toCard(i,{t:s.t,title:TT('bustTitle',{token:T.name}),body:`${bustBody(s.t,true)} ${TT('lastFlip')}`,bust:true});
+    await toCard(i,{k:'last',t:s.t,title:TT('bustTitle',{token:T.name}),body:`${bustBody(s.t,true)} ${TT('lastFlip')}`,bust:true});
     S.phase='card'; return;
   }
   const pts=await bankFlights();
@@ -2524,7 +2578,8 @@ function renderGame(){
     if(me&&canSeeHand(S.cur)) acts=`<button class="btn ghost small" id="handBtn">${TX('handBtn')}</button>`;
     if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
   }
-  bar.innerHTML=`<div class="in">${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">${TX('copyright')}</div>`;
+  const narr=narrHTML(S.card?(S.card.k||'turn'):(S.summary&&!S.turn.rev.length?'summary':'turn'));
+  bar.innerHTML=`<div class="in${narr?' has-narr':''}">${narr}${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">${TX('copyright')}</div>`;
   const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
   const hb=bar.querySelector('#handBtn'); if(hb) hb.onclick=()=>{ sfx('tap'); handOpen=S.cur; render() };
   sc.querySelectorAll('.chip').forEach(ch=>{ const i=+ch.dataset.p; if(canSeeHand(i)){ ch.classList.add('seehand'); ch.onclick=()=>{ sfx('tap'); handOpen=i; render() } } });
@@ -2542,7 +2597,7 @@ function renderGame(){
     ov.querySelector('#closeHand').onclick=()=>{ handOpen=null; render() };
   } else if(S.phase==='handoff'){
     handOpen=null; ov.hidden=false;
-    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button>${S.net?'':'<button class="linkbtn handhome" id="handoffHome">'+TX('saveHome')+'</button>'}</div>`;
+    ov.innerHTML=`<div class="sheet">${narrHTML('handoff','narrator big')}${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button>${S.net?'':'<button class="linkbtn handhome" id="handoffHome">'+TX('saveHome')+'</button>'}</div>`;
     ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
     const hh=ov.querySelector('#handoffHome'); if(hh) hh.onclick=goHome;
   } else if(S.phase==='dolphin'&&mine(S.cur)&&!DOL.confirmed&&!busy&&!NET.pending){
@@ -2582,7 +2637,7 @@ if(window.ResizeObserver) new ResizeObserver(()=>{ if(boardEl&&S&&S.screen==='pl
 function fitBoard(){
   fittedBarH=bar.hidden?0:bar.offsetHeight;
   const wrap=boardEl.parentElement, top=wrap.getBoundingClientRect().top+scrollY;
-  const availW=wrap.clientWidth, availH=Math.max(180,innerHeight-top-(bar.hidden?0:bar.offsetHeight)-8);
+  const availW=wrap.clientWidth, availH=Math.max(180,innerHeight-top-(bar.hidden?0:bar.offsetHeight)-8-narrOverhang());
   if(!S.layout){ if(!S.h) S.h=Math.round(Math.min(1.45,Math.max(.55,availH/availW))*100)/100; S.layout=makeLayout(S.h); boardEl.style.setProperty('--h',S.h) }
   boardEl.style.width=Math.min(availW,availH/S.h)+'px';
 }
@@ -2595,7 +2650,7 @@ function renderOver(){
   const fish=p=>p.bank.filter(isFish).length, star=p=>p.bank.filter(t=>t==='star').length;
   let place=0;
   ov.hidden=false;
-  ov.innerHTML=`<div class="sheet"><span class="label">${TX('gameOver')}</span>
+  ov.innerHTML=`<div class="sheet">${narrHTML('over','narrator big')}<span class="label">${TX('gameOver')}</span>
     <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>${S.endNote?`<p class="muted">${esc(S.endNote)}</p>`:''}
     <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
       return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish${r.pairs?' · '+fmt(TT('overPairs',{pairs:plural(r.pairs,'fish pair'),bonus:r.pairs})):''}</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
@@ -2706,7 +2761,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122213;
+const BUILD=2610122226;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
