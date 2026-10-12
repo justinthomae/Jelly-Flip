@@ -1,4 +1,4 @@
-# Jelly Flip
+# Fliptide
 
 A push-your-luck memory game for 2 to 8 players: pass-and-play on one device, AI opponents, and online play with friends on their own devices (powered by Firebase Realtime Database).
 

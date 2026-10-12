@@ -1,6 +1,6 @@
 {
-  "name": "Jelly Flip",
-  "short_name": "Jelly Flip",
+  "name": "Fliptide",
+  "short_name": "Fliptide",
   "description": "A push-your-luck memory game by Lydia Lichti and Grudge Match Games.",
   "start_url": "./",
   "scope": "./",

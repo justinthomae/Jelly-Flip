@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jelly Flip</title>
-<meta name="description" content="Jelly Flip: a push-your-luck memory game. Created by Lydia Lichti in partnership with Grudge Match Games.">
+<title>Fliptide</title>
+<meta name="description" content="Fliptide: a push-your-luck memory game. Created by Lydia Lichti in partnership with Grudge Match Games.">
 <meta name="theme-color" content="#2b211b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Jelly Flip">
+<meta name="apple-mobile-web-app-title" content="Fliptide">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -419,11 +419,11 @@ p{margin:0}
 <div class="bar" id="bar" hidden></div>
 <div class="overlay" id="ov" hidden></div>
 <div id="fx"></div>
-<div id="splash" class="splash" role="dialog" aria-label="Jelly Flip">
+<div id="splash" class="splash" role="dialog" aria-label="Fliptide">
   <div class="sea" id="sea" aria-hidden="true"></div>
   <div class="splash-in">
     <img id="splashLogo" class="title-logo" alt="" hidden>
-    <h1 class="logo" data-t="title">Jelly Flip</h1>
+    <h1 class="logo" data-t="title">Fliptide</h1>
     <button class="btn primary" id="splashGo" data-t="play">Play</button>
   </div>
   <p class="credit" data-t="credit">Created by <b>Lydia Lichti</b><br>in partnership with <b>Grudge Match Games</b></p>
@@ -478,7 +478,7 @@ const icon = t => `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" 
 // ---------- theme: the admin-editable look, sound and text ----------
 // THEME is stored in Firebase (jf/theme); uploaded files live in jf/assets/<id> and are cached on each device.
 const TEXT_DEFAULTS={
-  title:'Jelly Flip', shortName:'', tagline:'Push your luck. Remember the reef.',
+  title:'Fliptide', shortName:'', tagline:'Push your luck. Remember the reef.',
   credit:'Created by **Lydia Lichti**\nin partnership with **Grudge Match Games**',
   copyright:'Copyright © 2026 Grudge Match Games', play:'Play',
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
@@ -2544,7 +2544,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610121527;
+const BUILD=2610121601;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
