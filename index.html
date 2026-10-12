@@ -165,7 +165,8 @@ p{margin:0}
 /* splash */
 .splash{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;
   background:linear-gradient(180deg,rgba(6,40,46,.12),rgba(6,40,46,.3)),var(--water) center/cover no-repeat,#2f9ea3;transition:opacity .6s}
-.splash.out{pointer-events:none}
+/* while it melts away the landing page still catches taps, so the tap on Play can't fall through onto the menu underneath */
+.splash.out #splashGo{pointer-events:none}
 #splashGo{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 .popfx .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:none;animation:jfRing 1.1s cubic-bezier(.2,.7,.3,1) var(--dl) both}
 .popfx .bub{animation:jfBub var(--d) cubic-bezier(.15,.7,.35,1) var(--dl) both}
@@ -2327,7 +2328,9 @@ function startSplash(){
   },1400);
   try{ if(PREFS.sound&&navigator.userActivation&&navigator.userActivation.hasBeenActive) audio() }catch(e){}
   setTimeout(()=>{ try{ if(!actx&&(PREFS.sound||PREFS.music)) audio() }catch(e){} },300);
-  const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out'); waterDissolve(sp,()=>sp.remove()) };
+  const close=()=>{ if(gone) return; gone=true; clearInterval(bubbles); sp.classList.add('out');
+    try{ waterDissolve(sp,()=>sp.remove()) }catch(e){ sp.remove() }
+    setTimeout(()=>{ sp.remove(); render() },2200) };
   // Play pops the moment it's pressed: the button bursts into bubbles that float up over the game while the water clears
   const go=document.getElementById('splashGo');
   let sounded=false;
@@ -2367,21 +2370,22 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610112357;
+const BUILD=2610120105;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
     if(!j||!(j.build>BUILD)) return;
-    if(!(document.getElementById('splash')||(S&&S.screen==='setup'&&!S.net))) return;
+    const sp=document.getElementById('splash'); if(!sp||sp.classList.contains('out')) return;
     try{ if(sessionStorage.getItem('jf.reload')===String(j.build)) return; sessionStorage.setItem('jf.reload',String(j.build)) }catch(e){}
     const u=new URL(location.href); u.searchParams.set('v',j.build); location.replace(u.href);
   }).catch(()=>{});
 }
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
 function start(d){
-  startTheme(); checkUpdate();
   const sp=document.getElementById('splash');
-  if(d&&d.S){ if(sp) sp.remove() } else if(sp) startSplash();
+  if(d&&d.S){ if(sp) sp.remove() } else if(sp) try{ startSplash() }catch(e){ console.error('splash',e); sp.remove() }
+  try{ startTheme() }catch(e){ console.error('theme',e) }
+  try{ checkUpdate() }catch(e){}
   const saved=load();
   S=(d&&d.S&&!d.S.net)?d.S:setupState(loadSetup()||(saved&&saved.setup)||undefined);
   if(S.phase==='anim'||S.phase==='peeking') S.phase='flip';
