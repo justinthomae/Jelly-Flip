@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
 
@@ -45,15 +45,15 @@ body{
 body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,rgba(6,40,46,.18),rgba(6,40,46,.32)),var(--water) center/cover no-repeat,#2f9ea3}
 /* the same water again, clipped to the strip behind the phone's status bar and laid over the page, so text never scrolls under it */
-body::after{z-index:9;-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(env(safe-area-inset-top,0px) * .7),transparent env(safe-area-inset-top,0px));
-  mask-image:linear-gradient(to bottom,#000 0,#000 calc(env(safe-area-inset-top,0px) * .7),transparent env(safe-area-inset-top,0px))}
-@media (display-mode:standalone){ .app{padding-top:26px} }
+body::after{z-index:9;-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(var(--safe-top,0px) * .75),transparent var(--safe-top,0px));
+  mask-image:linear-gradient(to bottom,#000 0,#000 calc(var(--safe-top,0px) * .75),transparent var(--safe-top,0px))}
 /* text that sits straight on the water gets a light color and a soft shadow so it stays readable */
 .top .muted,.info,.app > .foot,.splash .foot,.credit,.studio-link{color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55)}
 .top h1,.logo{text-shadow:0 2px 6px rgba(4,36,42,.45)}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
-.app{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:12px 140px;display:flex;flex-direction:column;gap:14px}
+/* --safe-top is how much of the top the phone's status bar covers (measured in script) */
+.app{max-width:720px;margin:0 auto;padding-inline:16px;padding-block:calc(var(--safe-top,0px) + 14px) 140px;display:flex;flex-direction:column;gap:14px}
 h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;line-height:1.05}
 h1{font-size:2.6rem;letter-spacing:.01em}
 h2{font-size:1.9rem}
@@ -221,7 +221,7 @@ p{margin:0}
 .top .tools > *{flex:none}
 .top .tools{align-items:center}
 @media (max-width:440px){ .top h1{font-size:1.9rem} .top .tools{gap:5px} .iconbtn{width:32px;height:32px}
-  .hbtn{width:32px;height:32px;padding:0;display:grid;place-items:center;border-radius:50%} .hbtn svg{display:block} .hbtn .lbl{display:none} .hbtn.armed{width:auto;padding:0 .7em;border-radius:999px} }
+  .btn.hbtn{width:32px;height:32px;min-width:32px;padding:0;display:grid;place-items:center;border-radius:50%;box-sizing:border-box;line-height:0} .hbtn svg{display:block} .hbtn .lbl{display:none} .btn.hbtn.armed{width:auto;padding:0 .7em;border-radius:999px;line-height:1.2} }
 .foot{font-size:.75rem;color:var(--ink-2);text-align:center;letter-spacing:.02em}
 .splash .foot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;z-index:2}
 .bar .foot{margin-top:6px}
@@ -373,8 +373,8 @@ p{margin:0}
 .bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
   display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;height:92px;box-sizing:border-box}
 .bar .msg{grid-area:msg;min-width:0;display:flex;flex-direction:column;gap:2px}
-.bar .msg strong{font-family:var(--display);font-weight:400;font-size:1.35rem;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar .msg span{font-size:.9rem;line-height:1.3;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bar .msg strong{font-family:var(--display);font-weight:400;font-size:1.35rem;line-height:1.1}
+.bar .msg span{font-size:.9rem;line-height:1.3;color:var(--ink-2)}
 .bar .mini{grid-area:face;width:56px;height:56px}
 .bar .mini .face{width:100%;height:100%}
 .bar .avatar{border-radius:50%;background:var(--c);color:#1a120d;display:grid;place-items:center;font-family:var(--display);font-size:1.6rem;box-shadow:0 3px 8px rgba(0,0,0,.4)}
@@ -491,6 +491,42 @@ const TEXT_DEFAULTS={
   gameOver:'Game over', grudge:'Grudge Match', newPlayers:'New players',
 };
 for(const t of ORDER){ TEXT_DEFAULTS['name_'+t]=TYPES[t].name; TEXT_DEFAULTS['say_'+t]=TYPES[t].say }
+// Everything the bottom card, pass-the-device screen and pop-ups say. {name} and the other words in braces are filled in by the game.
+const MSG_DEFAULTS={
+  turnTitle:'{name}’s turn', aiTag:' · AI {level}',
+  statusFlip:'Tap any face-down token to flip it.', statusMore:'This turn: +{pts}. Flip again or bank it.', statusNoneLeft:'No face-down tokens left. Bank your catch.',
+  statusThinking:'Thinking…', statusThinkingPts:'This turn: +{pts}. Thinking…', statusWaiting:'Waiting for {name}…', statusWaitingPts:'This turn: +{pts}. Waiting for {name}…',
+  handBtn:'Hand', saveHome:'Save and go home',
+  bankedPrefix:'Banked {points}.', noteBanked:'banked {points}', noteNothing:'banked nothing',
+  extraTitle:'Angelfish! Go again', extraBody:'{banked}{name} takes another turn.',
+  whirlTitle:'Whirlpool!', whirlBody:'{banked}The whole table is about to swirl into new spots.',
+  dolphinTitle:'Dolphin!', dolphinMine:'{banked}Others, look away! {name}, pick up to {tokens} from the scrap pile to hide with the dolphin.',
+  dolphinEmpty:'{banked}The scrap pile is empty. Hide the dolphin in any glowing spot.', dolphinWatch:'{banked}{name} is secretly hiding the dolphin.',
+  dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap a chosen spot to undo it.',
+  maskTitle:'Snorkel mask', maskMine:'{banked}Others, look away! {name}, peek at {tokens}, one at a time.', maskWatch:'{banked}{name} is secretly peeking at {tokens}.',
+  peekMore:'Tap {more} to peek at.', peekMoreWatch:'{name} has {peeks} left.',
+  hookTitle:'Cast the hook', hookMine:'{banked}Tap a face-down token. It gets revealed and scrapped.', hookWatch:'{banked}{name} is choosing a token to hook.',
+  hookedTitle:'Hooked: {token}', hookedBody:'It goes to the scrap pile.',
+  subTitle:'Submarine!', subMine:'{banked}Tap {tokens} to show everyone.', subWatch:'{banked}{name} will show everyone {tokens}.',
+  subMore:'Tap {more} to show everyone.', subMoreWatch:'{name} is showing everyone {more}.',
+  lookTitle:'Everyone, memorize these', lookBody:'They flip back face down when you continue.',
+  bustTitle:'{token}!', jellyBody:'{name} keeps it for −1 and banks nothing this turn.',
+  sharkBody:'{lose} of the {tokens} in {name}’s hand go back on the table, then the shark scares the whole reef into new spots and swims off to the scrap pile.',
+  sharkEmpty:'{name}’s hand is empty, but the shark still scares the whole reef into new spots, then swims off to the scrap pile.',
+  sharkLast:'{lose} of the {tokens} in {name}’s hand go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.',
+  sumBanked:'{name} banked {points}.', sumAction:'{name} {banked}.', sumStung:'{name} got stung by a jellyfish.',
+  sumShark:'The shark scattered the reef! {name} lost {tokens} to the table, and every token on the table moved to a new spot.', sumSharkEmpty:'The shark scattered the reef! Every token on the table moved to a new spot.',
+  sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} {banked} and the whirlpool moved every token to a new spot.',
+  sumHook:'{name} {banked} and hooked a {token} off the table.', sumSub:'{name} {banked} and sent out a submarine.', sumPeek:'{name} {banked} and secretly peeked at {tokens}.',
+  sumDolphin:'{name} {banked} and hid the dolphin.', sumDolphinPlus:'{name} {banked} and hid the dolphin along with {tokens} from the scrap pile.',
+  endCatch:'{name} banked {points} on the last flip.', endAction:'{name} flipped the {token} with only 3 tokens left, so the game ended before it could be used.',
+  onlyYou:'Only {name} should see this', peekCount:'Peek {i} of {n}. Remember where it was.', peekAgain:'Hide it and peek again', peekDone:'Hide it and end turn',
+  dolPickTitle:'Pick up to {tokens} to hide', dolPickBody:'They go back on the table face down with the dolphin, in spots you choose. Nobody else will know which is which.',
+  dolPickHelp:'Tap a token to pick it; tap again for another of the same kind, until it goes back to none.', dolClear:'Clear all',
+  dolHideOnly:'Hide just the dolphin', dolHideSome:'Hide the dolphin and {tokens}',
+  handTitle:'Your hand · {points}', handEmpty:'Nothing banked yet.', handNote:'A shark sends half of these (rounded up, picked at random) back to the table.', close:'Close',
+};
+Object.assign(TEXT_DEFAULTS,MSG_DEFAULTS);
 const COLOR_DEFAULTS={table:'#2b211b','table-2':'#241b16',seam:'#120c09',wood:'#efdcc0','wood-2':'#dcbb94','wood-3':'#b98a62',burn:'#4b2816',ink:'#f4ebde','ink-2':'#bba997',sea:'#6cc4b6','sea-ink':'#0e2724',bust:'#f08a6e',panel:'#3a2d25','panel-2':'#463830'};
 const FONT_DEFAULTS={display:'Gochi Hand',body:'Atkinson Hyperlegible',credit:'Rubik'};
 const FONT_FALLBACK={display:"'Comic Sans MS','Chalkboard SE',cursive",body:"system-ui,-apple-system,'Segoe UI',sans-serif",credit:"system-ui,sans-serif"};
@@ -500,6 +536,8 @@ let themeDirty=false;
 const T = k => { const v=THEME.text&&THEME.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
 const fmt = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
 const TX = k => fmt(T(k));
+// a message with its {fill-ins} replaced
+const TT = (k,v={}) => T(k).replace(/\{(\w+)\}/g,(m,n)=>v[n]!=null?String(v[n]):m);
 // an image, sound or font in the theme: either a file uploaded by the admin, or a file shipped with the site
 const srcOf = e => !e?null:e.url?e.url:(e.asset&&ASSET[e.asset])||null;
 const tokenArt = t => { const e=THEME.tokens&&THEME.tokens[t], src=srcOf(e);
@@ -670,6 +708,17 @@ const KEY = 'jellyflip.v2';
 let S = null;
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+// How much of the top of the screen the status bar covers. Phones report it, but an iPhone home-screen app
+// sometimes reports nothing while still drawing the page under the status bar, so use the usual size there.
+function measureSafeTop(){
+  const p=document.createElement('div'); p.style.cssText='position:fixed;top:0;left:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+  document.body.appendChild(p); let t=parseFloat(getComputedStyle(p).paddingTop)||0; p.remove();
+  const ios=/iP(hone|od|ad)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const standalone=navigator.standalone||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+  if(!t&&ios&&standalone&&innerHeight>innerWidth){ const h=Math.max(screen.height,screen.width); t=h>=852?59:h>=812?50:20 }
+  document.documentElement.style.setProperty('--safe-top',t+'px');
+}
+measureSafeTop(); addEventListener('resize',measureSafeTop);
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural = (n,w) => `${n} ${w}${n===1?'':'s'}`;
 const pick = a => a[Math.floor(Math.random()*a.length)];
@@ -724,7 +773,7 @@ const isCatch = s => s && s.up && TYPES[s.t].kind==='catch';
 const turnPts = () => S.turn.rev.reduce((a,i)=>a+(isCatch(S.slots[i])?TYPES[S.slots[i].t].pts:0),0);
 function scrapSeen(t){ S.scrapMass=S.scrapMass||{}; S.scrapMass[t]=(S.scrapMass[t]||0)+1; (S.seenScrap=S.seenScrap||[]).push(t) }
 function scrapTaken(n){ const m=S.scrapMass||{}, tot=Object.values(m).reduce((a,b)=>a+b,0); if(tot&&n) for(const k in m) m[k]*=Math.max(0,1-n/tot) }
-const bankedNote = () => S.turn.banked ? `banked ${plural(S.turn.banked,'point')}` : 'banked nothing';
+const bankedNote = () => S.turn.banked ? TT('noteBanked',{points:plural(S.turn.banked,'point')}) : TT('noteNothing');
 
 // ---------- animation helpers ----------
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
@@ -1363,6 +1412,22 @@ const nudgePad=(key,dx,dy)=>`<div class="st-nudge" role="group" aria-label="Move
 const BLENDS=[['normal','Normal (as uploaded)'],['multiply','Multiply (white turns see-through)'],['ink','Ink (black lines only, recolorable)']];
 const GOOGLE_FONTS=['Gochi Hand','Atkinson Hyperlegible','Rubik','Fredoka','Baloo 2','Nunito','Quicksand','Comfortaa','Patrick Hand','Caveat','Amatic SC','Pacifico','Lilita One','Luckiest Guy','Chewy','Bubblegum Sans','Sniglet','Short Stack','Poppins','Montserrat','Lato','Open Sans','Merriweather','Playfair Display','Lora'];
 const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',seam:'Plank lines',wood:'Token wood (light)',"wood-2":'Token wood (dark)',"wood-3":'Token edge',burn:'Token artwork lines',ink:'Main text',"ink-2":'Secondary text',sea:'Accent (buttons, highlights)',"sea-ink":'Text on accent buttons',bust:'Warnings and busts',panel:'Cards, menus and pop-ups',"panel-2":'Raised buttons and inputs'};
+// labels for the card and message wording in the Studio
+const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',statusFlip:'Card: start of a turn',statusMore:'Card: after a catch',statusNoneLeft:'Card: nothing left to flip',
+  statusThinking:'Card: AI thinking',statusThinkingPts:'Card: AI thinking with a catch',statusWaiting:'Card: waiting for another player',statusWaitingPts:'Card: waiting, with a catch',
+  handBtn:'Hand button',saveHome:'Pass-the-device: save and go home link',bankedPrefix:'“Banked” at the start of action cards',noteBanked:'Summary piece: banked points',noteNothing:'Summary piece: banked nothing',
+  extraTitle:'Angelfish card title',extraBody:'Angelfish card',whirlTitle:'Whirlpool card title',whirlBody:'Whirlpool card',dolphinTitle:'Dolphin card title',dolphinMine:'Dolphin card (your turn)',
+  dolphinEmpty:'Dolphin card (empty scrap pile)',dolphinWatch:'Dolphin card (watching)',dolphinPlace:'Dolphin: choosing hiding spots',maskTitle:'Snorkel mask card title',maskMine:'Snorkel mask card (your turn)',
+  maskWatch:'Snorkel mask card (watching)',peekMore:'Snorkel mask: more peeks',peekMoreWatch:'Snorkel mask: more peeks (watching)',hookTitle:'Hook card title',hookMine:'Hook card (your turn)',
+  hookWatch:'Hook card (watching)',hookedTitle:'Hooked card title',hookedBody:'Hooked card',subTitle:'Submarine card title',subMine:'Submarine card (your turn)',subWatch:'Submarine card (watching)',
+  subMore:'Submarine: more to show',subMoreWatch:'Submarine: more to show (watching)',lookTitle:'Submarine: memorize card title',lookBody:'Submarine: memorize card',bustTitle:'Bust card title',
+  jellyBody:'Jellyfish card',sharkBody:'Shark card',sharkEmpty:'Shark card (empty hand)',sharkLast:'Shark card (last flip)',sharkLastEmpty:'Shark card (last flip, empty hand)',lastFlip:'Last flip note',
+  sumBanked:'Turn summary: banked',sumAction:'Turn summary: action used',sumStung:'Turn summary: jellyfish',sumShark:'Turn summary: shark',sumSharkEmpty:'Turn summary: shark (empty hand)',
+  sumSharkLast:'Turn summary: shark on the last flip',sumWhirl:'Turn summary: whirlpool',sumHook:'Turn summary: hook',sumSub:'Turn summary: submarine',sumPeek:'Turn summary: snorkel mask',
+  sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',
+  onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
+  dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
+  handTitle:'Hand pop-up title',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
 const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Angelfish (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
@@ -1601,9 +1666,9 @@ function renderStudio(){
         <div class="st-acts"><select data-font="${r}">${GOOGLE_FONTS.map(f=>`<option ${f===cur?'selected':''}>${f}</option>`).join('')}${up?`<option value="__upload" ${cur==='__upload'?'selected':''}>My uploaded font</option>`:''}</select>
         <button class="btn small" data-fontup="${r}">Upload font</button>${E.fonts&&E.fonts[r]?`<button class="btn small ghost" data-fontreset="${r}">Reset</button>`:''}</div></div></div>` }).join('')}`;
   } else if(STUDIO.tab==='text'){
-    const keys=[...Object.keys(TEXT_LABELS),...ORDER.flatMap(t=>['name_'+t,'say_'+t])];
-    const label=k=>TEXT_LABELS[k]||(k.startsWith('name_')?`Token name: ${TEXT_DEFAULTS[k]}`:`Token description: ${TEXT_DEFAULTS['name_'+k.slice(4)]}`);
-    body=`<p class="muted">Edit any wording. Wrap words in **double stars** for bold; press Enter for a new line. Changes save when you leave a box.</p><div class="st-list">${keys.map(k=>{ const custom=E.text&&E.text[k]!=null&&E.text[k]!=='';
+    const keys=[...Object.keys(TEXT_LABELS),...ORDER.flatMap(t=>['name_'+t,'say_'+t]),...Object.keys(MSG_DEFAULTS)];
+    const label=k=>TEXT_LABELS[k]||MSG_LABELS[k]||(k.startsWith('name_')?`Token name: ${TEXT_DEFAULTS[k]}`:`Token description: ${TEXT_DEFAULTS['name_'+k.slice(4)]}`);
+    body=`<p class="muted">Edit any wording. Wrap words in **double stars** for bold; press Enter for a new line. Changes save when you leave a box. In the card and message wording, words in {braces} are filled in by the game: {name} is the player, {points} and {tokens} are counts like “3 points”, {token} is a token’s name, {banked} is what was just banked.</p><div class="st-list">${keys.map(k=>{ const custom=E.text&&E.text[k]!=null&&E.text[k]!=='';
       return `<label class="st-text"><span>${esc(label(k))}${custom?` <button class="linkbtn" data-textreset="${k}">reset</button>`:''}</span><textarea data-text="${k}" rows="${TE(k).length>70?3:1}">${esc(TE(k))}</textarea></label>` }).join('')}</div>`;
   } else if(STUDIO.tab==='sound'){
     const m=E.audio&&E.audio.music;
@@ -1819,8 +1884,16 @@ async function aiAct(){
 
 // ---------- turn flow ----------
 // A tap on the board by a player at this device.
+// the angelfish card's Continue leads straight into another flip, so a token tap does both
+const goAgainCard = () => S.phase==='card'&&S.turn.pending&&S.turn.pending.type==='extra';
 function onSlot(i){
   const s=S.slots[i]; if(busy||!s||s.up||!mine(S.cur)||NET.pending) return;
+  if(goAgainCard()){
+    sfx('tap'); act('c');
+    const seat=S.cur, tryFlip=()=>{ if(busy||NET.pending||(S.net&&NET.applied<NET.log.length)) return setTimeout(tryFlip,60);
+      if(S.phase==='flip'&&S.cur===seat&&S.slots[i]&&!S.slots[i].up&&mine(S.cur)) act('f'+i) };
+    return setTimeout(tryFlip,60);
+  }
   if(['flip','hook','goggles'].includes(S.phase)){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('f'+i) }
   else if(S.phase==='peek'){ if(S.net&&!S.net.host) tokEl(i)?.classList.add('aim'); act('p'+i) }
 }
@@ -1846,7 +1919,7 @@ async function hookTap(i){
     sfx('hook'); s.up=true; S.turn.rev.push(i); seeAll(i); render(); await wait(480);
     await cardToScrap(S.turn.act);
     S.turn.pending={type:'hook',slot:i};
-    await toCard(i,{t:s.t,title:`Hooked: ${TYPES[s.t].name}`,body:'It goes to the scrap pile.'});
+    await toCard(i,{t:s.t,title:TT('hookedTitle',{token:TYPES[s.t].name}),body:TT('hookedBody')});
     S.phase='card';
   }
 }
@@ -1854,12 +1927,12 @@ async function goggleTap(i){
   const s=S.slots[i];
   {
     sfx('flip'); s.up=true; S.turn.rev.push(i); seeAll(i); S.turn.picks--;
-    S.card.body=!mine(S.cur)?`${P().name} is showing everyone ${plural(S.turn.picks,'more token')}.`:`Tap ${plural(S.turn.picks,'more token')} to show everyone.`;
+    S.card.body=TT(!mine(S.cur)?'subMoreWatch':'subMore',{name:P().name,more:plural(S.turn.picks,'more token')});
     render(); await wait(480);
     if(S.turn.picks<=0||!faceDown().length){
       await cardToScrap(S.turn.act);
       S.turn.pending={type:'look'};
-      S.card={t:null,title:'Everyone, memorize these',body:'They flip back face down when you continue.'};
+      S.card={t:null,title:TT('lookTitle'),body:TT('lookBody')};
       S.phase='card';
     }
   }
@@ -1867,10 +1940,10 @@ async function goggleTap(i){
 
 function bustBody(t,last){
   const p=P();
-  if(t==='shark'&&last){ const n=p.bank.length; return n?`${Math.ceil(n/2)} of the ${plural(n,'token')} in ${p.name}’s hand go back on the table.`:`${p.name}’s hand is empty.` }
-  if(t==='jelly') return `${p.name} keeps it for −1 and banks nothing this turn.`;
+  if(t==='shark'&&last){ const n=p.bank.length; return n?TT('sharkLast',{lose:Math.ceil(n/2),tokens:plural(n,'token'),name:p.name}):TT('sharkLastEmpty',{name:p.name}) }
+  if(t==='jelly') return TT('jellyBody',{name:p.name});
   if(t==='shark'){const n=p.bank.length,l=Math.ceil(n/2);
-    return n?`${l} of the ${plural(n,'token')} in ${p.name}’s hand go back on the table, then the shark scares the whole reef into new spots and swims off to the scrap pile.`:`${p.name}’s hand is empty, but the shark still scares the whole reef into new spots, then swims off to the scrap pile.`}
+    return n?TT('sharkBody',{lose:l,tokens:plural(n,'token'),name:p.name}):TT('sharkEmpty',{name:p.name})}
   return '';
 }
 // The dolphin's player picks up to 3 scrap tokens, then hides them and the dolphin itself in spots of their choice.
@@ -1897,7 +1970,7 @@ async function dolphinPlace(dSpot,pairs){
   await Promise.all(items.map(([t,spot],j)=>fly(from,spotCenter(spot),{t,dur:1100,delay:j*200})));
   items.forEach(([,spot])=>away.delete(S.slots[spot].id));
   sfx('thud'); render(); await wait(250);
-  endTurn(`${p.name} ${bankedNote()} and hid the dolphin${types.length?` along with ${plural(types.length,'token')} from the scrap pile`:''}.`);
+  endTurn(TT(types.length?'sumDolphinPlus':'sumDolphin',{name:p.name,banked:bankedNote(),tokens:plural(types.length,'token')}));
 }
 
 async function doFlip(i){
@@ -1909,43 +1982,42 @@ async function doFlip(i){
   if(T.kind==='catch') return;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
-    await toCard(i,{t:s.t,title:`${T.name}!`,body:bustBody(s.t),bust:true});
+    await toCard(i,{t:s.t,title:TT('bustTitle',{token:T.name}),body:bustBody(s.t),bust:true});
     S.phase='card'; return;
   }
   // action token: bank the catch, then the token moves into the card and later on to the scrap pile
   const pts=await bankFlights(); S.turn.act=i;
-  const banked=pts?`Banked ${plural(pts,'point')}. `:'';
+  const banked=pts?TT('bankedPrefix',{points:plural(pts,'point')})+' ':'';
   if(s.t==='extra'){
     S.turn.pending={type:'extra'};
-    await toCard(i,{t:'extra',title:'Angelfish! Go again',body:`${banked}${p.name} takes another turn.`});
+    await toCard(i,{t:'extra',title:TT('extraTitle'),body:TT('extraBody',{banked,name:p.name})});
     S.phase='card'; return;
   }
   if(s.t==='whirl'){
     S.turn.pending={type:'whirl'};
-    await toCard(i,{t:'whirl',title:'Whirlpool!',body:`${banked}The whole table is about to swirl into new spots.`});
+    await toCard(i,{t:'whirl',title:TT('whirlTitle'),body:TT('whirlBody',{banked})});
     S.phase='card'; return;
   }
   if(s.t==='dolphin'){
     const max=dolMax();
-    await toCard(i,{t:'dolphin',title:'Dolphin!',body:!mine(S.cur)?`${banked}${p.name} is secretly hiding the dolphin${max?' and tokens from the scrap pile':''}.`
-      :max?`${banked}Everyone but ${p.name}, look away. ${p.name}, pick up to ${max} scrap ${max===1?'token':'tokens'} to hide with the dolphin.`:`${banked}The scrap pile is empty. Hide the dolphin in any glowing spot.`});
+    await toCard(i,{t:'dolphin',title:TT('dolphinTitle'),body:TT(!mine(S.cur)?'dolphinWatch':max?'dolphinMine':'dolphinEmpty',{banked,name:p.name,tokens:plural(max,'token')})});
     resetDol(); if(!max) DOL.confirmed=true; S.phase='dolphin'; return;
   }
   const fd=faceDown().length;
   if(s.t==='bigeye'){
     S.turn.picks=Math.min(3,fd);
-    await toCard(i,{t:s.t,title:'Snorkel mask',body:!mine(S.cur)?`${banked}${p.name} is secretly peeking at ${plural(S.turn.picks,'token')}.`:`${banked}Everyone but ${p.name}, look away. ${p.name}, tap ${plural(S.turn.picks,'token')} to peek at, one at a time.`});
-    if(!fd){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+    await toCard(i,{t:s.t,title:TT('maskTitle'),body:TT(!mine(S.cur)?'maskWatch':'maskMine',{banked,name:p.name,tokens:plural(S.turn.picks,'token')})});
+    if(!fd){ await cardToScrap(i); return endTurn(TT('sumAction',{name:p.name,banked:bankedNote()})) }
     S.phase='peek'; return;
   }
   if(s.t==='hook'){
-    await toCard(i,{t:s.t,title:'Cast the hook',body:!mine(S.cur)?`${banked}${p.name} is choosing a token to hook.`:`${banked}Tap a face-down token. It gets revealed and scrapped.`});
-    if(!fd){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+    await toCard(i,{t:s.t,title:TT('hookTitle'),body:TT(!mine(S.cur)?'hookWatch':'hookMine',{banked,name:p.name})});
+    if(!fd){ await cardToScrap(i); return endTurn(TT('sumAction',{name:p.name,banked:bankedNote()})) }
     S.phase='hook'; return;
   }
   S.turn.picks=Math.min(T.picks,fd);
-  await toCard(i,{t:s.t,title:'Submarine!',body:!mine(S.cur)?`${banked}${p.name} will show everyone ${plural(S.turn.picks,'token')}.`:`${banked}Tap ${plural(S.turn.picks,'token')} to show everyone.`});
-  if(!S.turn.picks){ await cardToScrap(i); return endTurn(`${p.name} ${bankedNote()}.`) }
+  await toCard(i,{t:s.t,title:TT('subTitle'),body:TT(!mine(S.cur)?'subWatch':'subMine',{banked,name:p.name,tokens:plural(S.turn.picks,'token')})});
+  if(!S.turn.picks){ await cardToScrap(i); return endTurn(TT('sumAction',{name:p.name,banked:bankedNote()})) }
   S.phase='goggles';
 }
 
@@ -1954,12 +2026,11 @@ async function lastFlip(i){
   const s=S.slots[i], T=TYPES[s.t], p=P(); S.final=true;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
-    await toCard(i,{t:s.t,title:`${T.name}!`,body:`${bustBody(s.t,true)} That was the last flip: only 3 tokens are left.`,bust:true});
+    await toCard(i,{t:s.t,title:TT('bustTitle',{token:T.name}),body:`${bustBody(s.t,true)} ${TT('lastFlip')}`,bust:true});
     S.phase='card'; return;
   }
   const pts=await bankFlights();
-  S.endNote=T.kind==='catch'?`${p.name} banked ${plural(pts,'point')} on the last flip.`
-    :`${p.name} flipped the ${T.name.toLowerCase()} with only 3 tokens left, so the game ended before it could be used${pts?`. ${p.name} banked ${plural(pts,'point')}`:''}.`;
+  S.endNote=TT(T.kind==='catch'?'endCatch':'endAction',{name:p.name,points:plural(pts,'point'),token:T.name.toLowerCase()})+(T.kind!=='catch'&&pts?' '+TT('sumBanked',{name:p.name,points:plural(pts,'point')}):'');
   finish();
 }
 
@@ -1992,15 +2063,15 @@ async function endPeek(){
   const left=faceDown().filter(j=>!S.turn.peeked.includes(j)).length;
   if(S.turn.picks>0&&left){
     const p=P(), n=Math.min(S.turn.picks,left); S.turn.picks=n;
-    S.card={...S.card,body:mine(S.cur)?`Tap ${plural(n,'more token')} to peek at.`:`${p.name} has ${plural(n,'more peek')}.`};
+    S.card={...S.card,body:TT(mine(S.cur)?'peekMore':'peekMoreWatch',{name:p.name,more:plural(n,'more token'),peeks:plural(n,'peek')})};
     S.phase='peek'; return;
   }
   const n=S.turn.peeked.length;
   await cardToScrap(S.turn.act);
-  endTurn(`${P().name} ${bankedNote()} and secretly peeked at ${plural(n,'token')}.`);
+  endTurn(TT('sumPeek',{name:P().name,banked:bankedNote(),tokens:plural(n,'token')}));
 }
 
-async function doBank(){ const pts=await bankFlights(); endTurn(`${P().name} banked ${plural(pts,'point')}.`) }
+async function doBank(){ const pts=await bankFlights(); endTurn(TT('sumBanked',{name:P().name,points:plural(pts,'point')})) }
 
 async function doContinue(){
   const pd=S.turn.pending, p=P();
@@ -2017,27 +2088,27 @@ async function doContinue(){
       await fly(from,{...dot,s:dot.s*1.3},{t:'jelly',up:true,dur:650}); sfx('thud');
       p.bank.push('jelly'); away.delete(s.id); S.slots[pd.slot]=null; forget(pd.slot); S.card=null; cardHidden=false; bump(S.cur); render();
       await flipDownAll();
-      return endTurn(`${p.name} got stung by a jellyfish.`);
+      return endTurn(TT('sumStung',{name:p.name}));
     }
     case 'shark': {
       await cardToScrap(pd.slot); S.card=null; await flipDownAll();
       const lost=await sharkReturn();
-      if(S.final) return endTurn(`The shark got ${p.name} on the last flip${lost?`: ${plural(lost,'token')} went back to the table`:''}.`);
+      if(S.final) return endTurn(TT('sumSharkLast',{name:p.name}));
       await swirl();
-      return endTurn(`The shark scattered the reef! ${lost?`${p.name} lost ${plural(lost,'token')} to the table, and`:'Then'} every token on the table moved to a new spot.`);
+      return endTurn(TT(lost?'sumShark':'sumSharkEmpty',{name:p.name,tokens:plural(lost,'token')}));
     }
     case 'whirl':
       await cardToScrap(S.turn.act); S.card=null; await flipDownAll();
       await swirl('whirl');
-      return endTurn(`${p.name} ${bankedNote()} and the whirlpool moved every token to a new spot.`);
+      return endTurn(TT('sumWhirl',{name:p.name,banked:bankedNote()}));
     case 'hook': {
       const name=TYPES[S.slots[pd.slot].t].name.toLowerCase();
       await cardToScrap(pd.slot); S.card=null; render(); await flipDownAll();
-      return endTurn(`${p.name} ${bankedNote()} and hooked a ${name} off the table.`);
+      return endTurn(TT('sumHook',{name:p.name,banked:bankedNote(),token:name}));
     }
     case 'look':
       S.card=null; render(); await flipDownAll();
-      return endTurn(`${p.name} ${bankedNote()} and sent out a submarine.`);
+      return endTurn(TT('sumSub',{name:p.name,banked:bankedNote()}));
   }
 }
 
@@ -2128,10 +2199,10 @@ function render(){
 function canSeeHand(i){ if(!S.players[i]||!mine(i)) return false; if(S.net) return true; return S.players.filter(p=>!isAI(p)).length<2||i===S.cur }
 function handHTML(i){
   const p=S.players[i], groups=ORDER.filter(t=>TYPES[t].pts!=null).map(t=>[t,p.bank.filter(x=>x===t).length]).filter(([,n])=>n);
-  return `<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Your hand · ${score(p)} ${Math.abs(score(p))===1?'point':'points'}</h2>
-    ${groups.length?`<div class="handgrid">${groups.map(([t,n])=>`<figure>${face(t)}<figcaption><b>×${n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>`:'<p class="muted">Nothing banked yet.</p>'}
-    <p class="muted">A shark sends half of these (rounded up, picked at random) back to the table.</p>
-    <button class="btn primary" id="closeHand">Close</button></div>`;
+  return `<div class="sheet"><span class="label">${fmt(TT('onlyYou',{name:p.name}))}</span><h2>${fmt(TT('handTitle',{points:score(p)+' '+(Math.abs(score(p))===1?'point':'points')}))}</h2>
+    ${groups.length?`<div class="handgrid">${groups.map(([t,n])=>`<figure>${face(t)}<figcaption><b>×${n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>`:`<p class="muted">${TX('handEmpty')}</p>`}
+    <p class="muted">${TX('handNote')}</p>
+    <button class="btn primary" id="closeHand">${TX('close')}</button></div>`;
 }
 function rulesHTML(){
   const li=t=>`<li>${face(t)}<span><b>${fmt(TYPES[t].name)}</b> ×${TYPES[t].n}<br><span class="muted">${fmt(TYPES[t].say)}</span></span></li>`;
@@ -2202,9 +2273,9 @@ function renderSetup(){
 }
 
 function renderBoard(){
-  const pickable=!busy&&!NET.pending&&mine(S.cur)&&['flip','peek','hook','goggles'].includes(S.phase);
+  const pickable=!busy&&!NET.pending&&mine(S.cur)&&(['flip','peek','hook','goggles'].includes(S.phase)||goAgainCard());
   if(S.net&&!S.net.host&&!NET.pending) boardEl.querySelectorAll('.tok.aim').forEach(e=>e.classList.remove('aim'));
-  boardEl.classList.toggle('dim',pickable&&S.phase!=='flip');
+  boardEl.classList.toggle('dim',pickable&&S.phase!=='flip'&&!goAgainCard());
   const D=S.layout.D, live=new Set();
   S.slots.forEach((s,i)=>{
     if(!s) return;
@@ -2287,19 +2358,19 @@ function renderGame(){
   const avatar=`<div class="mini avatar ${bot&&!busy?'think':''}" style="--c:${p.color}">${bot?'AI':S.cur+1}</div>`;
   if(S.card){
     mini=S.card.t?`<div class="mini ${cardHidden?'hide':''}" id="cardFace">${face(S.card.t)}</div>`:avatar;
-    title=esc(S.card.title); sub=esc(S.card.body);
+    title=fmt(S.card.title); sub=fmt(S.card.body);
     if(S.phase==='dolphin'&&me&&DOL.confirmed){ const items=['dolphin',...DOL.picks.map(k=>S.scrap[k])], next=items[DOL.spots.length];
-      sub=next?`Tap a glowing spot to hide the ${TYPES[next].name.toLowerCase()}${items.length>1?` (${DOL.spots.length+1} of ${items.length})`:''}. Tap a chosen spot to undo it.`:'' }
+      sub=next?fmt(TT('dolphinPlace',{token:TYPES[next].name.toLowerCase(),step:items.length>1?` (${DOL.spots.length+1} of ${items.length})`:''})):'' }
     if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>${TX('continue')}</button>`;
   } else {
     const fd=faceDown().length;
     mini=avatar;
-    title=`${esc(p.name)}’s turn${bot?` · AI ${AI[p.kind].label}`:''}`;
-    if(S.summary&&!S.turn.rev.length) sub=esc(S.summary);
-    else if(bot) sub=pend?`This turn: +${pend}. Thinking…`:'Thinking…';
-    else if(!me) sub=pend?`This turn: +${pend}. Waiting for ${esc(p.name)}…`:`Waiting for ${esc(p.name)}…`;
-    else sub=pend?(fd?`This turn: +${pend}. Flip again or bank it.`:'No face-down tokens left. Bank your catch.'):'Tap any face-down token to flip it.';
-    if(me&&canSeeHand(S.cur)) acts=`<button class="btn ghost small" id="handBtn">Hand</button>`;
+    title=fmt(TT('turnTitle',{name:p.name})+(bot?TT('aiTag',{level:AI[p.kind].label}):''));
+    if(S.summary&&!S.turn.rev.length) sub=fmt(S.summary);
+    else if(bot) sub=fmt(TT(pend?'statusThinkingPts':'statusThinking',{pts:pend}));
+    else if(!me) sub=fmt(TT(pend?'statusWaitingPts':'statusWaiting',{pts:pend,name:p.name}));
+    else sub=fmt(pend?(fd?TT('statusMore',{pts:pend}):TT('statusNoneLeft')):TT('statusFlip'));
+    if(me&&canSeeHand(S.cur)) acts=`<button class="btn ghost small" id="handBtn">${TX('handBtn')}</button>`;
     if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
   }
   bar.innerHTML=`<div class="in">${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">${TX('copyright')}</div>`;
@@ -2320,7 +2391,7 @@ function renderGame(){
     ov.querySelector('#closeHand').onclick=()=>{ handOpen=null; render() };
   } else if(S.phase==='handoff'){
     handOpen=null; ov.hidden=false;
-    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button>${S.net?'':'<button class="linkbtn handhome" id="handoffHome">Save and go home</button>'}</div>`;
+    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button>${S.net?'':'<button class="linkbtn handhome" id="handoffHome">'+TX('saveHome')+'</button>'}</div>`;
     ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
     const hh=ov.querySelector('#handoffHome'); if(hh) hh.onclick=goHome;
   } else if(S.phase==='dolphin'&&mine(S.cur)&&!DOL.confirmed&&!busy&&!NET.pending){
@@ -2328,10 +2399,10 @@ function renderGame(){
     const max=dolMax(), n=DOL.picks.length;
     const picked=t=>DOL.picks.filter(k=>S.scrap[k]===t).length;
     ov.hidden=false;
-    ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><h2>Pick up to ${max} ${max===1?'token':'tokens'} to hide</h2><p class="muted">They go back on the table face down with the dolphin, in spots you choose. Nobody else will know which is which.</p>
+    ov.innerHTML=`<div class="sheet"><span class="label">${fmt(TT('onlyYou',{name:p.name}))}</span><h2>${fmt(TT('dolPickTitle',{tokens:plural(max,'token')}))}</h2><p class="muted">${TX('dolPickBody')}</p>
       <div class="scrapgrid">${ORDER.filter(t=>groups[t]).map(t=>{const c=picked(t);return `<button class="scrapbtn ${c?'on':''}" data-t="${t}" ${n>=max&&!c?'disabled':''}>${face(t)}<span>${TYPES[t].name}${groups[t].length>1?` ×${groups[t].length}`:''}</span>${c?`<b class="pickcount">${c} picked</b>`:''}</button>`}).join('')}</div>
-      <p class="muted">Tap a token to pick it; tap again for another of the same kind, until it goes back to none. ${n?`<button class="linkbtn" id="dolClear">Clear all</button>`:''}</p>
-      <button class="btn primary" id="dolGo">${n?`Hide the dolphin and ${n===1?'this token':`these ${n} tokens`}`:'Hide just the dolphin'}</button></div>`;
+      <p class="muted">${TX('dolPickHelp')} ${n?`<button class="linkbtn" id="dolClear">${TX('dolClear')}</button>`:''}</p>
+      <button class="btn primary" id="dolGo">${n?fmt(TT('dolHideSome',{tokens:plural(n,'token')})):TX('dolHideOnly')}</button></div>`;
     ov.querySelectorAll('.scrapbtn').forEach(b=>b.onclick=()=>{
       const t=b.dataset.t, free=groups[t].filter(k=>!DOL.picks.includes(k));
       if(free.length&&DOL.picks.length<max){ DOL.picks.push(free[0]); sfx('tap') }
@@ -2344,7 +2415,7 @@ function renderGame(){
     if(!ov.querySelector('#peekFace')){
       const t=S.slots[S.turn.peek].t;
       ov.hidden=false;
-      ov.innerHTML=`<div class="sheet"><span class="label">Only ${esc(p.name)} should see this</span><div id="peekFace" class="peekface">${face(t)}</div><h2>${TYPES[t].name}</h2><p class="muted">Peek ${S.turn.peeked.length} of ${S.turn.peeked.length+S.turn.picks-1}. Remember where it was.</p><button class="btn primary" id="hide">${S.turn.picks>1&&faceDown().some(j=>!S.turn.peeked.includes(j)&&j!==S.turn.peek)?'Hide it and peek again':'Hide it and end turn'}</button></div>`;
+      ov.innerHTML=`<div class="sheet"><span class="label">${fmt(TT('onlyYou',{name:p.name}))}</span><div id="peekFace" class="peekface">${face(t)}</div><h2>${fmt(TYPES[t].name)}</h2><p class="muted">${fmt(TT('peekCount',{i:S.turn.peeked.length,n:S.turn.peeked.length+S.turn.picks-1}))}</p><button class="btn primary" id="hide">${TX(S.turn.picks>1&&faceDown().some(j=>!S.turn.peeked.includes(j)&&j!==S.turn.peek)?'peekAgain':'peekDone')}</button></div>`;
       const f=ov.querySelector('#peekFace .face'); f.style.width='100%'; f.style.height='100%';
     }
     ov.querySelector('#hide').disabled=busy||!!NET.pending;
@@ -2354,8 +2425,11 @@ function renderGame(){
 }
 
 // Size the board to the space between the scoreboard and the card. The first time, also pick the board's shape.
-let fitPending=false;
+let fitPending=false, fittedBarH=0;
+// if the card at the bottom grows taller than when the board was sized, shrink the board so no token hides behind it
+if(window.ResizeObserver) new ResizeObserver(()=>{ if(boardEl&&S&&S.screen==='play'&&!bar.hidden&&bar.offsetHeight>fittedBarH+2) fitBoard() }).observe(bar);
 function fitBoard(){
+  fittedBarH=bar.hidden?0:bar.offsetHeight;
   const wrap=boardEl.parentElement, top=wrap.getBoundingClientRect().top+scrollY;
   const availW=wrap.clientWidth, availH=Math.max(180,innerHeight-top-(bar.hidden?0:bar.offsetHeight)-8);
   if(!S.layout){ if(!S.h) S.h=Math.round(Math.min(1.45,Math.max(.55,availH/availW))*100)/100; S.layout=makeLayout(S.h); boardEl.style.setProperty('--h',S.h) }
@@ -2470,7 +2544,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610120637;
+const BUILD=2610120659;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
