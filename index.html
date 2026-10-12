@@ -169,26 +169,30 @@ p{margin:0}
 .splash.out #splashGo{pointer-events:none}
 #splashGo{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 .popfx .ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:none;animation:jfRing 1.1s cubic-bezier(.2,.7,.3,1) var(--dl) both}
-.popfx .bub{animation:jfBub var(--d) cubic-bezier(.15,.7,.35,1) var(--dl) both}
+.popfx .bub{background:none;border:0;animation:jfRise var(--d) cubic-bezier(.22,.61,.36,1) var(--dl) both}
+.popfx .bub s{position:absolute;inset:0;animation:jfSway calc(var(--d) * .5) ease-in-out var(--dl) infinite alternate}
+.popfx .bub b{position:absolute;inset:0;border-radius:50%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,.75);
+  background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.9) 0 12%,rgba(255,255,255,.18) 13% 45%,rgba(160,230,225,.12) 70%,rgba(255,255,255,.35) 100%);
+  animation:jfSwell var(--d) cubic-bezier(.2,1.3,.4,1) var(--dl) both,jfBubFade var(--d) linear var(--dl) both}
 .popfx .ghost{animation:jfGhost .28s ease-out both}
 @keyframes jfGhost{0%{transform:scale(1);opacity:1}18%{transform:scale(.9,.94);opacity:1}55%{transform:scale(1.3,1.22);opacity:1}100%{transform:scale(1.55);opacity:0}}
-@keyframes jfBub{
-  0%{transform:translate(0,0) scale(.15);opacity:0}
-  14%{transform:translate(calc(var(--dx) * .5),calc(var(--rise) * -.06)) scale(1.25);opacity:1}
-  45%{transform:translate(calc(var(--dx) * .8 + var(--w)),calc(var(--rise) * -.4)) scale(1.1);opacity:.9}
-  75%{transform:translate(calc(var(--dx) - var(--w)),calc(var(--rise) * -.75)) scale(1.2);opacity:.55}
-  100%{transform:translate(calc(var(--dx) * 1.1),calc(var(--rise) * -1)) scale(1.5);opacity:0}}
+@keyframes jfRise{from{transform:translate(0,0)}to{transform:translate(var(--dx),calc(var(--rise) * -1))}}
+@keyframes jfSway{from{transform:translateX(calc(var(--w) * -1))}to{transform:translateX(var(--w))}}
+@keyframes jfSwell{from{transform:scale(.15)}to{transform:scale(1.45)}}
+@keyframes jfBubFade{0%{opacity:0}10%{opacity:1}55%{opacity:.85}100%{opacity:0}}
 @keyframes jfRing{0%{transform:scale(.3);opacity:.9}100%{transform:scale(var(--s));opacity:0}}
 /* the water melts away: content fades, the water swells and wobbles as it clears */
-.splash.melt{animation:jfMelt 1.1s ease-in-out .2s forwards}
+.splash.melt{animation:jfMeltFade 1.1s cubic-bezier(.4,0,.6,1) .2s forwards,jfMeltSwell 1.1s cubic-bezier(.3,0,.3,1) .2s forwards,jfWobble 1.1s ease-in-out .2s forwards}
 .splash.melt .splash-in,.splash.melt .credit,.splash.melt .foot{animation:jfFade .3s ease-in .05s forwards}
 .splash.melt .splash-in{animation:jfMeltText .45s ease-in .02s forwards}
 .splash.melt .sea{animation:jfFade .4s ease-in forwards}
 @keyframes jfFade{to{opacity:0}}
 @keyframes jfMeltText{0%{opacity:1;transform:none;filter:blur(0)}100%{opacity:0;transform:scale(1.12) translateY(-10px);filter:blur(8px)}}
-@keyframes jfMelt{0%{opacity:1;transform:scale(1) skew(0deg,0deg)}30%{opacity:1;transform:scale(1.02) skew(.8deg,-.4deg)}55%{opacity:.75;transform:scale(1.06) skew(-1deg,.6deg)}78%{opacity:.35;transform:scale(1.1) skew(.6deg,-.3deg)}100%{opacity:0;transform:scale(1.14) skew(0deg,0deg)}}
-.app.reveal{animation:jfReveal 1.15s ease-out .25s backwards}
-@keyframes jfReveal{0%{transform:scale(.95);opacity:.4}60%{transform:scale(1.005) skewX(.6deg);opacity:.9}100%{transform:none;opacity:1}}
+@keyframes jfMeltFade{0%{opacity:1}25%{opacity:1}100%{opacity:0}}
+@keyframes jfMeltSwell{from{scale:1}to{scale:1.14}}
+@keyframes jfWobble{0%{transform:skew(0deg,0deg)}30%{transform:skew(.8deg,-.4deg)}60%{transform:skew(-.9deg,.5deg)}100%{transform:skew(0deg,0deg)}}
+.app.reveal{animation:jfReveal 1.15s cubic-bezier(.2,.7,.3,1) .25s backwards}
+@keyframes jfReveal{from{transform:scale(.95);opacity:.4}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){
   .splash.melt{animation:jfFade 1s ease-in-out .3s forwards} .app.reveal{animation:none} .popfx .ring{display:none}
   .splash.melt .splash-in{animation:jfFade .3s ease-in forwards} }
@@ -327,6 +331,12 @@ p{margin:0}
 
 /* online */
 .err{color:var(--bust);font-size:.9rem}
+.savecode{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.savecode .code{font-size:1.25rem;letter-spacing:.12em;font-variant-numeric:tabular-nums;color:var(--wood)}
+.card.slim{gap:8px;padding:14px 18px}
+.handhome{display:block;margin:14px auto 0;color:var(--ink-2)}
+.coderow{display:flex;gap:8px}
+.coderow input{flex:1;min-width:0;background:var(--table-2);color:var(--ink);border:1.5px solid var(--panel-2);border-radius:10px;padding:8px 12px;font:inherit;font-size:1.05rem;letter-spacing:.1em;text-transform:uppercase}
 .netstat{font-size:.82rem}
 .netstat.ok::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--sea);margin-right:6px;vertical-align:1px}
 .hosts,.seats{display:flex;flex-direction:column;gap:8px}
@@ -2023,9 +2033,63 @@ function endTurn(summary){
   S.phase=(!S.net&&!isAI(P())&&humans>1)?'handoff':'flip';
   render();
 }
-function finish(){ S.screen='over'; S.phase=null; render(); sfx('fanfare'); if(S.net&&S.net.host){NET.g.st='over';publishG();lobbyAnnounce()} }
+function finish(){ cloudDrop(S.saveCode); S.screen='over'; S.phase=null; render(); sfx('fanfare'); if(S.net&&S.net.host){NET.g.st='over';publishG();lobbyAnnounce()} }
 
 // ---------- persistence ----------
+// Home: leave the game for the menu. It stays saved on this device and is copied online under a short code,
+// so it can be picked up here or on any other device.
+const SAVE_ABC='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const CLOUD={status:'',note:'',checked:{}};
+const newSaveCode=()=>Array.from({length:6},()=>SAVE_ABC[Math.floor(Math.random()*SAVE_ABC.length)]).join('');
+const fmtCode=c=>c?c.slice(0,3)+'-'+c.slice(3):'';
+function goHome(){
+  if(busy||!S||S.screen!=='play'||S.net||['anim','peeking'].includes(S.phase)) return;
+  clearTimeout(aiTimer); aiTimer=null; handOpen=null; S.rulesOpen=false; S.quitArm=false;
+  const g=S; g.saveCode=g.saveCode||newSaveCode(); g.savedAt=Date.now();
+  try{ localStorage.setItem(KEY,JSON.stringify(g)) }catch(e){}
+  S=setupState(g.setup); boardEl=null; sfx('tap'); render(); window.scrollTo(0,0);
+  cloudSave(g);
+}
+async function cloudCore(){
+  const c=await fbCore(), auth=c.AU.getAuth(c.app);
+  if(!auth.currentUser) await c.AU.signInAnonymously(auth);
+  return c;
+}
+async function cloudSave(g){
+  if(!FIREBASE_CONFIG||!g||g.net||g.screen!=='play') return;
+  g.saveCode=g.saveCode||newSaveCode(); g.savedAt=g.savedAt||Date.now();
+  CLOUD.status='saving'; if(S&&S.screen==='setup') render();
+  try{ const {D,db}=await cloudCore(); await D.set(D.ref(db,'jf/saves/'+g.saveCode),{s:JSON.stringify(g),t:D.serverTimestamp()}); CLOUD.status='saved' }
+  catch(e){ console.warn('cloud save',e); CLOUD.status='error' }
+  if(S&&S.screen==='setup') render();
+}
+async function cloudGet(code){
+  const {D,db}=await cloudCore(), v=(await D.get(D.ref(db,'jf/saves/'+code))).val();
+  if(!v||typeof v.s!=='string') return null;
+  const g=JSON.parse(v.s);
+  return g&&g.screen==='play'&&Array.isArray(g.players)&&Array.isArray(g.slots)?g:null;
+}
+function cloudDrop(code){ if(!code||!FIREBASE_CONFIG) return; cloudCore().then(({D,db})=>D.remove(D.ref(db,'jf/saves/'+code))).catch(()=>{}) }
+// open a saved game by its code (typed in, or from a shared link)
+async function openSavedGame(raw){
+  const code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length!==6){ CLOUD.note='Game codes have 6 letters and numbers.'; return render() }
+  CLOUD.note='Looking for game '+fmtCode(code)+'…'; render();
+  try{
+    const g=await cloudGet(code);
+    if(!g){ CLOUD.note='No saved game has the code '+fmtCode(code)+'. It may have finished already.'; return render() }
+    g.saveCode=code; try{ localStorage.setItem(KEY,JSON.stringify(g)) }catch(e){}
+    CLOUD.note='Game '+fmtCode(code)+' is ready. Tap Resume game to keep playing.'; CLOUD.status='saved'; CLOUD.checked[code]=true;
+  }catch(e){ console.warn('cloud load',e); CLOUD.note='Couldn’t reach the saved games right now. Check the connection and try again.' }
+  render();
+}
+// a game left on this device may have been played further on another one: use whichever copy is newer
+async function cloudFreshen(local){
+  const code=local&&local.saveCode; if(!code||CLOUD.checked[code]||!FIREBASE_CONFIG) return; CLOUD.checked[code]=true;
+  try{ const g=await cloudGet(code); if(g&&(g.savedAt||0)>(local.savedAt||0)){ g.saveCode=code; localStorage.setItem(KEY,JSON.stringify(g)); CLOUD.note='Updated with the latest moves from another device.'; if(S.screen==='setup') render() } }catch(e){}
+}
+// when the app is closed mid-game, keep the online copy current too
+addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&S&&S.screen==='play'&&!S.net&&!busy&&S.saveCode){ S.savedAt=Date.now(); save(); cloudSave(S) } });
 function save(){ if(busy||S.screen==='wait'||(S.net&&!S.net.host)) return; if(S.net) S.net.applied=NET.applied; try{ if(S.screen==='setup') localStorage.setItem(KEY+'.setup',JSON.stringify(S.setup)); else localStorage.setItem(KEY,JSON.stringify(S)) }catch(e){} }
 function loadSetup(){ try{return JSON.parse(localStorage.getItem(KEY+'.setup'))}catch(e){return null} }
 function load(){ try{const v=JSON.parse(localStorage.getItem(KEY)); return v&&v.screen?v:null}catch(e){return null} }
@@ -2069,7 +2133,11 @@ function renderSetup(){
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
     <header class="top"><div><h1>${titleHTML()}</h1><p class="muted">${TX('tagline')}</p></div><div class="tools">${toggleHTML()}</div></header>
-    ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div></div>`:''}
+    ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
+      ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
+        <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
+        <span class="muted st-small">${CLOUD.status==='saving'?'Saving online…':CLOUD.status==='error'?'Couldn’t save online yet; it’s still saved on this device.':CLOUD.status==='saved'?'Saved online.':''}</span></div>`:''}</div>`:''}
+    ${FIREBASE_CONFIG&&!(window.claude&&window.claude.use)?`<div class="card slim"><span class="label">Have a game code?</span><div class="coderow"><input id="codeIn" maxlength="9" placeholder="ABC-123" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Game code"><button class="btn small" id="codeGo">Open game</button></div>${CLOUD.note?`<p class="muted st-small">${esc(CLOUD.note)}</p>`:''}</div>`:''}
     <div class="card">
       <span class="label">${TX('players')}</span>
       <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
@@ -2103,7 +2171,17 @@ function renderSetup(){
     newGame(st);render();
   };
   renderLobby();
-  const r=app.querySelector('#resume'); if(r) r.onclick=()=>{ if(resume.net&&resume.net.host){ if(NET.lobby) hostResume(resume); return } S=resume;for(const p of S.players){p.kind=p.kind||'human';p.mem=p.mem||{}}S.tick=S.tick||0;S.turnNo=S.turnNo||0;boardEl=null;render()};
+  if(resume) cloudFreshen(resume);
+  const cg=app.querySelector('#codeGo'); if(cg) cg.onclick=()=>openSavedGame(app.querySelector('#codeIn').value);
+  const ci=app.querySelector('#codeIn'); if(ci) ci.onkeydown=e=>{ if(e.key==='Enter') openSavedGame(ci.value) };
+  const cp=app.querySelector('#copyGame'); if(cp) cp.onclick=async()=>{
+    const u=new URL(location.href); u.search=''; u.hash=''; u.searchParams.set('game',resume.saveCode);
+    try{ if(navigator.share) await navigator.share({title:T('title'),text:'Keep playing our game: code '+fmtCode(resume.saveCode),url:u.href}); else { await navigator.clipboard.writeText(u.href); cp.textContent='Copied!' } }catch(e){}
+  };
+  const r=app.querySelector('#resume'); if(r) r.onclick=()=>{ if(resume.net&&resume.net.host){ if(NET.lobby) hostResume(resume); return } S=resume;for(const p of S.players){p.kind=p.kind||'human';p.mem=p.mem||{}}S.tick=S.tick||0;S.turnNo=S.turnNo||0;
+    if(['anim','peeking'].includes(S.phase)) S.phase='flip';
+    if(S.phase==='flip'&&!S.turn.rev.length&&!isAI(P())&&S.players.filter(p=>!isAI(p)).length>1) S.phase='handoff';
+    CLOUD.note=''; boardEl=null; render()};
 }
 
 function renderBoard(){
@@ -2156,7 +2234,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1>${titleHTML()}</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button><button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
+      <header class="top"><h1>${titleHTML()}</h1><div class="tools">${toggleHTML()}<button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
@@ -2164,9 +2242,10 @@ function renderGame(){
     boardEl.addEventListener('click',e=>{const b=e.target.closest('.tok');if(b) onSlot(+b.dataset.i)});
     fitPending=true; bindToggles(app);
     app.querySelector('#rulesBtn').onclick=()=>{S.rulesOpen=true;render()};
+    const hb=app.querySelector('#homeBtn'); if(hb) hb.onclick=goHome;
     app.querySelector('#quitBtn').onclick=()=>{
       if(busy) return;
-      if(S.quitArm){clearTimeout(aiTimer);aiTimer=null;const st=S.setup;if(S.net){leaveOnline()}S=setupState(st);try{localStorage.removeItem(KEY)}catch(e){};return render()}
+      if(S.quitArm){clearTimeout(aiTimer);aiTimer=null;const st=S.setup;if(S.net){leaveOnline()}cloudDrop(S.saveCode);S=setupState(st);try{localStorage.removeItem(KEY)}catch(e){};return render()}
       S.quitArm=true;render();setTimeout(()=>{if(S.quitArm){S.quitArm=false;render()}},3000);
     };
   }
@@ -2221,8 +2300,9 @@ function renderGame(){
     ov.querySelector('#closeHand').onclick=()=>{ handOpen=null; render() };
   } else if(S.phase==='handoff'){
     handOpen=null; ov.hidden=false;
-    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button></div>`;
+    ov.innerHTML=`<div class="sheet">${S.summary?`<p class="muted">${esc(S.summary)}</p>`:''}<span class="label">${TX('passTo')}</span><div class="who" style="color:${p.color}">${esc(p.name)}</div><button class="btn primary" id="go">${TX('startTurn')}</button>${S.net?'':'<button class="linkbtn handhome" id="handoffHome">Save and go home</button>'}</div>`;
     ov.querySelector('#go').onclick=()=>{sfx('turn');S.phase='flip';S.summary=null;render()};
+    const hh=ov.querySelector('#handoffHome'); if(hh) hh.onclick=goHome;
   } else if(S.phase==='dolphin'&&mine(S.cur)&&!DOL.confirmed&&!busy&&!NET.pending){
     const groups={}; S.scrap.forEach((t,k)=>{(groups[t]=groups[t]||[]).push(k)});
     const max=dolMax(), n=DOL.picks.length;
@@ -2294,7 +2374,7 @@ function bubbleBurst(btn){
   const cx=r.left+r.width/2, cy=r.top+r.height/2, px=v=>v.toFixed(1)+'px';
   for(let k=0;k<36;k++){
     const sz=12+Math.random()*34, a=Math.random()*Math.PI*2, x=cx+Math.cos(a)*r.width*.42*Math.random(), y=cy+Math.sin(a)*r.height*.4*Math.random();
-    html+=`<i class="bub" style="left:${px(x-sz/2)};top:${px(y-sz/2)};width:${px(sz)};height:${px(sz)};--dx:${px(Math.cos(a)*(40+Math.random()*90))};--rise:${px(260+Math.random()*Math.min(innerHeight*.7,560))};--w:${px(8+Math.random()*16)};--d:${Math.round(900+Math.random()*700)}ms;--dl:${Math.round(40+Math.random()*120)}ms"></i>`;
+    html+=`<i class="bub" style="left:${px(x-sz/2)};top:${px(y-sz/2)};width:${px(sz)};height:${px(sz)};--dx:${px(Math.cos(a)*(40+Math.random()*90))};--rise:${px(260+Math.random()*Math.min(innerHeight*.7,560))};--w:${px(8+Math.random()*16)};--d:${Math.round(1100+Math.random()*700)}ms;--dl:${Math.round(30+Math.random()*110)}ms"><s><b></b></s></i>`;
   }
   // and rings ripple out from where Play was
   for(let k=0;k<3;k++) html+=`<i class="ring" style="left:${px(cx-60)};top:${px(cy-60)};width:120px;height:120px;--s:${7+k*2};--dl:${90+k*160}ms"></i>`;
@@ -2370,7 +2450,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610120105;
+const BUILD=2610120624;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
@@ -2386,6 +2466,7 @@ function start(d){
   if(d&&d.S){ if(sp) sp.remove() } else if(sp) try{ startSplash() }catch(e){ console.error('splash',e); sp.remove() }
   try{ startTheme() }catch(e){ console.error('theme',e) }
   try{ checkUpdate() }catch(e){}
+  try{ const q=new URLSearchParams(location.search).get('game'); if(q){ const u=new URL(location.href); u.searchParams.delete('game'); history.replaceState(null,'',u.href); setTimeout(()=>openSavedGame(q),300) } }catch(e){}
   const saved=load();
   S=(d&&d.S&&!d.S.net)?d.S:setupState(loadSetup()||(saved&&saved.setup)||undefined);
   if(S.phase==='anim'||S.phase==='peeking') S.phase='flip';
