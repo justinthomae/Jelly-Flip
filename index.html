@@ -285,6 +285,8 @@ p{margin:0}
 /* custom token art */
 .face img.art{object-fit:contain;pointer-events:none;max-width:none}
 .face .art{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.face.mirror .art{transform:translate(-50%,-50%) scaleX(-1)}
+.face.mirror > svg{transform:scaleX(-1)}
 .face:has(.art){position:relative}
 .face.fullart img.art{object-fit:cover;border-radius:50%}
 .face.fullart{background:none}
@@ -784,8 +786,8 @@ function menuHeaderHTML(){
     ${SHARE.note?`<p class="muted st-small">${esc(SHARE.note)}</p>`:''}</header>`;
 }
 const titleHTML = () => { const tl=THEME.titleLogo, src=srcOf(tl); return src?`<img class="hlogo" src="${src}" alt="${tl.hideName?esc(T('title')):''}">${tl.hideName?'':TX('title')}`:TX('title') };
-const face = (t,cls='') => { const art=tokenArt(t);
-  return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${cls}">${art?artHTML(art):icon(t)}</div>` };
+const face = (t,cls='') => { const art=tokenArt(t), mir=THEME.tokens&&THEME.tokens[t]&&THEME.tokens[t].mirror;
+  return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${mir?'mirror':''} ${cls}">${art?artHTML(art):icon(t)}</div>` };
 
 
 // ---------- state ----------
@@ -1175,6 +1177,19 @@ function musicStart(){
   clearInterval(MUSIC.timer); MUSIC.timer=setInterval(musicTick,120); musicTick();
 }
 function musicRestart(){ if(MUSIC.playing){ musicStop(); setTimeout(musicStart,950) } }
+function quietForBackground(hidden){
+  if(!actx||!master) { if(MUSIC.el) hidden?MUSIC.el.pause():(MUSIC.playing&&MUSIC.el.play().catch(()=>{})); return }
+  const t=actx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value,t);
+  if(hidden){
+    master.gain.linearRampToValueAtTime(0,t+.06); clearInterval(MUSIC.timer); if(MUSIC.el) MUSIC.el.pause();
+    setTimeout(()=>{ if(document.visibilityState==='hidden') actx.suspend().catch(()=>{}) },90);
+  } else {
+    actx.resume().catch(()=>{}).then(()=>{ const n=actx.currentTime; master.gain.setValueAtTime(0,n); master.gain.linearRampToValueAtTime(.8,n+.25);
+      if(MUSIC.playing){ if(MUSIC.el) MUSIC.el.play().catch(()=>{}); else { MUSIC.next=Math.max(MUSIC.next,n+.1); clearInterval(MUSIC.timer); MUSIC.timer=setInterval(musicTick,120) } } });
+  }
+}
+addEventListener('visibilitychange',()=>quietForBackground(document.visibilityState==='hidden'));
+addEventListener('pagehide',()=>quietForBackground(true));
 function musicStop(){
   if(!MUSIC.playing) return; MUSIC.playing=false;
   if(MUSIC.el){ MUSIC.el.pause(); MUSIC.el=null; return }
@@ -1723,7 +1738,7 @@ function renderStudio(){
   } else if(STUDIO.tab==='tokens'||STUDIO.tab==='fish'){
     const item=(key,label,prev)=>{ const e=key==='back'?E.back:E.tokens&&E.tokens[key], has=!!srcOf(e);
       return `<div class="st-item"><div class="st-prev">${prev}</div><b>${esc(label)}</b>
-        <div class="st-acts"><button class="btn small" data-up="${key}">${key==='back'?'Upload picture':'Upload icon'}</button>${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
+        <div class="st-acts"><button class="btn small" data-up="${key}">${key==='back'?'Upload picture':'Upload icon'}</button>${key!=='back'?`<button class="btn small ghost" data-mirror="${key}" aria-pressed="${!!(e&&e.mirror)}" title="Flip the picture left to right">⇋ Mirror${e&&e.mirror?' ✓':''}</button>`:''}${has?`<button class="btn small ghost" data-reset="${key}">Reset</button>`:''}</div>
         ${has&&key!=='back'?`<label class="st-check"><input type="checkbox" data-full="${key}" ${e.full?'checked':''}> Fill whole token (covers the material too)</label>
         <label class="st-check">Style <select data-blend="${key}"><option value="">Same as all tokens</option>${BLENDS.map(([v,l])=>`<option value="${v}" ${e.blend===v?'selected':''}>${l}</option>`).join('')}</select></label>
         <label class="st-check">Size <input type="range" min="30" max="150" step="5" value="${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}" data-size="${key}"> <span class="st-pct">${Math.round((e.size||E.iconSize||(e.full?1:.84))*100)}%</span>${e.size?` <button class="linkbtn" data-sizereset="${key}">reset</button>`:''}</label>
@@ -1807,6 +1822,7 @@ function renderStudio(){
   on('[data-up]',el=>{ const k=el.dataset.up; pickFile('image/*',f=>uploadAsset(k==='back'?'back':'tokens/'+k,f,'image',{max:512})) });
   on('[data-reset]',async el=>{ const k=el.dataset.reset, p=k==='back'?'back':'tokens/'+k; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-full]',el=>saveTheme('tokens/'+el.dataset.full+'/full',el.checked));
+  on('[data-mirror]',el=>{ const k=el.dataset.mirror, cur=editTheme().tokens&&editTheme().tokens[k]; saveTheme('tokens/'+k+'/mirror',cur&&cur.mirror?null:true) });
   on('[data-mattype]',async el=>{ const v=el.value; if(v==='wood'){ await removeOldAsset('material'); return saveTheme('material',null) } await saveTheme('material/type',v) });
   on('[data-matcolor]',el=>saveTheme('material/color',el.value));
   on('[data-matup]',()=>pickFile('image/*',f=>uploadAsset('material',f,'image',{max:512,keep:{type:'image'}})));
@@ -2690,7 +2706,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122112;
+const BUILD=2610122213;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
