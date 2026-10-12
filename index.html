@@ -93,6 +93,7 @@ p{margin:0}
 .name select{flex:none;background:var(--panel-2);border:0;border-radius:9px;color:var(--ink);font:inherit;font-size:.85rem;padding:8px 6px}
 .name.bot{background:color-mix(in srgb,var(--sea) 10%,var(--table-2))}
 .tray{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px}
+.tray.fishes{grid-template-columns:repeat(5,1fr)}
 .tray figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:.78rem;color:var(--ink-2)}
 .tray .face{width:56px;height:56px}
 .tray b{color:var(--ink);font-variant-numeric:tabular-nums}
@@ -454,7 +455,7 @@ p{margin:0}
 <script>
 // ---------- tokens ----------
 const TYPES = {
-  fish:   {name:'Fish', kind:'catch', pts:1, n:20, say:'+1 point. Keep flipping or bank.'},
+  fish:   {name:'Fish', kind:'catch', pts:1, n:2, say:'+1 point. Keep flipping or bank. There are 10 fish designs, two of each: every matching pair in your hand at the end of the game scores +1 bonus point.'},
   star:   {name:'Starfish', kind:'catch', pts:3, n:5, say:'+3 points. Keep flipping or bank.'},
   extra:  {name:'Sea Turtle', kind:'go', n:2, say:'Go again: bank your catch, scrap it, then take another turn.'},
   bigeye: {name:'Snorkel Mask', kind:'stop', n:2, say:'Bank, scrap it, then secretly peek at 3 tokens. Turn ends.'},
@@ -467,16 +468,21 @@ const TYPES = {
   whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Bank, then every token on the table swirls to a new spot. The whirlpool is scrapped. Turn ends.'},
   dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick up to 3 tokens from the scrap pile. Hide them and the dolphin face down in spots of your choice. The dolphin always stays in play.'},
 };
-const ORDER = ['fish','star','extra','bigeye','hook','g1','g2','g3','dolphin','whirl','jelly','shark'];
+// fish come in 10 designs, two tokens of each; a matching pair in hand is worth a bonus point at the end
+const FISH = ['fish','fish2','fish3','fish4','fish5','fish6','fish7','fish8','fish9','fish10'];
+const isFish = t => FISH.includes(t);
+for(const t of FISH.slice(1)) TYPES[t]={...TYPES.fish};
+const fishNo = t => FISH.indexOf(t)+1;
+const ORDER = [...FISH,'star','extra','bigeye','hook','g1','g2','g3','dolphin','whirl','jelly','shark'];
 
 function starPath(){let d='';for(let i=0;i<10;i++){const a=(-90+i*36)*Math.PI/180,r=i%2?13:31;d+=(i?'L':'M')+(50+r*Math.cos(a)).toFixed(1)+' '+(53+r*Math.sin(a)).toFixed(1)}return d+'Z'}
 function starDots(){let s='<circle cx="50" cy="53" r="2.4"/>';for(let i=0;i<5;i++){const a=(-90+i*72)*Math.PI/180;s+=`<circle cx="${(50+19*Math.cos(a)).toFixed(1)}" cy="${(53+19*Math.sin(a)).toFixed(1)}" r="2.2"/>`}return s}
 function spiral(){let d='';for(let k=0;k<=90;k++){const t=k/90,th=t*Math.PI*2*3.1,r=2+t*28;d+=(k?'L':'M')+(50+r*Math.cos(th)).toFixed(1)+' '+(50+r*Math.sin(th)).toFixed(1)}return d}
-const FISH = 'M20 50 C34 30 62 30 72 50 C62 70 34 70 20 50 Z M72 50 L86 37 L83 50 L86 63 Z M40 40 Q35 50 40 60';
+const FISH_PATH = 'M20 50 C34 30 62 30 72 50 C62 70 34 70 20 50 Z M72 50 L86 37 L83 50 L86 63 Z M40 40 Q35 50 40 60';
 // submarine: the number of round windows is how many tokens it shows
 const G = n=>`<path d="M22 60 C22 51 34 46 52 46 C70 46 84 51 84 60 C84 69 70 74 52 74 C34 74 22 69 22 60 Z"/><path d="M42 46 V38 Q42 35 45 35 H58 Q61 35 61 38 V46"/><path d="M55 35 V22 H64"/><path d="M22 60 H15"/><ellipse cx="12" cy="54" rx="3" ry="5.5"/><ellipse cx="12" cy="66" rx="3" ry="5.5"/>`+[[52],[44,60],[38,52,66]][n-1].map(x=>`<circle cx="${x}" cy="60" r="4.6"/>`).join('');
 const ART = {
-  fish:  `<path d="${FISH}"/><circle cx="31" cy="47" r="2.6" fill="currentColor" stroke="none"/>`,
+  fish:  `<path d="${FISH_PATH}"/><circle cx="31" cy="47" r="2.6" fill="currentColor" stroke="none"/>`,
   // starfish traced from the supplied drawing
   star:  `<path d="M27.4 87.8C26.5 87.6 26.2 87.5 25.3 87.1C24.0 86.4 22.9 85.0 22.4 83.5C22.1 82.5 22.1 80.8 22.3 79.7C22.9 77.2 24.4 74.4 27.5 70.2C30.8 65.6 31.5 64.6 31.8 63.5C32.3 62.2 32.0 61.0 31.1 60.2C29.8 58.9 28.2 58.2 23.4 56.5C19.9 55.2 19.1 54.9 17.7 54.3C13.2 52.3 9.5 49.3 8.1 46.5C7.7 45.5 7.5 44.8 7.5 43.9C7.5 42.9 7.7 42.2 8.2 41.3C9.2 39.3 11.5 37.9 15.0 37.3C18.1 36.8 20.5 36.9 24.9 38.0C25.6 38.2 27.0 38.5 28.0 38.8C33.3 40.3 34.5 40.6 35.9 40.6C36.8 40.6 36.9 40.6 37.5 40.3C38.9 39.6 39.6 37.7 40.2 33.3C40.2 32.8 40.3 32.1 40.3 31.8C40.4 31.4 40.5 30.5 40.6 29.8C40.9 26.1 41.0 25.3 41.4 23.1C41.9 20.0 42.9 17.4 44.2 15.6C44.8 14.9 45.9 13.8 46.6 13.4C48.0 12.6 49.2 12.2 50.8 12.2C52.8 12.2 54.7 13.0 56.1 14.5C58.1 16.5 59.1 19.5 59.7 24.9C59.7 25.4 59.9 27.1 60.0 28.6C60.5 34.9 60.7 36.5 61.2 38.0C61.6 39.2 62.2 40.0 63.0 40.4C64.2 40.9 67.4 40.5 71.7 39.2C72.7 39.0 75.8 38.1 76.9 37.8C79.1 37.3 82.2 36.9 83.8 37.0C87.1 37.2 89.5 38.2 91.1 40.2C91.7 40.9 92.2 42.0 92.4 42.7C92.5 43.0 92.5 43.6 92.5 44.1C92.5 45.0 92.3 45.9 91.9 46.7C90.9 48.6 88.7 50.8 86.1 52.4C83.7 54.0 81.6 54.9 75.5 57.1C73.1 58.0 70.5 59.3 69.4 60.0C68.7 60.5 68.2 61.1 68.1 61.9C67.8 63.1 68.6 64.8 71.0 68.0C75.5 74.1 77.4 77.5 77.7 80.7C77.8 81.6 77.7 82.8 77.4 83.5C76.8 85.4 75.2 86.9 73.3 87.5C72.4 87.7 70.7 87.7 69.7 87.5C67.3 87.0 64.8 85.6 62.2 83.4C61.7 82.9 59.7 81.0 57.8 79.2C54.4 75.8 52.9 74.5 51.7 73.8C51.0 73.4 50.7 73.3 50.0 73.3C48.5 73.3 47.3 74.2 42.8 78.7C41.3 80.2 39.5 82.0 38.9 82.6C34.8 86.4 30.6 88.3 27.4 87.8ZM30.5 84.2C31.7 83.8 32.3 83.5 33.6 82.7C35.4 81.5 36.2 80.7 40.3 76.6C44.3 72.7 45.5 71.6 46.9 70.7C47.9 70.0 48.5 69.8 49.2 69.6C50.5 69.4 51.7 69.7 53.5 70.9C55.0 71.9 56.1 73.0 60.1 76.9C63.1 79.8 64.0 80.7 65.1 81.6C67.1 83.1 69.1 84.1 70.8 84.4C72.9 84.7 74.5 83.4 74.5 81.4C74.4 79.1 72.8 76.0 69.2 71.2C67.2 68.6 65.9 66.6 65.3 65.3C64.5 63.7 64.3 62.9 64.3 61.6C64.4 60.7 64.4 60.6 64.7 60.0C65.1 59.1 65.7 58.5 66.7 57.8C67.5 57.2 69.3 56.2 70.3 55.7C72.3 54.9 73.4 54.4 76.2 53.4C81.8 51.3 83.1 50.6 85.8 48.7C86.5 48.2 87.8 46.9 88.3 46.3C89.0 45.3 89.2 44.9 89.2 44.1C89.2 43.1 89.0 42.7 88.4 42.0C87.8 41.4 87.4 41.1 86.6 40.8C85.5 40.4 84.6 40.3 83.1 40.3C80.7 40.2 78.9 40.6 72.9 42.3C67.7 43.7 66.0 44.0 63.7 43.9C61.7 43.9 60.8 43.5 59.6 42.4C58.8 41.5 58.3 40.7 57.9 39.4C57.3 37.4 57.1 35.9 56.7 30.5C56.4 26.7 56.2 24.2 56.0 23.2C55.5 19.5 54.6 17.3 53.0 16.2C52.1 15.6 51.7 15.5 50.6 15.5C49.6 15.5 49.5 15.5 49.0 15.8C48.2 16.2 47.7 16.6 47.2 17.2C45.8 18.9 45.0 21.4 44.4 25.5C44.3 26.5 43.9 30.8 43.7 32.1C43.6 33.5 43.2 36.6 43.0 37.8C42.6 39.4 41.9 41.2 41.2 42.0C40.8 42.5 40.0 43.1 39.4 43.4C38.6 43.8 37.7 44.0 36.4 44.0C34.7 44.0 32.6 43.6 29.0 42.5C26.9 41.9 23.8 41.0 22.5 40.8C19.0 40.0 15.6 40.2 13.2 41.1C12.4 41.4 12.0 41.7 11.5 42.3C10.4 43.4 10.6 44.7 11.8 46.3C13.0 47.8 15.0 49.3 17.4 50.5C19.1 51.4 20.2 51.8 25.1 53.6C28.1 54.7 29.1 55.1 30.5 55.8C33.6 57.4 35.2 58.8 35.7 60.7C35.9 61.5 35.8 62.9 35.5 63.8C34.9 65.3 33.8 67.2 32.3 69.3C30.0 72.4 29.3 73.3 28.6 74.4C27.1 76.5 26.3 78.1 25.8 79.6C25.4 80.6 25.4 82.0 25.6 82.8C25.8 83.3 26.3 83.8 26.7 84.1C27.3 84.5 27.7 84.6 28.7 84.5C29.5 84.5 29.8 84.4 30.5 84.2ZM30.3 80.4C29.6 80.0 29.3 79.3 29.5 78.6C29.7 77.9 30.2 77.5 31.0 77.5C31.9 77.5 32.5 78.1 32.5 79.0C32.5 80.1 31.3 80.9 30.3 80.4ZM68.7 80.5C67.8 80.1 67.5 79.1 67.9 78.3C68.1 77.7 69.0 77.3 69.7 77.5C70.0 77.6 70.6 78.1 70.7 78.5C70.8 78.9 70.7 79.5 70.5 79.9C70.2 80.4 69.2 80.7 68.7 80.5ZM34.2 76.3C33.6 76.0 33.3 75.5 33.3 74.8C33.3 74.3 33.3 74.1 33.5 73.8C34.0 73.1 35.0 72.8 35.7 73.3C37.0 74.0 36.9 75.8 35.7 76.3C35.2 76.6 34.8 76.5 34.2 76.3ZM64.7 76.4C64.1 76.2 63.5 75.4 63.5 74.8C63.5 74.1 64.1 73.3 64.8 73.1C65.2 73.0 65.3 73.0 65.7 73.1C66.2 73.3 66.7 73.7 66.8 74.1C67.0 74.4 66.9 75.2 66.8 75.5C66.6 76.0 65.8 76.5 65.2 76.5C65.1 76.5 64.8 76.5 64.7 76.4ZM38.4 71.4C37.9 71.2 37.5 70.8 37.3 70.2C36.7 68.2 39.1 66.7 40.6 68.1C41.3 68.9 41.4 70.1 40.7 70.9C40.2 71.5 39.3 71.8 38.4 71.4ZM60.5 71.5C60.1 71.4 59.8 71.2 59.5 70.8C58.8 70.0 58.9 68.9 59.6 68.2C60.5 67.3 62.0 67.4 62.7 68.5C63.3 69.6 62.9 71.0 61.8 71.4C61.4 71.6 60.8 71.6 60.5 71.5ZM42.7 66.1C41.3 65.6 40.6 64.2 41.0 62.8C41.2 62.1 41.6 61.6 42.3 61.3C42.8 61.1 42.9 61.0 43.5 61.0C45.4 61.0 46.5 62.6 46.0 64.4C45.8 65.1 45.0 65.8 44.4 66.0C43.9 66.2 43.1 66.2 42.7 66.1ZM55.8 66.0C54.0 65.3 53.6 63.0 54.9 61.7C55.9 60.8 57.5 60.7 58.5 61.7C59.6 62.7 59.6 64.3 58.7 65.3C58.0 66.1 56.7 66.4 55.8 66.0ZM49.5 58.1C48.8 58.0 48.0 57.6 47.5 57.1C45.7 55.3 46.2 52.5 48.3 51.3C50.6 50.0 53.4 51.5 53.8 54.0C53.9 54.7 53.8 55.5 53.5 56.2C52.8 57.5 51.1 58.4 49.5 58.1ZM37.9 54.2C37.0 54.0 36.0 53.1 35.7 52.3C35.4 51.5 35.4 50.6 35.7 49.8C36.2 48.8 37.2 48.1 38.4 48.0C39.3 47.9 39.8 48.1 40.5 48.5C41.4 49.2 41.8 50.0 41.8 51.1C41.8 52.0 41.6 52.6 41.0 53.2C40.2 54.1 39.0 54.4 37.9 54.2ZM60.9 53.9C60.2 53.7 59.7 53.4 59.4 52.9C59.0 52.3 58.8 51.9 58.7 51.2C58.6 49.8 59.5 48.5 60.9 48.0C61.6 47.8 62.6 47.9 63.2 48.2C64.3 48.8 64.9 49.7 64.9 51.0C64.9 51.9 64.7 52.4 64.2 53.0C63.3 54.0 62.0 54.3 60.9 53.9ZM28.9 51.0C28.0 50.6 27.6 50.0 27.6 49.0C27.6 48.3 27.7 48.0 28.2 47.5C28.7 47.0 29.1 46.8 29.9 46.8C30.5 46.8 30.6 46.8 31.1 47.1C31.6 47.4 32.0 47.8 32.1 48.5C32.5 49.9 31.5 51.2 30.0 51.3C29.5 51.3 29.4 51.3 28.9 51.0ZM69.6 51.0C69.1 50.8 68.6 50.3 68.4 49.9C68.3 49.5 68.3 48.6 68.4 48.1C68.6 47.7 69.1 47.1 69.6 46.9C70.7 46.4 72.1 46.9 72.6 47.9C72.9 48.4 72.9 49.1 72.8 49.6C72.7 50.2 72.2 50.7 71.7 51.0C71.0 51.3 70.2 51.3 69.6 51.0ZM22.6 48.9C21.5 48.5 20.9 47.5 21.3 46.4C21.5 45.6 22.3 45.1 23.2 45.1C23.7 45.1 23.8 45.1 24.2 45.3C25.3 46.0 25.5 47.5 24.6 48.4C24.2 48.9 23.2 49.2 22.6 48.9ZM76.8 49.0C75.9 48.6 75.3 48.0 75.3 47.0C75.3 46.4 75.5 46.0 75.9 45.6C76.7 44.9 77.8 44.8 78.6 45.5C79.0 45.9 79.3 46.4 79.3 46.9C79.3 47.8 78.9 48.4 78.2 48.8C77.8 49.0 77.1 49.1 76.8 49.0ZM16.6 46.7C15.8 46.4 15.3 45.4 15.7 44.5C16.1 43.6 17.3 43.3 18.1 44.0C18.4 44.2 18.7 44.8 18.7 45.2C18.7 45.5 18.5 46.1 18.2 46.3C17.8 46.7 17.1 46.8 16.6 46.7ZM82.3 46.6C81.1 46.0 81.1 44.3 82.3 43.8C83.6 43.2 85.0 44.6 84.3 45.9C84.0 46.6 83.0 47.0 82.3 46.6ZM49.3 44.6C47.5 43.9 46.9 41.5 48.2 40.0C48.7 39.4 49.4 39.1 50.3 39.1C50.9 39.0 51.0 39.1 51.5 39.3C53.2 40.0 53.8 42.1 52.7 43.6C52.0 44.6 50.5 45.0 49.3 44.6ZM49.9 36.6C49.2 36.5 48.5 35.9 48.3 35.2C47.8 34.1 48.3 32.8 49.4 32.3C49.8 32.1 49.9 32.0 50.5 32.1C51.3 32.1 51.8 32.4 52.3 33.0C52.8 33.7 52.9 34.7 52.5 35.5C52.3 35.8 51.7 36.3 51.4 36.5C51.1 36.6 50.3 36.7 49.9 36.6ZM50.0 29.6C49.1 29.4 48.4 28.7 48.3 27.8C48.2 26.5 49.1 25.5 50.4 25.5C50.7 25.5 51.0 25.5 51.2 25.6C51.6 25.8 52.2 26.3 52.3 26.7C52.5 27.1 52.5 28.0 52.3 28.4C51.9 29.3 50.9 29.8 50.0 29.6ZM49.7 23.0C49.4 22.9 49.0 22.5 48.9 22.1C48.5 21.2 49.0 20.2 50.0 19.9C50.7 19.7 51.3 19.9 51.8 20.6C52.0 20.9 52.0 21.0 52.0 21.5C52.0 22.5 51.5 23.1 50.5 23.1C50.2 23.1 49.9 23.1 49.7 23.0Z" fill="currentColor" fill-rule="evenodd" stroke="none"/>`,
   jelly: `<path d="M27 54 C27 24 73 24 73 54 Z"/><g fill="currentColor" stroke="none"><circle cx="42" cy="43" r="2.6"/><circle cx="58" cy="43" r="2.6"/></g>`+
@@ -490,10 +496,16 @@ const ART = {
   extra: `<path d="M74 62 C66 53 56 46 44 42 C42 52 42 72 44 82 C56 78 66 71 74 62 Z"/><path d="M44 42 C38 36 32 32 25 30 C29 39 33 47 38 54"/><path d="M44 82 C38 88 30 93 20 96 C26 88 32 79 38 70"/><path d="M38 56 L29 52 L31 62 L29 72 L38 68"/><path d="M53 45 C55 55 55 69 53 79 M62 50 C63 57 63 67 62 74"/><circle cx="68" cy="60" r="2.3" fill="currentColor" stroke="none"/><g stroke-width="2.8"><path d="M68 24 A9 9 0 0 1 84 20 M84 20 l-4 -.6 M84 20 l.6 -4 M86 27 A9 9 0 0 1 70 31 M70 31 l4 .6 M70 31 l-.6 4"/></g>`,
   // snorkel mask: wide frame with a nose pocket, glass glints, side straps, snorkel up the right side
   bigeye:`<path d="M17 44 C17 33 30 29 50 29 C70 29 83 33 83 44 C83 57 76 65 66 65 C59 65 57 58 50 58 C43 58 41 65 34 65 C24 65 17 57 17 44 Z"/><path d="M25 45 C25 38 34 36 50 36 C66 36 75 38 75 45 C75 53 71 57 65 57 C60 57 57 51 50 51 C43 51 40 57 35 57 C29 57 25 53 25 45 Z"/><path d="M33 42 l5 -2 M34 47 l7 -3" stroke-width="3"/><path d="M17 46 H10 M83 46 H86"/><path d="M80 74 C86 70 89 64 89 54 V20"/><circle cx="89" cy="16" r="3.5"/><path d="M80 74 C75 79 68 80 63 77"/>`,
-  bigfish:`<path d="${FISH}"/><circle cx="36" cy="46" r="8"/><circle cx="37" cy="46" r="3" fill="currentColor" stroke="none"/><path d="M30 34 l-3 -6 M37 32 v-7 M44 34 l3 -6" stroke-width="3"/>`,
+  bigfish:`<path d="${FISH_PATH}"/><circle cx="36" cy="46" r="8"/><circle cx="37" cy="46" r="3" fill="currentColor" stroke="none"/><path d="M30 34 l-3 -6 M37 32 v-7 M44 34 l3 -6" stroke-width="3"/>`,
   hook:  `<circle cx="56" cy="17" r="4.5"/><path d="M56 22 L56 64 C56 82 30 82 30 64 L30 57 L37 64"/>`,
   g1:G(1), g2:G(2), g3:G(3),
 };
+// the nine other default fish: same fish, each with its own markings so the pairs can be told apart
+const FISH_MARKS=['<path d="M52 36 V64"/>','<path d="M46 37 V63 M57 38 V62"/>','<path d="M41 39 V61 M50 36 V64 M59 39 V61"/>',
+  '<g fill="currentColor" stroke="none"><circle cx="45" cy="45" r="2.6"/><circle cx="56" cy="51" r="2.6"/><circle cx="46" cy="56" r="2.6"/></g>',
+  '<path d="M37 50 l5 -5 l5 5 l5 -5 l5 5 l5 -5"/>','<path d="M38 47 q4 5 8 0 q4 5 8 0 q4 5 8 0 M42 55 q4 5 8 0 q4 5 8 0"/>',
+  '<path d="M40 37 Q50 22 61 38"/>','<path d="M33 50 H66"/>','<circle cx="51" cy="50" r="6"/>'];
+FISH.slice(1).forEach((t,k)=>{ ART[t]=ART.fish+FISH_MARKS[k] });
 const icon = t => `<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ART[t]}</svg>`;
 // ---------- theme: the admin-editable look, sound and text ----------
 // THEME is stored in Firebase (jf/theme); uploaded files live in jf/assets/<id> and are cached on each device.
@@ -510,7 +522,7 @@ const TEXT_DEFAULTS={
   bank:'Bank', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
   gameOver:'Game over', grudge:'Grudge Match', newPlayers:'New players',
 };
-for(const t of ORDER){ TEXT_DEFAULTS['name_'+t]=TYPES[t].name; TEXT_DEFAULTS['say_'+t]=TYPES[t].say }
+for(const t of ORDER){ if(isFish(t)&&t!=='fish') continue; TEXT_DEFAULTS['name_'+t]=TYPES[t].name; TEXT_DEFAULTS['say_'+t]=TYPES[t].say }
 // Everything the bottom card, pass-the-device screen and pop-ups say. {name} and the other words in braces are filled in by the game.
 const MSG_DEFAULTS={
   turnTitle:'{name}’s turn', aiTag:' · AI {level}',
@@ -544,7 +556,7 @@ const MSG_DEFAULTS={
   dolPickTitle:'Pick up to {tokens} to hide', dolPickBody:'They go back on the table face down with the dolphin, in spots you choose. Nobody else will know which is which.',
   dolPickHelp:'Tap a token to pick it; tap again for another of the same kind, until it goes back to none.', dolClear:'Clear all',
   dolHideOnly:'Hide just the dolphin', dolHideSome:'Hide the dolphin and {tokens}',
-  handTitle:'Your hand · {points}', handEmpty:'Nothing banked yet.', handNote:'A shark sends half of these (rounded up, picked at random) back to the table.', close:'Close',
+  handTitle:'Your hand · {points}', handPairs:'{pairs}: +{bonus} at the end of the game', trayFish:'10 fish designs, two of each. Every matching pair in your hand at the end scores +1 bonus point.', overPairs:'{pairs} +{bonus}', handEmpty:'Nothing banked yet.', handNote:'A shark sends half of these (rounded up, picked at random) back to the table.', close:'Close',
 };
 Object.assign(TEXT_DEFAULTS,MSG_DEFAULTS);
 const COLOR_DEFAULTS={table:'#2b211b','table-2':'#241b16',seam:'#120c09',wood:'#efdcc0','wood-2':'#dcbb94','wood-3':'#b98a62',burn:'#4b2816',ink:'#f4ebde','ink-2':'#bba997',sea:'#6cc4b6','sea-ink':'#0e2724',bust:'#f08a6e',panel:'#3a2d25','panel-2':'#463830'};
@@ -612,7 +624,7 @@ async function loadThemeAssets(fetchRemote){
 let fontLinkKey='';
 function applyTheme(){
   // token names and descriptions
-  for(const t of ORDER){ TYPES[t].name=T('name_'+t); TYPES[t].say=T('say_'+t) }
+  for(const t of ORDER){ const k=isFish(t)?'fish':t; TYPES[t].name=T('name_'+k); TYPES[t].say=T('say_'+k) }
   const css=[], col=THEME.colors||{};
   const vars=Object.keys(COLOR_DEFAULTS).filter(k=>col[k]).map(k=>`--${k}:${col[k]}`);
   if(THEME.iconInk) vars.push(`--icon-ink:${THEME.iconInk}`);
@@ -794,6 +806,9 @@ const freshTurn = () => ({rev:[], picks:0, pending:null, banked:0, peek:null, ac
 const P = () => S.players[S.cur];
 // a hand holds fish, starfish and jellyfish; the score is simply their points added up
 const score = p => p.bank.reduce((a,t)=>a+(TYPES[t].pts||0),0) - (p.jellies||0);
+// matching fish pairs, each worth +1 at the end of the game
+const fishPairs = p => FISH.filter(t=>p.bank.filter(x=>x===t).length>=2).length;
+const finalScore = p => score(p)+fishPairs(p);
 const jellyCount = p => p.bank.filter(t=>t==='jelly').length + (p.jellies||0);
 const faceDown = () => S.slots.map((s,i)=>s&&!s.up?i:-1).filter(i=>i>=0);
 const empties = () => S.slots.map((s,i)=>s?-1:i).filter(i=>i>=0);
@@ -1463,7 +1478,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
-  handTitle:'Hand pop-up title',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
+  handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
 const TEXT_LABELS={title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
@@ -1688,8 +1703,8 @@ function renderStudio(){
           <label class="st-color">Icon size <input type="range" min="30" max="150" step="5" value="${Math.round((E.iconSize||.84)*100)}" data-iconsize> <span class="st-pct">${Math.round((E.iconSize||.84)*100)}%</span></label>
           <label class="st-color">Ink color <input type="color" data-iconink value="${E.iconInk||(E.colors&&E.colors.burn)||COLOR_DEFAULTS.burn}"></label>
           ${E.iconInk?`<button class="btn small ghost" data-iconinkreset>Reset color</button>`:''}</div></div></div>
-      <p class="muted">Upload an icon for any token. It sits on top of the token material (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style).</p>
-      <div class="st-grid">${ORDER.map(t=>item(t,TYPES[t].name,face(t))).join('')}${item('back','Token back picture (replaces the material on backs)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
+      <p class="muted">Fish 1 to Fish 10 are the ten fish designs; each is printed on two tokens, and a matching pair in hand scores a bonus point. Upload an icon for any token. It sits on top of the token material (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style).</p>
+      <div class="st-grid">${ORDER.map(t=>item(t,isFish(t)?`${TYPES[t].name} ${fishNo(t)} (pair)`:TYPES[t].name,face(t))).join('')}${item('back','Token back picture (replaces the material on backs)',`<div class="st-back"><span class="back"></span></div>`)}</div>`;
   } else if(STUDIO.tab==='bg'){
     const row=(key,label)=>{ const e=E.bg&&E.bg[key]||{}, src=srcOf(e);
       return `<div class="st-row"><div class="st-swatch" style="background:${src?`url('${src}') center/cover,`:e.color?'':'var(--water) center/cover,'}${e.color||'#2f9ea3'}"></div>
@@ -1709,7 +1724,7 @@ function renderStudio(){
         <div class="st-acts"><select data-font="${r}">${GOOGLE_FONTS.map(f=>`<option ${f===cur?'selected':''}>${f}</option>`).join('')}${up?`<option value="__upload" ${cur==='__upload'?'selected':''}>My uploaded font</option>`:''}</select>
         <button class="btn small" data-fontup="${r}">Upload font</button>${E.fonts&&E.fonts[r]?`<button class="btn small ghost" data-fontreset="${r}">Reset</button>`:''}</div></div></div>` }).join('')}`;
   } else if(STUDIO.tab==='text'){
-    const keys=[...Object.keys(TEXT_LABELS),...ORDER.flatMap(t=>['name_'+t,'say_'+t]),...Object.keys(MSG_DEFAULTS)];
+    const keys=[...Object.keys(TEXT_LABELS),...ORDER.filter(t=>!isFish(t)||t==='fish').flatMap(t=>['name_'+t,'say_'+t]),...Object.keys(MSG_DEFAULTS)];
     const label=k=>TEXT_LABELS[k]||MSG_LABELS[k]||(k.startsWith('name_')?`Token name: ${TEXT_DEFAULTS[k]}`:`Token description: ${TEXT_DEFAULTS['name_'+k.slice(4)]}`);
     body=`<p class="muted">Edit any wording. Wrap words in **double stars** for bold; press Enter for a new line. Changes save when you leave a box. In the card and message wording, words in {braces} are filled in by the game: {name} is the player, {points} and {tokens} are counts like “3 points”, {token} is a token’s name, {banked} is what was just banked.</p><div class="st-list">${keys.map(k=>{ const custom=E.text&&E.text[k]!=null&&E.text[k]!=='';
       return `<label class="st-text"><span>${esc(label(k))}${custom?` <button class="linkbtn" data-textreset="${k}">reset</button>`:''}</span><textarea data-text="${k}" rows="${TE(k).length>70?3:1}">${esc(TE(k))}</textarea></label>` }).join('')}</div>`;
@@ -1877,7 +1892,9 @@ function aiChooseFlip(p){
   const kindOf=i=>TYPES[B[i]].kind;
   if(Math.random()<cfg.slip && fd.length) return pend&&Math.random()<.5?-1:pick(fd);
   if(of('star').length) return pick(of('star'));
-  if(of('fish').length) return pick(of('fish'));
+  const knownFish=known.filter(i=>isFish(B[i])), pairUp=knownFish.filter(i=>p.bank.includes(B[i]));
+  if(pairUp.length) return pick(pairUp);
+  if(knownFish.length) return pick(knownFish);
   if(of('extra').length&&(pend>0||p.kind==='hard')) return pick(of('extra'));
   if(pend===0){
     if(unknown.length) return pick(unknown);
@@ -1924,7 +1941,7 @@ async function aiAct(){
     // bring back the shark as a trap only it knows about, then prizes it can collect later; easy players grab one at random
     const max=dolMax(), ks=[];
     if(p.kind==='easy'){ if(max) ks.push(Math.floor(Math.random()*S.scrap.length)) }
-    else for(const t of ['shark','star','jelly','fish']) S.scrap.forEach((x,k)=>{ if(x===t&&ks.length<max&&!ks.includes(k)) ks.push(k) });
+    else for(const t of ['shark','star','jelly',...FISH]) S.scrap.forEach((x,k)=>{ if(x===t&&ks.length<max&&!ks.includes(k)) ks.push(k) });
     const sp=shuffle(dolSpots()).slice(0,ks.length+1);
     return act('D'+sp[0]+ks.map((k,j)=>'d'+k+'s'+sp[j+1]).join(''));
   }
@@ -2024,7 +2041,7 @@ async function dolphinPlace(dSpot,pairs){
 async function doFlip(i){
   const s=S.slots[i], T=TYPES[s.t], p=P();
   sfx('flip'); s.up=true; S.turn.rev.push(i); seeAll(i); S.summary=null; render();
-  sfx(T.kind==='catch'||T.kind==='bust'||s.t==='dolphin'?s.t:s.t==='extra'?'extra':'chime');
+  sfx(isFish(s.t)?'fish':T.kind==='catch'||T.kind==='bust'||s.t==='dolphin'?s.t:s.t==='extra'?'extra':'chime');
   await wait(500);
   if(faceDown().length<=3) return lastFlip(i);
   if(T.kind==='catch') return;
@@ -2249,11 +2266,12 @@ function handHTML(i){
   const p=S.players[i], groups=ORDER.filter(t=>TYPES[t].pts!=null).map(t=>[t,p.bank.filter(x=>x===t).length]).filter(([,n])=>n);
   return `<div class="sheet"><span class="label">${fmt(TT('onlyYou',{name:p.name}))}</span><h2>${fmt(TT('handTitle',{points:score(p)+' '+(Math.abs(score(p))===1?'point':'points')}))}</h2>
     ${groups.length?`<div class="handgrid">${groups.map(([t,n])=>`<figure>${face(t)}<figcaption><b>×${n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>`:`<p class="muted">${TX('handEmpty')}</p>`}
+    ${fishPairs(p)?`<p><b>${fmt(TT('handPairs',{pairs:plural(fishPairs(p),'matching fish pair'),bonus:fishPairs(p)}))}</b></p>`:''}
     <p class="muted">${TX('handNote')}</p>
     <button class="btn primary" id="closeHand">${TX('close')}</button></div>`;
 }
 function rulesHTML(){
-  const li=t=>`<li>${face(t)}<span><b>${fmt(TYPES[t].name)}</b> ×${TYPES[t].n}<br><span class="muted">${fmt(TYPES[t].say)}</span></span></li>`;
+  const li=t=>`<li>${face(t)}<span><b>${fmt(TYPES[t].name)}</b> ×${t==='fish'?FISH.length*2:TYPES[t].n}<br><span class="muted">${fmt(TYPES[t].say)}</span></span></li>`;
   return `<div class="rules">
     <p>${TX('rulesIntro')}</p>
     <section><h3>${TX('rulesKeep')}</h3><ul>${['fish','star','extra'].map(li).join('')}</ul></section>
@@ -2283,7 +2301,8 @@ function renderSetup(){
     </div>
     <div class="card" id="lobby" hidden></div>
     <div class="card"><span class="label">${TX('inBag')}</span>
-      <div class="tray">${ORDER.map(t=>`<figure>${face(t)}<figcaption><b>×${TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
+      <div class="tray">${ORDER.filter(t=>!isFish(t)||t==='fish').map(t=>`<figure>${face(t)}<figcaption><b>×${t==='fish'?FISH.length*2:TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
+      <p class="muted">${TX('trayFish')}</p><div class="tray fishes">${FISH.map(t=>`<figure>${face(t)}<figcaption>×2</figcaption></figure>`).join('')}</div>
     </div>
     <div class="card"><h2>${TX('howTo')}</h2>${rulesHTML()}</div>
     <footer class="foot">${TX('copyright')}${BUILD?` · <span class="ver">v${BUILD}</span>`:''}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>
@@ -2487,15 +2506,15 @@ addEventListener('resize',()=>{ if(boardEl&&S&&S.screen==='play'&&S.layout) fitB
 
 function renderOver(){
   bar.hidden=true; boardEl=null;
-  const ranked=S.players.map(p=>({...p,sc:score(p),jellies:jellyCount(p)})).sort((a,b)=>b.sc-a.sc||a.jellies-b.jellies);
+  const ranked=S.players.map(p=>({...p,sc:finalScore(p),pairs:fishPairs(p),jellies:jellyCount(p)})).sort((a,b)=>b.sc-a.sc||a.jellies-b.jellies);
   const top=ranked[0], winners=ranked.filter(r=>r.sc===top.sc&&r.jellies===top.jellies);
-  const fish=p=>p.bank.filter(t=>t==='fish').length, star=p=>p.bank.filter(t=>t==='star').length;
+  const fish=p=>p.bank.filter(isFish).length, star=p=>p.bank.filter(t=>t==='star').length;
   let place=0;
   ov.hidden=false;
   ov.innerHTML=`<div class="sheet"><span class="label">${TX('gameOver')}</span>
     <h2>${winners.length>1?'A tie between '+winners.map(w=>esc(w.name)).join(' & '):esc(top.name)+' wins!'}</h2>${S.endNote?`<p class="muted">${esc(S.endNote)}</p>`:''}
     <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
-      return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
+      return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish${r.pairs?' · '+fmt(TT('overPairs',{pairs:plural(r.pairs,'fish pair'),bonus:r.pairs})):''}</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
     <div class="btnrow"><button class="btn primary" id="again">${TX('grudge')}</button><button class="btn ghost" id="setup">${TX('newPlayers')}</button></div><p class="foot">${TX('copyright')}</p></div>`;
   app.innerHTML='';
   const again=ov.querySelector('#again');
@@ -2603,7 +2622,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610121802;
+const BUILD=2610122040;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
