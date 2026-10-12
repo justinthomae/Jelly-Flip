@@ -358,6 +358,8 @@ p{margin:0}
 
 /* online */
 .err{color:var(--bust);font-size:.9rem}
+.roomcode{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:6px 0 4px}
+.roomcode .code{font-size:2rem;letter-spacing:.22em;color:var(--wood);font-variant-numeric:tabular-nums}
 .savecode{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
 .savecode .code{font-size:1.25rem;letter-spacing:.12em;font-variant-numeric:tabular-nums;color:var(--wood)}
 .card.slim{gap:8px;padding:14px 18px}
@@ -1252,7 +1254,7 @@ function bindRoom(){
 }
 async function leaveOnline(){
   try{ if(NET.room) await NET.room.leave() }catch(e){}
-  NET.room=null; NET.role=null; NET.g=null; NET.log=[]; NET.applied=0; NET.pending=null;
+  NET.room=null; NET.role=null; NET.g=null; NET.log=[]; NET.applied=0; NET.pending=null; NET.autoSit=false; NET.joinedAt=0;
   lobbyAnnounce();
 }
 
@@ -1274,7 +1276,9 @@ function hostOnPeers(){
     const pr=p.presence||{}, s=pr.claim;
     if(!Number.isInteger(s)||g.kinds[s]!=='remote') continue;
     const holder=g.seats[s];
-    if(holder===p.peer||(holder&&here.has(holder))||Object.values(g.seats).includes(p.peer)) continue;
+    // a seated player renaming themselves while waiting
+    if(holder===p.peer){ const nm=cleanName(pr.name); if(nm&&g.st==='wait'&&nm!==g.names[s]){ g.names[s]=nm; changed=true } continue }
+    if((holder&&here.has(holder))||Object.values(g.seats).includes(p.peer)) continue;
     g.seats[s]=p.peer; g.names[s]=cleanName(pr.name)||g.names[s];
     if(S.players&&S.players[s]) S.players[s].name=g.names[s];
     changed=true;
@@ -1420,18 +1424,20 @@ function renderWait(){
       </div>
       <footer class="foot">${TX('copyright')}</footer>`;
     bindToggles(app);
-    const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{NET.myName=cleanName(mn.value)};
+    const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{ NET.myName=cleanName(mn.value);
+      clearTimeout(NET.nameT); NET.nameT=setTimeout(()=>{ if(NET.room&&NET.myName) NET.room.presence({name:NET.myName}).catch(()=>{}) },400) };
   }
   const head=app.querySelector('#waitHead'), seats=app.querySelector('#waitSeats'), btns=app.querySelector('#waitBtns');
   if(!g){
-    head.innerHTML=`<h2>Finding the game…</h2><p class="muted">${NET.hostHere?'Connecting to the host.':'The host isn’t here right now. Their game appears as soon as they’re back.'}</p>`;
+    const long=NET.joinedAt&&Date.now()-NET.joinedAt>6000; if(NET.joinedAt&&!long) setTimeout(()=>{ if(S.screen==='wait'&&!NET.g) render() },6200);
+    head.innerHTML=`<h2>Finding game ${esc((NET.code||'').toUpperCase())}…</h2><p class="muted">${long?'No open game has this code yet. Check the code with the host; if they’re still setting up, it appears here as soon as they open it.':NET.hostHere?'Connecting to the host.':'The host isn’t here right now. Their game appears as soon as they’re back.'}</p>`;
     seats.innerHTML=''; btns.innerHTML=`<button class="btn ghost" id="leaveWait">Leave</button>`;
   } else {
     const mine=Object.keys(g.seats).find(k=>g.seats[k]===NET.me);
     const allIn=g.kinds.every((k,i)=>k!=='remote'||(g.seats[i]&&here.has(g.seats[i])));
     head.innerHTML=host
-      ? `<h2>Waiting for players</h2><p class="muted">${NET.kind==='firebase'
-          ?`Send your remote players this link: <b>${esc(location.origin+location.pathname)}</b>. Your game appears for them under <b>Online games</b> as “${esc(hostName(g))}’s game”.`
+      ? `<h2>Waiting for players</h2>${NET.kind==='firebase'?`<div class="roomcode"><span class="label">Game code</span><b class="code">${esc(g.code.toUpperCase())}</b><button class="btn small ghost" id="shareRoom">${navigator.share?'Share link':'Copy link'}</button></div>`:''}<p class="muted">${NET.kind==='firebase'
+          ?`Players type this code in <b>Have a game code?</b> on their own device, or open the link, and they’re taken straight into this game. It also appears under <b>Online games</b> as “${esc(hostName(g))}’s game”.`
           :'Ask your remote players to open this same '+esc(T('title'))+' link while signed in to claude.ai. Your game appears for them under <b>Online games</b>. They need to be invited to this page from its Share menu.'}</p>`
       : mine!=null ? `<h2>You’re in!</h2><p class="muted">Waiting for ${esc(hostName(g))} to start${g.st==='play'?'… the game is already going, so you’ll jump straight in.':'.'}</p>`
       : `<h2>${esc(hostName(g))}’s game</h2><p class="muted">Type your name, then pick an open seat.</p>`;
@@ -1444,8 +1450,12 @@ function renderWait(){
     btns.innerHTML=host
       ? `<button class="btn primary" id="startOnline" ${allIn?'':'disabled'}>${allIn?TX('startGame'):'Waiting for players…'}</button><button class="btn ghost" id="leaveWait">Cancel</button>`
       : `<button class="btn ghost" id="leaveWait">Leave</button>`;
+    if(!host&&mine==null&&NET.autoSit){ const open=g.kinds.findIndex((k,i)=>k==='remote'&&!(g.seats[i]&&here.has(g.seats[i])));
+      if(open>=0){ NET.autoSit=false; NET.room.presence({claim:open,name:NET.myName||'Friend'}).catch(()=>{}) } }
     seats.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{ sfx('tap'); NET.room.presence({claim:+b.dataset.sit,name:NET.myName||'Friend'}).catch(()=>{}) });
     const so=btns.querySelector('#startOnline'); if(so) so.onclick=()=>{ sfx('turn'); hostStart() };
+    const sr=head.querySelector('#shareRoom'); if(sr) sr.onclick=async()=>{ const u=new URL(location.href); u.search=''; u.hash=''; u.searchParams.set('join',g.code);
+      try{ if(navigator.share) await navigator.share({title:T('title'),text:'Join my '+T('title')+' game: code '+g.code.toUpperCase(),url:u.href}); else { await navigator.clipboard.writeText(u.href); sr.textContent='Copied!' } }catch(e){} };
   }
   const lw=btns.querySelector('#leaveWait'); if(lw) lw.onclick=async()=>{ await leaveOnline(); S=setupState(S.setup||NET.setup); render() };
 }
@@ -2226,7 +2236,8 @@ function cloudDrop(code){ if(!code||!FIREBASE_CONFIG) return; cloudCore().then((
 // open a saved game by its code (typed in, or from a shared link)
 async function openSavedGame(raw){
   const code=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(code.length!==6){ CLOUD.note='Game codes have 6 letters and numbers.'; return render() }
+  if(code.length===4) return joinByCode(code);
+  if(code.length!==6){ CLOUD.note='Game codes are 4 letters (a new online game) or 6 letters and numbers (a saved game).'; return render() }
   CLOUD.note='Looking for game '+fmtCode(code)+'…'; render();
   try{
     const g=await cloudGet(code);
@@ -2235,6 +2246,14 @@ async function openSavedGame(raw){
     CLOUD.note='Game '+fmtCode(code)+' is ready. Tap Resume game to keep playing.'; CLOUD.status='saved'; CLOUD.checked[code]=true;
   }catch(e){ console.warn('cloud load',e); CLOUD.note='Couldn’t reach the saved games right now. Check the connection and try again.' }
   render();
+}
+// join a live online game by its 4-letter code: go straight to its waiting room and take the first open seat
+async function joinByCode(code){
+  code=code.toLowerCase();
+  CLOUD.note='Joining game '+code.toUpperCase()+'…'; render();
+  for(let k=0;k<40&&!NET.lobby;k++) await new Promise(r=>setTimeout(r,250));
+  if(!NET.lobby){ CLOUD.note='Online play isn’t connected right now. Check the connection and try again.'; return render() }
+  CLOUD.note=''; NET.autoSit=true; NET.joinedAt=Date.now(); guestJoin(code);
 }
 // a game left on this device may have been played further on another one: use whichever copy is newer
 async function cloudFreshen(local){
@@ -2291,7 +2310,7 @@ function renderSetup(){
       ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
         <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
         <span class="muted st-small">${CLOUD.status==='saving'?'Saving online…':CLOUD.status==='error'?'Couldn’t save online yet; it’s still saved on this device.':CLOUD.status==='saved'?'Saved online.':''}</span></div>`:''}</div>`:''}
-    ${FIREBASE_CONFIG&&!(window.claude&&window.claude.use)?`<div class="card slim"><span class="label">Have a game code?</span><div class="coderow"><input id="codeIn" maxlength="9" placeholder="ABC-123" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Game code"><button class="btn small" id="codeGo">Open game</button></div>${CLOUD.note?`<p class="muted st-small">${esc(CLOUD.note)}</p>`:''}</div>`:''}
+    ${FIREBASE_CONFIG&&!(window.claude&&window.claude.use)?`<div class="card slim"><span class="label">Have a game code?</span><div class="coderow"><input id="codeIn" maxlength="9" placeholder="Game code" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Game code"><button class="btn small" id="codeGo">Open game</button></div>${CLOUD.note?`<p class="muted st-small">${esc(CLOUD.note)}</p>`:''}</div>`:''}
     <div class="card">
       <span class="label">${TX('players')}</span>
       <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
@@ -2622,7 +2641,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122040;
+const BUILD=2610122048;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
@@ -2638,6 +2657,7 @@ function start(d){
   if(d&&d.S){ if(sp) sp.remove() } else if(sp) try{ startSplash() }catch(e){ console.error('splash',e); sp.remove() }
   try{ startTheme() }catch(e){ console.error('theme',e) }
   try{ checkUpdate() }catch(e){}
+  try{ const j=new URLSearchParams(location.search).get('join'); if(j){ const u=new URL(location.href); u.searchParams.delete('join'); history.replaceState(null,'',u.href); setTimeout(()=>joinByCode(j.replace(/[^a-z]/gi,'').slice(0,4)),300) } }catch(e){}
   try{ const q=new URLSearchParams(location.search).get('game'); if(q){ const u=new URL(location.href); u.searchParams.delete('game'); history.replaceState(null,'',u.href); setTimeout(()=>openSavedGame(q),300) } }catch(e){}
   const saved=load();
   S=(d&&d.S&&!d.S.net)?d.S:setupState(loadSetup()||(saved&&saved.setup)||undefined);
