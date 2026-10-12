@@ -320,6 +320,9 @@ p{margin:0}
 .st-appicon img{position:absolute;inset:0;width:100%;height:100%;max-width:none;box-sizing:border-box;object-fit:contain}
 .st-swimprev{width:110px;height:64px;display:grid;place-items:center;flex:none;color:var(--wood)}
 .st-swimprev img,.st-swimprev svg{max-width:100%;max-height:100%;object-fit:contain}
+.st-cardprev{position:sticky;top:-16px;z-index:3;margin:6px -6px 10px;padding:4px 0;background:color-mix(in srgb,var(--panel) 92%,transparent);border-radius:14px;overflow:hidden}
+.bar.cardpreview{position:relative;left:auto;right:auto;bottom:auto;padding:56px 64px 44px;background:linear-gradient(180deg,#2f9ea3,#23727a);z-index:auto;pointer-events:none;border-radius:14px}
+.bar.cardpreview .in{max-width:520px}
 .st-narrprev{width:72px;height:72px;display:grid;place-items:center;flex:none}
 .st-narrprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-h3{margin:14px 0 2px;font-family:var(--display);font-weight:400}
@@ -404,10 +407,20 @@ p{margin:0}
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 30%);z-index:5}
 /* fixed-height card so the board never sits under it */
 .bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
-  display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;height:92px;box-sizing:border-box}
+  display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;min-height:92px;box-sizing:border-box}
 .bar .in{position:relative}
-.bar .in.has-narr{padding-right:calc(14px + 62px * var(--nsz,1))}
-.bar .narrator{position:absolute;right:6px;bottom:calc(100% - 26px);width:calc(84px * var(--ns,1));height:calc(84px * var(--ns,1));object-fit:contain;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));animation:narrIn .45s cubic-bezier(.2,1.4,.4,1) both}
+.bar .in.narr-right{padding-right:calc(14px + 72px * var(--nsz,1))}
+.bar .in.narr-left{padding-left:calc(14px + 72px * var(--nsz,1))}
+.bar .narrator.side{position:absolute;top:50%;bottom:auto;width:auto;height:calc(120px * var(--nsz,1));max-width:none;object-fit:contain;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));z-index:2}
+.bar .narrator.side.right{right:calc(-26px * var(--nsz,1));left:auto}
+.bar .narrator.side.left{left:calc(-26px * var(--nsz,1));right:auto}
+.bar .minibox{grid-area:face;display:grid;place-items:center;transform-origin:center}
+.bar .in.no-token{grid-template-columns:0 minmax(0,1fr) auto;column-gap:0}
+.bar .in.align-center .msg{text-align:center;align-items:center}
+.bar .in.align-right .msg{text-align:right;align-items:flex-end}
+.bar.bust .in.has-bg{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}
+.bar .msg strong,.bar .msg span{display:block}
+.bar .narrator.old{position:absolute;right:6px;bottom:calc(100% - 26px);width:calc(84px * var(--ns,1));height:calc(84px * var(--ns,1));object-fit:contain;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));animation:narrIn .45s cubic-bezier(.2,1.4,.4,1) both}
 .sheet .narrator.big{width:calc(120px * var(--ns,1));height:calc(120px * var(--ns,1));object-fit:contain;margin:-60px auto -4px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45));animation:narrIn .5s cubic-bezier(.2,1.4,.4,1) both}
 @keyframes narrIn{from{transform:translateY(16px) scale(.85);opacity:0}to{transform:none;opacity:1}}
 .bar .msg{grid-area:msg;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -419,7 +432,8 @@ p{margin:0}
 .bar .avatar.think{animation:think 1.2s ease-in-out infinite}
 @keyframes think{50%{transform:scale(.9);opacity:.75}}
 @media (max-width:559px){
-  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";height:126px;align-content:center}
+  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";min-height:126px;align-content:center}
+  .bar .in.no-token{grid-template-columns:0 minmax(0,1fr)}
   .bar .acts{justify-content:flex-end}
 }
 .bar .mini.hide{visibility:hidden}
@@ -632,7 +646,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.sharkSwim); add(th.cardBg); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.sharkSwim); add(th.cardBg); Object.values(th.cards||{}).forEach(c=>add(c&&c.bg)); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -663,6 +677,7 @@ function applyTheme(){
   }
   vars.push(`--display:${fam.display},${FONT_FALLBACK.display}`,`--body:${fam.body},${FONT_FALLBACK.body}`,`--credit:${fam.credit},${FONT_FALLBACK.credit}`);
   css.push(`html:root{${vars.join(";")}}`);
+  for(const c of Object.values(THEME.cards||{})) for(const pt of ['title','body']){ const f=c&&c[pt]&&c[pt].font; if(f&&!['display','body','credit'].includes(f)) google.push(f) }
   const key=google.filter(f=>f!=='Gochi Hand'&&f!=='Atkinson Hyperlegible'&&f!=='Rubik').sort().join('|');
   if(key!==fontLinkKey){ fontLinkKey=key; let l=document.getElementById('themeFonts'); if(!l){ l=document.createElement('link'); l.id='themeFonts'; l.rel='stylesheet'; document.head.appendChild(l) }
     l.href=key?'https://fonts.googleapis.com/css2?'+key.split('|').map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+':wght@400;700').join('&')+'&display=swap':'' }
@@ -687,7 +702,7 @@ function applyTheme(){
     else css.push(`${sel}{${base}background:url("${logo}") center/contain no-repeat;${blend!=='normal'?'mix-blend-mode:multiply;':''}}`) }
   // a picture behind the game's cards and pop-ups, darkened so the words stay readable
   const cb=THEME.cardBg, cbs=srcOf(cb);
-  if(cbs){ const d=cb.dark!=null?cb.dark:.45; css.push(`.bar .in,.overlay .sheet{background:linear-gradient(rgba(10,6,4,${d}),rgba(10,6,4,${d})),url("${cbs}") center/cover no-repeat,var(--panel) !important}`,`.bar.bust .in{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}`) }
+  if(cbs){ const d=cb.dark!=null?cb.dark:.45; css.push(`.overlay .sheet{background:linear-gradient(rgba(10,6,4,${d}),rgba(10,6,4,${d})),url("${cbs}") center/cover no-repeat,var(--panel) !important}`,`.bar.bust .in{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}`) }
   let st=document.getElementById('themeStyle'); if(!st){ st=document.createElement('style'); st.id='themeStyle'; document.head.appendChild(st) }
   st.textContent=css.join('\n');
   document.title=T('title');
@@ -803,13 +818,35 @@ const NARR_SLOTS=()=>[['all','Every card (default)'],['turn','Turn card: whose t
   ['whirl',TYPES.whirl.name+' card'],['dolphin',TYPES.dolphin.name+' card'],['mask',TYPES.bigeye.name+' card'],['hook',TYPES.hook.name+' card'],['hooked','Hooked token card'],
   ['sub','Submarine card'],['look','Submarine: memorize card'],['jelly',TYPES.jelly.name+' card'],['shark',TYPES.shark.name+' card'],['last','Last-flip bust card'],
   ['handoff','Pass-the-device screen'],['over','Game over screen']];
+// Card designs from the Studio's Cards editor: THEME.cards[slot] overrides THEME.cards.all, which overrides the built-in look.
+const cs=(slot,part,key,def)=>{ const C=THEME.cards||{}, pick=o=>o&&(part?o[part]&&o[part][key]:o[key]);
+  const a=pick(C[slot]); if(a!=null) return a; const b=pick(C.all); return b!=null?b:def };
+const fontCss=f=>!f?'':f==='display'?'var(--display)':f==='body'?'var(--body)':f==='credit'?'var(--credit)':`'${String(f).replace(/'/g,'')}',var(--body)`;
 function narratorFor(slot){
-  const map=THEME.cardNarrator||{}, id=map[slot]!=null?map[slot]:slot==='handoff'||slot==='over'?null:map.all;
+  const map=THEME.cardNarrator||{}, fromCards=slot!=='handoff'&&slot!=='over'?cs(slot,'narr','id',null):null;
+  const id=fromCards!=null?fromCards:map[slot]!=null?map[slot]:slot==='handoff'||slot==='over'?null:map.all;
   const n=id&&id!=='none'&&THEME.narrators&&THEME.narrators[id], src=srcOf(n);
   return src?{src,name:n.name||'',size:n.size||1}:null;
 }
-// room above the bottom card for a narrator peeking over its top edge, so it never covers tokens
-const narrOverhang=()=>{ const N=THEME.narrators||{}, used=Object.values(THEME.cardNarrator||{}).filter(v=>v&&v!=='none'&&srcOf(N[v])); return used.length?Math.round(60*Math.max(...used.map(v=>N[v].size||1))):0 };
+// room above the bottom card for any narrator that reaches past its top edge, so it never covers tokens
+const CARD_SLOTS=['turn','summary','extra','whirl','dolphin','mask','hook','hooked','sub','look','jelly','shark','last'];
+const narrOverhang=()=>Math.round(Math.max(0,...CARD_SLOTS.map(k=>{ const n=narratorFor(k); if(!n) return 0;
+  const h=120*cs(k,'narr','size',1)*n.size; return h/2-46-cs(k,'narr','dy',0) })));
+// the look of one bottom card: narrator on a side, token picture, title, message, background
+function cardHTML(slot,{mini,title,sub,acts,bust}){
+  const g=(p,k,d)=>cs(slot,p,k,d), n=narratorFor(slot), side=g('narr','side','right');
+  const tf=(p)=>`translate(${g(p,'dx',0)}px,${g(p,'dy',0)}px) rotate(${g(p,'rot',0)}deg)`;
+  const txt=(p,base)=>{ const f=fontCss(g(p,'font','')), c=g(p,'color',''); return `${g(p,'show',true)?'':'display:none;'}${f?`font-family:${f};`:''}font-size:calc(${base} * ${g(p,'size',1)});${c?`color:${c};`:''}transform:${tf(p)};transform-origin:${g(null,'align','left')==='center'?'center':g(null,'align','left')==='right'?'right':'left'} center` };
+  const ns=n?g('narr','size',1)*n.size:0;
+  const narr=n?`<img class="narrator side ${side}" src="${n.src}" alt="${esc(n.name)}" style="--nsz:${ns};transform:translate(${g('narr','dx',0)}px,calc(-50% + ${g('narr','dy',0)}px)) rotate(${g('narr','rot',0)}deg)${g('narr','flip',false)?' scaleX(-1)':''}">`:'';
+  const C=THEME.cards||{}, own=[C[slot]&&C[slot].bg,C.all&&C.all.bg].find(b=>b&&srcOf(b)), bgSrc=own?srcOf(own):srcOf(THEME.cardBg);
+  const dark=g('bg','dark',THEME.cardBg&&THEME.cardBg.dark!=null?THEME.cardBg.dark:.45);
+  const bg=g('bg','show',true)&&bgSrc?`background:linear-gradient(rgba(10,6,4,${dark}),rgba(10,6,4,${dark})),url('${bgSrc}') center/cover no-repeat,var(--panel);`:g('bg','show',true)?'':'background-image:none;';
+  const tok=g('token','show',true), align=g(null,'align','left');
+  return `<div class="in${n?` has-narr narr-${side}`:''}${tok?'':' no-token'}${bg.startsWith('background:')?' has-bg':''} align-${align}" style="${bg}${n?`--nsz:${ns};`:''}">${narr}
+    <div class="minibox" style="${tok?'':'visibility:hidden;'}transform:${tf('token')} scale(${g('token','size',1)})">${mini}</div>
+    <div class="msg"><strong style="${txt('title','1.35rem')}">${title}</strong><span style="${txt('body','.9rem')}">${sub}</span></div><div class="acts">${acts}</div></div>`;
+}
 const narrHTML=(slot,cls='narrator')=>{ const n=narratorFor(slot); return n?`<img class="${cls}" src="${n.src}" alt="${esc(n.name)}" style="--ns:${n.size}">`:'' };
 const face = (t,cls='') => { const art=tokenArt(t), mir=THEME.tokens&&THEME.tokens[t]&&THEME.tokens[t].mirror;
   return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${mir?'mirror':''} ${cls}">${art?artHTML(art):icon(t)}</div>` };
@@ -1731,10 +1768,66 @@ async function uploadAsset(path,file,kind,extra={}){
 function pickFile(accept,cb){ const i=document.createElement('input'); i.type='file'; i.accept=accept; i.onchange=()=>{ if(i.files[0]) cb(i.files[0]) }; i.click() }
 
 // ---- screens ----
+// ---- the Cards editor: pick a card, see it, change everything about it ----
+const CARD_EDIT_SLOTS=()=>[['all','All cards (defaults for every card)'],...NARR_SLOTS().filter(([k])=>CARD_SLOTS.includes(k))];
+function cardSample(slot){
+  const b=TT('bankedPrefix',{points:'2 points'})+' ', who='Player 1', btn=t=>`<button class="btn primary" tabindex="-1">${t}</button>`;
+  const av=`<div class="mini avatar" style="--c:#6cc4b6">1</div>`, tok=t=>`<div class="mini">${face(t)}</div>`;
+  const S2={turn:[av,TT('turnTitle',{name:who}),TT('statusFlip'),`<button class="btn ghost small" tabindex="-1">${TX('handBtn')}</button>${btn(TX('bank'))}`],
+    summary:[av,TT('turnTitle',{name:'Player 2'}),TT('sumBanked',{name:who,points:'3 points'}),''],
+    extra:[tok('extra'),TT('extraTitle'),TT('extraBody',{banked:b,name:who}),btn(TX('continue'))],
+    whirl:[tok('whirl'),TT('whirlTitle'),TT('whirlBody',{banked:b}),btn(TX('continue'))],
+    dolphin:[tok('dolphin'),TT('dolphinTitle'),TT('dolphinMine',{banked:b,name:who,tokens:'3 tokens'}),''],
+    mask:[tok('bigeye'),TT('maskTitle'),TT('maskMine',{banked:b,name:who,tokens:'3 tokens'}),''],
+    hook:[tok('hook'),TT('hookTitle'),TT('hookMine',{banked:b,name:who}),''],
+    hooked:[tok('jelly'),TT('hookedTitle',{token:TYPES.jelly.name}),TT('hookedBody'),btn(TX('continue'))],
+    sub:[tok('g2'),TT('subTitle'),TT('subMine',{banked:b,name:who,tokens:'2 tokens'}),''],
+    look:[av,TT('lookTitle'),TT('lookBody'),btn(TX('continue'))],
+    jelly:[tok('jelly'),TT('bustTitle',{token:TYPES.jelly.name}),TT('jellyBody',{name:who}),btn(TX('continue')),1],
+    shark:[tok('shark'),TT('bustTitle',{token:TYPES.shark.name}),TT('sharkBody',{lose:2,tokens:'4 tokens',name:who}),btn(TX('continue')),1],
+    last:[tok('jelly'),TT('bustTitle',{token:TYPES.jelly.name}),TT('jellyBody',{name:who})+' '+TT('lastFlip'),btn(TX('continue')),1]};
+  const [mini,title,sub,acts,bust]=S2[slot==='all'?'extra':slot];
+  return {mini,title:fmt(title),sub:fmt(sub),acts,bust};
+}
+function cardPreviewHTML(E){
+  const keep=THEME; THEME=E; try{ const slot=STUDIO.cardSlot||'all', d=cardSample(slot);
+    return `<div class="bar cardpreview${d.bust?' bust':''}">${cardHTML(slot,d)}</div>` } finally{ THEME=keep }
+}
+function cardEditorHTML(E){
+  const slot=STUDIO.cardSlot||'all', C=E.cards||{}, own=C[slot]||{}, N=E.narrators||{}, ids=Object.keys(N);
+  const keep=THEME; THEME=E; const v=(p,k,d)=>cs(slot,p,k,d); 
+  const range=(p,k,min,max,step,def,unit,scale=1)=>{ const val=v(p,k,def); return `<label class="st-color">${unit.label} <input type="range" min="${min}" max="${max}" step="${step}" value="${Math.round(val*scale)}" data-cset="${p}.${k}" data-scale="${scale}"> <span class="st-pct">${Math.round(val*scale)}${unit.u}</span></label>` };
+  const set=(p,k)=>own[p]&&own[p][k]!=null;
+  const nudge=p=>`<div class="st-color">Position <div class="st-nudge"><button class="nb up" data-cnudge="${p}" data-d="0,-4">↑</button><button class="nb lf" data-cnudge="${p}" data-d="-4,0">←</button><button class="nb ct" data-cnudge="${p}" data-d="center" title="Center">${v(p,'dx',0)||v(p,'dy',0)?'⦿':'·'}</button><button class="nb rt" data-cnudge="${p}" data-d="4,0">→</button><button class="nb dn" data-cnudge="${p}" data-d="0,4">↓</button></div></div>`;
+  const show=(p,label)=>`<label class="st-check"><input type="checkbox" data-cset="${p}.show" data-kind="bool" ${v(p,'show',true)?'checked':''}> Show ${label}</label>`;
+  const fontSel=p=>{ const f=v(p,'font',''); return `<label class="st-color">Font <select data-cset="${p}.font"><option value="" ${!f?'selected':''}>${p==='title'?'Titles font (Fonts tab)':'Body font (Fonts tab)'}</option><option value="display" ${f==='display'?'selected':''}>Titles font</option><option value="body" ${f==='body'?'selected':''}>Body font</option><option value="credit" ${f==='credit'?'selected':''}>Credits font</option>${GOOGLE_FONTS.map(g=>`<option ${f===g?'selected':''}>${g}</option>`).join('')}</select></label>` };
+  const color=p=>{ const c=v(p,'color',''); return `<label class="st-color">Color <input type="color" data-cset="${p}.color" value="${c||(p==='title'?'#f4ebde':'#bba997')}"></label>${set(p,'color')||(slot==='all'&&c)?`<button class="linkbtn" data-cclear="${p}.color">default color</button>`:''}` };
+  const reset=(p,label)=>`<button class="linkbtn" data-creset="${p}">reset ${label}${slot==='all'?'':' for this card'}</button>`;
+  const nid=own.narr&&own.narr.id!=null?own.narr.id:'';
+  const html=`<p class="muted">Pick a card, then change anything about it. The preview shows the card as players will see it. <b>All cards</b> sets the defaults; each card can override any setting (and “reset for this card” goes back to the defaults).</p>
+    <label class="st-row slim"><b class="st-grow">Card</b><select data-cardslot>${CARD_EDIT_SLOTS().map(([k,l])=>`<option value="${k}" ${k===slot?'selected':''}>${esc(l)}${k!=='all'&&C[k]&&Object.keys(C[k]).length?' •':''}</option>`).join('')}</select></label>
+    <div class="st-cardprev" id="cardPrev">${cardPreviewHTML(E)}</div>
+    <div class="st-row"><div class="st-grow"><b>Narrator</b><div class="st-acts">
+      <label class="st-color">Who <select data-cset="narr.id">${slot==='all'?'':`<option value="" ${nid===''?'selected':''}>Same as all cards</option>`}<option value="none" ${(nid==='none'||(slot==='all'&&!nid))?'selected':''}>Nobody</option>${ids.map(id=>`<option value="${id}" ${nid===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></label>
+      ${ids.length?'':'<span class="muted st-small">Add characters in the Narrators tab first.</span>'}
+      <label class="st-color">Side <select data-cset="narr.side"><option value="right" ${v('narr','side','right')==='right'?'selected':''}>Right</option><option value="left" ${v('narr','side','right')==='left'?'selected':''}>Left</option></select></label>
+      ${range('narr','size',40,250,5,1,{label:'Size',u:'%'},100)}${range('narr','rot',-45,45,1,0,{label:'Rotate',u:'°'})}
+      <label class="st-check"><input type="checkbox" data-cset="narr.flip" data-kind="bool" ${v('narr','flip',false)?'checked':''}> Mirror</label>
+      ${nudge('narr')}${reset('narr','narrator')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Title</b><div class="st-acts">${show('title','title')}${fontSel('title')}${range('title','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('title')}${range('title','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('title')}${reset('title','title')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Message</b><div class="st-acts">${show('body','message')}${fontSel('body')}${range('body','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('body')}${range('body','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('body')}${reset('body','message')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Text alignment</b><div class="st-acts"><select data-cset=".align">${['left','center','right'].map(a=>`<option value="${a}" ${v(null,'align','left')===a?'selected':''}>${a[0].toUpperCase()+a.slice(1)}</option>`).join('')}</select></div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Token picture</b><p class="muted st-small">The token (or player badge) at the side of the card.</p><div class="st-acts">${show('token','token picture')}${range('token','size',40,200,5,1,{label:'Size',u:'%'},100)}${range('token','rot',-45,45,1,0,{label:'Rotate',u:'°'})}${nudge('token')}${reset('token','token picture')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Card background</b><p class="muted st-small">${slot==='all'?'A picture for every card. (The Backgrounds tab’s card picture is used if none is set here.)':'A picture just for this card, instead of the default.'}</p><div class="st-acts">${show('bg','background picture')}
+      <button class="btn small" data-cbgup>${own.bg&&srcOf(own.bg)?'Replace picture':'Upload picture'}</button>${own.bg&&srcOf(own.bg)?`<button class="btn small ghost" data-cbgdel>Remove picture</button>`:''}
+      ${range('bg','dark',0,85,5,.45,{label:'Darken',u:'%'},100)}</div></div></div>
+    ${slot!=='all'&&Object.keys(own).length?`<button class="btn small ghost" data-cresetall>${STUDIO.armCard?'Tap again to reset this card':'Reset everything on this card'}</button>`:''}`;
+  THEME=keep; return html;
+}
 function renderStudio(){
   const b=studioBox(); if(b.hidden) return;
   const E=editTheme(), TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
-  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['fish','Fish pairs'],['narr','Narrators'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
+  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['fish','Fish pairs'],['narr','Narrators'],['cards','Cards'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
   let body='';
   if(!STUDIO.ok){
     body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in ${esc(T('title'))}. Only admins can open it.</p>
@@ -1822,11 +1915,13 @@ function renderStudio(){
           ${src?`<label class="st-color">Size <input type="range" min="50" max="160" step="10" value="${Math.round((n.size||1)*100)}" data-narrsize="${id}"> <span class="st-pct">${Math.round((n.size||1)*100)}%</span></label>`:''}
           <button class="btn small ghost" data-narrdel="${id}">${STUDIO.armNarr===id?'Tap again to remove':'Remove'}</button></div></div></div>` }).join('')}
       <div class="st-row"><div class="st-grow"><b>Add a narrator</b><div class="coderow"><input class="st-input" id="narrNew" maxlength="30" placeholder="Name, e.g. Sea Turtle" aria-label="New narrator name"><button class="btn small" id="narrAdd">Add</button></div></div></div>
-      ${ids.length?`<h3 class="st-h3">Who narrates each card</h3><p class="muted st-small">“Every card” is the default; any card can pick someone else or nobody. The pass-the-device and game-over screens only show a narrator if you pick one for them.</p>
-      <div class="st-list">${NARR_SLOTS().map(([k,l])=>`<label class="st-row slim"><span class="st-grow">${esc(l)}</span><select data-narrslot="${k}">
+      ${ids.length?`<h3 class="st-h3">Where they appear</h3><p class="muted st-small">Choose a narrator for each game card, and place, size and rotate them, in the <button class="linkbtn" data-tab="cards">Cards</button> tab. The pass-the-device and game-over screens are set here.</p>
+      <div class="st-list">${NARR_SLOTS().filter(([k])=>k==='handoff'||k==='over').map(([k,l])=>`<label class="st-row slim"><span class="st-grow">${esc(l)}</span><select data-narrslot="${k}">
         ${k==='all'?'':`<option value="" ${map[k]==null?'selected':''}>${k==='handoff'||k==='over'?'Nobody':'Same as every card'}</option>`}
         <option value="none" ${(map[k]==='none'||(k==='all'&&!map.all))?'selected':''}>Nobody</option>
         ${ids.map(id=>`<option value="${id}" ${map[k]===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></label>`).join('')}</div>`:''}`;
+  } else if(STUDIO.tab==='cards'){
+    body=cardEditorHTML(E);
   } else if(STUDIO.tab==='colors'){
     body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(E.colors&&E.colors[k])||COLOR_DEFAULTS[k];
       return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${E.colors&&E.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
@@ -1900,6 +1995,26 @@ function renderStudio(){
   on('[data-bgup]',el=>pickFile('image/*',f=>uploadAsset('bg/'+el.dataset.bgup,f,'image',{max:1800})));
   on('[data-bgocean]',async el=>{ const p='bg/'+el.dataset.bgocean; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-bgcolor]',el=>saveTheme('bg/'+el.dataset.bgcolor+'/color',el.value));
+  // ---- Cards editor ----
+  const cslot=()=>STUDIO.cardSlot||'all', cpath=k=>{ const [p,key]=k.split('.'); return 'cards/'+cslot()+'/'+(p?p+'/':'')+key };
+  const cval=el=>{ if(el.dataset.kind==='bool') return el.checked; if(el.type==='range') return (+el.value)/(+el.dataset.scale||1); return el.value };
+  const cpreview=()=>{ const pv=document.getElementById('cardPrev'); if(pv) pv.innerHTML=cardPreviewHTML(editTheme()) };
+  const clocal=(path,val)=>{ const E=editTheme(), parts=path.split('/'); let o=E; for(let i=0;i<parts.length-1;i++){ o[parts[i]]=o[parts[i]]||{}; o=o[parts[i]] } if(val==null) delete o[parts[parts.length-1]]; else o[parts[parts.length-1]]=val };
+  on('[data-cardslot]',el=>{ STUDIO.cardSlot=el.value; STUDIO.armCard=false; renderStudio() });
+  b.querySelectorAll('input[type=range][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.cset.endsWith('rot')?'°':'%'); cpreview() }));
+  b.querySelectorAll('input[type=color][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),el.value); cpreview() }));
+  on('[data-cset]',el=>{ let val=cval(el); const k=el.dataset.cset; if(k==='narr.id'&&val==='') val=null; if((k==='title.font'||k==='body.font')&&val==='') val=null; if(k==='narr.id'&&val==='none'&&cslot()==='all') val=null; clocal(cpath(k),val); cpreview(); saveTheme(cpath(k),val) });
+  on('[data-cclear]',el=>saveTheme(cpath(el.dataset.cclear),null));
+  on('[data-cnudge]',el=>{ const p=el.dataset.cnudge, base='cards/'+cslot()+'/'+p;
+    if(el.dataset.d==='center'){ saveTheme(base+'/dx',null); return saveTheme(base+'/dy',null) }
+    const [ax,ay]=el.dataset.d.split(',').map(Number), cur=(editTheme().cards||{})[cslot()]||{}, o=cur[p]||{}, keep=THEME; THEME=editTheme();
+    const dx=cs(cslot(),p,'dx',0)+ax, dy=cs(cslot(),p,'dy',0)+ay; THEME=keep; clocal(base+'/dx',dx); clocal(base+'/dy',dy); cpreview();
+    if(ax) saveTheme(base+'/dx',Math.max(-300,Math.min(300,dx))); if(ay) saveTheme(base+'/dy',Math.max(-300,Math.min(300,dy))) });
+  on('[data-creset]',async el=>{ const p=el.dataset.creset, base='cards/'+cslot()+'/'+p;
+    if(p==='narr'){ for(const k of ['side','size','rot','dx','dy','flip']) await saveTheme(base+'/'+k,null) } else await saveTheme(base,null) });
+  on('[data-cresetall]',async()=>{ if(!STUDIO.armCard){ STUDIO.armCard=true; return renderStudio() } STUDIO.armCard=false; const own=(editTheme().cards||{})[cslot()]||{}; if(own.bg) await removeOldAsset('cards/'+cslot()+'/bg'); saveTheme('cards/'+cslot(),null) });
+  on('[data-cbgup]',()=>{ const cur=((editTheme().cards||{})[cslot()]||{}).bg||{}; pickFile('image/*',f=>uploadAsset('cards/'+cslot()+'/bg',f,'image',{max:1200,keep:{show:cur.show??null,dark:cur.dark??null}})) });
+  on('[data-cbgdel]',async()=>{ const p='cards/'+cslot()+'/bg', cur=((editTheme().cards||{})[cslot()]||{}).bg||{}; await removeOldAsset(p); saveTheme(p,{show:cur.show??null,dark:cur.dark??null}) });
   on('[data-cardbgup]',()=>pickFile('image/*',f=>uploadAsset('cardBg',f,'image',{max:1200,keep:{dark:(editTheme().cardBg&&editTheme().cardBg.dark)??null}})));
   on('[data-cardbgdark]',el=>saveTheme('cardBg/dark',(+el.value)/100));
   on('[data-cardbgreset]',async()=>{ await removeOldAsset('cardBg'); saveTheme('cardBg',null) });
@@ -2578,8 +2693,8 @@ function renderGame(){
     if(me&&canSeeHand(S.cur)) acts=`<button class="btn ghost small" id="handBtn">${TX('handBtn')}</button>`;
     if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
   }
-  const narr=narrHTML(S.card?(S.card.k||'turn'):(S.summary&&!S.turn.rev.length?'summary':'turn'));
-  bar.innerHTML=`<div class="in${narr?' has-narr':''}">${narr}${mini}<div class="msg"><strong>${title}</strong><span>${sub}</span></div><div class="acts">${acts}</div></div><div class="foot">${TX('copyright')}</div>`;
+  const slot=S.card?(S.card.k||'turn'):(S.summary&&!S.turn.rev.length?'summary':'turn');
+  bar.innerHTML=cardHTML(slot,{mini,title,sub,acts})+`<div class="foot">${TX('copyright')}</div>`;
   const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
   const hb=bar.querySelector('#handBtn'); if(hb) hb.onclick=()=>{ sfx('tap'); handOpen=S.cur; render() };
   sc.querySelectorAll('.chip').forEach(ch=>{ const i=+ch.dataset.p; if(canSeeHand(i)){ ch.classList.add('seehand'); ch.onclick=()=>{ sfx('tap'); handOpen=i; render() } } });
@@ -2761,7 +2876,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610122226;
+const BUILD=2610122256;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
