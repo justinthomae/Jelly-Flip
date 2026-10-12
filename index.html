@@ -154,12 +154,14 @@ p{margin:0}
 .tok.aim .tilt{transform:rotate(var(--r,0deg)) scale(1.08) translateY(-2px);transition:transform .25s}
 .board.dim .tok.pick .back{box-shadow:inset 0 0 0 1px rgba(80,40,10,.2),0 0 0 3px color-mix(in srgb,var(--sea) 55%,transparent),0 4px 7px rgba(0,0,0,.5)}
 
-/* shark: a dark patch with the shark circling, hiding the churning tokens */
-.vortex{position:absolute;z-index:50;border-radius:50%;pointer-events:none;color:color-mix(in srgb,var(--ink) 30%,transparent);
-  background:radial-gradient(circle,var(--table-2) 0 58%,color-mix(in srgb,var(--table-2) 75%,transparent) 68%,transparent 72%);
-  box-shadow:0 0 30px 6px rgba(0,0,0,.35)}
-.vortex{display:grid;place-items:center}
-.vortex svg{width:64%;height:64%;stroke-width:3.4;color:color-mix(in srgb,var(--ink) 55%,transparent)}
+/* the shark swims across the screen while the table churns behind it */
+.sharkswim{position:fixed;left:0;z-index:31;pointer-events:none;animation:jfSwimX var(--dur) cubic-bezier(.45,.05,.55,.95) both;will-change:transform}
+.sharkswim .bob{display:block;animation:jfSwimBob .55s ease-in-out infinite alternate}
+.sharkswim img,.sharkswim svg{display:block;width:100%;height:auto;filter:drop-shadow(0 10px 14px rgba(0,0,0,.35))}
+.sharkswim svg{color:var(--wood);stroke-width:3.2}
+.sharkswim.left img{transform:scaleX(-1)}
+@keyframes jfSwimX{from{transform:translateX(var(--x0))}to{transform:translateX(var(--x1))}}
+@keyframes jfSwimBob{from{transform:translateY(-5px) rotate(-3deg)}to{transform:translateY(5px) rotate(3deg)}}
 /* whirlpool swap: the first token picked */
 .tok.sel .back{box-shadow:inset 0 0 0 1px rgba(80,40,10,.2),0 0 0 4px var(--sea),0 8px 14px rgba(0,0,0,.55)}
 .tok.sel .tilt{transform:rotate(var(--r,0deg)) scale(1.1) translateY(-3px)}
@@ -292,6 +294,8 @@ p{margin:0}
 .st-input{width:100%;box-sizing:border-box;margin-top:6px;background:var(--table-2);color:var(--ink);border:1.5px solid var(--panel-2);border-radius:10px;padding:9px 11px;font:inherit;font-size:1rem}
 .st-appicon{position:relative;width:72px;height:72px;border-radius:17px;overflow:hidden;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.12);display:grid;place-items:center;font-size:2.4rem}
 .st-appicon img{position:absolute;inset:0;width:100%;height:100%;max-width:none;box-sizing:border-box;object-fit:contain}
+.st-swimprev{width:110px;height:64px;display:grid;place-items:center;flex:none;color:var(--wood)}
+.st-swimprev img,.st-swimprev svg{max-width:100%;max-height:100%;object-fit:contain}
 .st-titleprev{width:110px;height:64px;display:grid;place-items:center;flex:none}
 .st-titleprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-swatch{width:64px;height:96px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
@@ -577,7 +581,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.sharkSwim); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -885,7 +889,7 @@ async function sharkReturn(){
   return lose;
 }
 // The shark (or the whirlpool) churns the reef: every token rushes into the middle, churns out of sight, then scatters to brand-new spots.
-async function swirl(art='shark'){
+async function swirl(art='shark'){ // art: 'shark' sends the shark swimming across; the whirlpool just churns
   const bw=boardEl.offsetWidth, bh=boardEl.offsetHeight, cx=bw/2, cy=bh/2, m=Math.min(bw,bh);
   const idx=S.slots.map((s,i)=>s?i:-1).filter(i=>i>=0);
   const before=new Map(idx.map(i=>[S.slots[i].id,{x:S.layout.spots[i].x*bw,y:S.layout.spots[i].y*bw}]));
@@ -897,14 +901,8 @@ async function swirl(art='shark'){
   // put the tokens in a random stacking order so none stays on top
   shuffle([...tokMap.values()]).forEach(el=>boardEl.appendChild(el));
   const T=2300*M();
-  const vortex=document.createElement('div'); vortex.className='vortex';
-  vortex.style.cssText=`width:${m*.72}px;height:${m*.72}px;left:${cx-m*.36}px;top:${cy-m*.36}px`;
-  vortex.innerHTML=icon(art); boardEl.appendChild(vortex); sfx('whirl');
-  const va=vortex.animate([
-    {opacity:0,transform:'scale(.3) rotate(0deg)'},
-    {opacity:1,transform:'scale(1) rotate(-300deg)',offset:.22},
-    {opacity:1,transform:'scale(1.05) rotate(-1100deg)',offset:.74},
-    {opacity:0,transform:'scale(.4) rotate(-1500deg)'}],{duration:T,easing:'linear',fill:'both'});
+  sfx('whirl');
+  const swim=art==='shark'?sharkSwim(T):null;
   const anims=spots.map(sp=>{
     const s=S.slots[sp], o=before.get(s.id), n={x:S.layout.spots[sp].x*bw,y:S.layout.spots[sp].y*bw};
     const ao=Math.atan2(o.y-cy,o.x-cx), ro=Math.hypot(o.x-cx,o.y-cy);
@@ -921,7 +919,20 @@ async function swirl(art='shark'){
     }
     return animDone(tokMap.get(s.id).animate(kf,{duration:T,easing:'linear'}),T);
   });
-  await Promise.all(anims); await animDone(va,T); vortex.remove();
+  await Promise.all(anims); if(swim) await swim;
+}
+// The shark swims across the screen, in front of the board. Admins can upload their own picture in the Studio.
+// the default swimmer: the shark drawing without its !!! marks, cropped to the body
+const swimSharkSVG=()=>`<svg viewBox="6 22 84 44" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ART.shark.replace(/<path d="M40 68[^>]*\/>/,'').replace(/<g fill="currentColor" stroke="none"><circle cx="40" cy="86".*?<\/g>/,'')}</svg>`;
+function sharkSwim(T,onTop){
+  const e=THEME.sharkSwim||{}, src=srcOf(e), br=boardEl&&boardEl.isConnected?boardEl.getBoundingClientRect():{top:0,height:innerHeight,width:Math.min(innerWidth,720)};
+  const w=Math.min(innerWidth*.9,Math.max(160,br.width*(e.size||.62))), el=document.createElement('div');
+  el.className='sharkswim'+(src&&e.left?' left':'');
+  el.innerHTML=`<span class="bob">${src?`<img src="${src}" alt="">`:swimSharkSVG()}</span>`;
+  el.style.cssText=`width:${w}px;top:${Math.round(br.top+br.height/2-w*.36)}px;--x0:${-w-20}px;--x1:${innerWidth+20}px;--dur:${Math.round(T)}ms`;
+  if(onTop) el.style.zIndex=90;
+  document.body.appendChild(el);
+  return new Promise(res=>setTimeout(()=>{ el.remove(); res() },T+60));
 }
 
 
@@ -1639,6 +1650,13 @@ function renderStudio(){
           <div class="st-color">Position ${nudgePad('backLogo',lg.dx,lg.dy)}</div>
           <label class="st-color">Style <select data-logoblend>${BLENDS.map(([v,l])=>`<option value="${v}" ${(lg.blend||'normal')===v?'selected':''}>${l}</option>`).join('')}</select></label>
           <button class="btn small ghost" data-logoreset>Remove</button>`:''}</div></div></div>
+      <div class="st-row"><div class="st-prev st-swimprev">${srcOf(E.sharkSwim)?`<img src="${srcOf(E.sharkSwim)}" alt="" style="${E.sharkSwim.left?'transform:scaleX(-1)':''}">`:swimSharkSVG()}</div>
+        <div class="st-grow"><b>Swimming shark</b><p class="muted st-small">Swims across the screen while the shark scatters the table. Use a picture with a see-through background, facing right (or tick “faces left”).</p>
+        <div class="st-acts"><button class="btn small" data-swimup>${srcOf(E.sharkSwim)?'Replace picture':'Upload picture'}</button>
+          <button class="btn small ghost" data-swimtry>Preview</button>
+          ${srcOf(E.sharkSwim)?`<label class="st-check"><input type="checkbox" data-swimleft ${E.sharkSwim.left?'checked':''}> Picture faces left</label>`:''}
+          <label class="st-color">Size <input type="range" min="30" max="100" step="5" value="${Math.round(((E.sharkSwim&&E.sharkSwim.size)||.62)*100)}" data-swimsize> <span class="st-pct">${Math.round(((E.sharkSwim&&E.sharkSwim.size)||.62)*100)}%</span></label>
+          ${srcOf(E.sharkSwim)?`<button class="btn small ghost" data-swimreset>Reset</button>`:''}</div></div></div>
       <div class="st-row"><div class="st-grow"><b>Icon style for all tokens</b>
         <p class="muted st-small">How your uploaded icons sit on the material. Black-and-white drawings: pick Ink to keep only the dark lines, or Multiply to keep grey shading too. White always shows the material through.</p>
         <div class="st-acts"><select data-iconblend>${BLENDS.map(([v,l])=>`<option value="${v}" ${(E.iconBlend||'normal')===v?'selected':''}>${l}</option>`).join('')}</select>
@@ -1698,6 +1716,11 @@ function renderStudio(){
   on('[data-matcolor]',el=>saveTheme('material/color',el.value));
   on('[data-matup]',()=>pickFile('image/*',f=>uploadAsset('material',f,'image',{max:512,keep:{type:'image'}})));
   on('[data-logoup]',()=>pickFile('image/*',f=>uploadAsset('backLogo',f,'image',{max:512,keep:{on:!!(editTheme().backLogo&&editTheme().backLogo.on)}})));
+  on('[data-swimup]',()=>pickFile('image/*',f=>uploadAsset('sharkSwim',f,'image',{max:900,keep:{left:!!(editTheme().sharkSwim&&editTheme().sharkSwim.left),size:(editTheme().sharkSwim&&editTheme().sharkSwim.size)||null}})));
+  on('[data-swimleft]',el=>saveTheme('sharkSwim/left',el.checked||null));
+  on('[data-swimsize]',el=>saveTheme('sharkSwim/size',(+el.value)/100));
+  on('[data-swimreset]',async()=>{ await removeOldAsset('sharkSwim'); saveTheme('sharkSwim',null) });
+  on('[data-swimtry]',()=>{ const keep=THEME; THEME={...THEME,sharkSwim:editTheme().sharkSwim}; sharkSwim(2300,true); THEME=keep });
   on('[data-logoon]',el=>saveTheme('backLogo/on',el.checked));
   on('[data-logoblend]',el=>saveTheme('backLogo/blend',el.value==='normal'?null:el.value));
   on('[data-blend]',el=>saveTheme('tokens/'+el.dataset.blend+'/blend',el.value||null));
@@ -2544,7 +2567,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610121601;
+const BUILD=2610121621;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
