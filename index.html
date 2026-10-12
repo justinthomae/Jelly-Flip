@@ -73,6 +73,11 @@ p{margin:0}
 .btn.small{padding:.45em .95em;font-size:.88rem}
 
 /* header */
+.menu-top{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:4px}
+.menu-top h1{margin:0}
+.menu-logo img{display:block;width:min(86vw,440px);height:auto;filter:drop-shadow(0 6px 14px rgba(0,30,40,.35))}
+.menu-top .muted{color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55);margin:0}
+.menu-top .tools{display:flex;gap:8px;margin-top:4px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .top .tools{display:flex;gap:8px}
 
@@ -713,6 +718,14 @@ function setTheme(th,fetchRemote){
   loadThemeAssets(fetchRemote).then(()=>{ applyTheme(); if(S&&!busy) render(); renderStudio() });
 }
 
+// The main menu's header: the Fliptide logo centred at the top, unless an admin has renamed the game
+// or given it their own title logo in the Studio (then their logo, or the name as text).
+const MENU_LOGO='assets/menu-logo.webp';
+function menuHeaderHTML(){
+  const tl=THEME.titleLogo, own=srcOf(tl), useDefault=!own&&T('title')===TEXT_DEFAULTS.title, src=own||(useDefault?MENU_LOGO:'');
+  return `<header class="menu-top">${src?`<h1 class="menu-logo"><img src="${src}" alt="${esc(T('title'))}"></h1>`:`<h1>${TX('title')}</h1>`}
+    <p class="muted">${TX('tagline')}</p><div class="tools">${toggleHTML()}</div></header>`;
+}
 const titleHTML = () => { const tl=THEME.titleLogo, src=srcOf(tl); return src?`<img class="hlogo" src="${src}" alt="${tl.hideName?esc(T('title')):''}">${tl.hideName?'':TX('title')}`:TX('title') };
 const face = (t,cls='') => { const art=tokenArt(t);
   return `<div class="face ${TYPES[t].kind==='bust'?'bust':''} ${art&&art.full?'fullart':''} ${cls}">${art?artHTML(art):icon(t)}</div>` };
@@ -2255,7 +2268,7 @@ function renderSetup(){
   const st=S.setup, saved=load(), resume=saved&&saved.screen==='play'?saved:null;
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
-    <header class="top"><div><h1>${titleHTML()}</h1><p class="muted">${TX('tagline')}</p></div><div class="tools">${toggleHTML()}</div></header>
+    ${menuHeaderHTML()}
     ${resume?`<div class="card"><h3>Game in progress</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
       ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
         <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
@@ -2590,7 +2603,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610121724;
+const BUILD=2610121802;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
