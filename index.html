@@ -336,6 +336,9 @@ p{margin:0}
 .st-color{display:inline-flex;gap:6px;align-items:center;font-size:.85rem}
 .st-list{display:flex;flex-direction:column;gap:8px}
 .st-row input[type=color],.st-color input{width:40px;height:32px;border:0;background:none;padding:0}
+.st-color input[type=range]{width:150px;height:36px;accent-color:var(--sea);touch-action:pan-y}
+.st-pct{min-width:3.2em;font-variant-numeric:tabular-nums}
+@media (max-width:559px){ .st-acts .st-color:has(input[type=range]){flex:1 1 100%} .st-color input[type=range]{flex:1;min-width:0} .st-nudge{grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,38px);gap:4px} .st-nudge .nb{font-size:1rem} }
 .st-sample{font-size:1.25rem;margin-top:4px}
 .st-text{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--ink-2)}
 .st-text textarea,.st-row select{width:100%;box-sizing:border-box;background:var(--table-2);color:var(--ink);border:1.5px solid var(--panel-2);border-radius:10px;padding:8px 10px;font:inherit;font-size:.95rem;resize:vertical}
@@ -2541,7 +2544,7 @@ function finish(){ cloudDrop(S.saveCode); S.screen='over'; S.phase=null; render(
 const HOME={tab:'play'};
 const HOME_SLOTS=[['header','Top: logo and share button'],['install','Get-the-app tip'],['resume','Game in progress'],['code','Have a game code?'],['players','Players and start'],['lb','Leaderboard'],['tray','Guide: tokens in the bag'],['rules','Guide: how to play']];
 // THEME.home[section] = {id, m:{phone layout}, d:{computer layout}}; the computer layout falls back to the phone one
-const hv=(slot,lay,k,def)=>{ const H=(THEME.home||{})[slot]||{}, a=H[lay]&&H[lay][k]; if(a!=null) return a; const b=lay==='d'&&H.m&&H.m[k]; return b!=null?b:def };
+const hv=(slot,lay,k,def)=>{ const H=(THEME.home||{})[slot]||{}, a=H[lay]&&H[lay][k]; if(a!=null) return a; const b=lay==='d'&&H.m?H.m[k]:null; return b!=null?b:def };
 function homeNarrHTML(slot){
   const H=(THEME.home||{})[slot], id=H&&H.id, n=id&&id!=='none'&&THEME.narrators&&THEME.narrators[id], src=srcOf(n); if(!src) return '';
   const vars=['m','d'].map(l=>{ const side=hv(slot,l,'side','right'), edge=`calc(-14px * ${hv(slot,l,'size',1)*(n.size||1)})`;
@@ -3128,7 +3131,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610130046;
+const BUILD=2610130150;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
