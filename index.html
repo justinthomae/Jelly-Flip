@@ -633,7 +633,7 @@ const TEXT_DEFAULTS={
   rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left (tokens that get turned back over still count). Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
   rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
-  bank:'Bank', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
+  bank:'Bank', bankPair:'(+{n} pair)', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
   gameOver:'Game over', grudge:'Grudge Match', newPlayers:'New players',
 };
 for(const t of ORDER){ if(isFish(t)&&t!=='fish') continue; TEXT_DEFAULTS['name_'+t]=TYPES[t].name; TEXT_DEFAULTS['say_'+t]=TYPES[t].say }
@@ -1019,8 +1019,12 @@ const faceDown = () => S.slots.map((s,i)=>s&&!s.up?i:-1).filter(i=>i>=0);
 const empties = () => S.slots.map((s,i)=>s?-1:i).filter(i=>i>=0);
 const onTable = () => S.slots.filter(Boolean).length;
 const isCatch = s => s && s.up && TYPES[s.t].kind==='catch';
-const turnPts = () => { const got=S.turn.rev.filter(i=>isCatch(S.slots[i])).map(i=>S.slots[i].t), bank=P().bank;
-  return got.reduce((a,t)=>a+TYPES[t].pts,0)+pairsIn([...bank,...got])-pairsIn(bank) };
+const turnGot = () => S.turn.rev.filter(i=>isCatch(S.slots[i])).map(i=>S.slots[i].t);
+// fish pairs this turn's catch would complete
+const turnPairs = () => { const got=turnGot(), bank=P().bank; return pairsIn([...bank,...got])-pairsIn(bank) };
+// on the Bank button: "+1 (+1 pair)" when the catch completes a pair
+const bankLabel = pend => { const pr=turnPairs(); return ' +'+(pend-pr)+(pr?' '+TT('bankPair',{n:pr}):'') };
+const turnPts = () => turnGot().reduce((a,t)=>a+TYPES[t].pts,0)+turnPairs();
 function scrapSeen(t){ S.scrapMass=S.scrapMass||{}; S.scrapMass[t]=(S.scrapMass[t]||0)+1; (S.seenScrap=S.seenScrap||[]).push(t) }
 function scrapTaken(n){ const m=S.scrapMass||{}, tot=Object.values(m).reduce((a,b)=>a+b,0); if(tot&&n) for(const k in m) m[k]*=Math.max(0,1-n/tot) }
 const bankedNote = () => S.turn.banked ? TT('noteBanked',{points:plural(S.turn.banked,'point')}) : TT('noteNothing');
@@ -1718,7 +1722,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',statusFlip:'Card: start of 
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
-const TEXT_LABELS={tabPlay:'Home tabs: Play',tabGuide:'Guide button (tooltip)',guideBack:'Guide: back link',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOffline:'Leaderboard: can’t connect',lbBlocked:'Leaderboard: blocked by database rules',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button (tooltip)',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const TEXT_LABELS={tabPlay:'Home tabs: Play',tabGuide:'Guide button (tooltip)',guideBack:'Guide: back link',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOffline:'Leaderboard: can’t connect',lbBlocked:'Leaderboard: blocked by database rules',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button (tooltip)',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',bankPair:'Bank button: pair bonus',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
@@ -3047,7 +3051,7 @@ function renderGame(){
     else if(!me) sub=fmt(TT(pend?'statusWaitingPts':'statusWaiting',{pts:pend,name:p.name}));
     else sub=fmt(pend?(fd?TT('statusMore',{pts:pend}):TT('statusNoneLeft')):TT('statusFlip'));
     if(me&&canSeeHand(S.cur)) acts=`<button class="btn ghost small" id="handBtn">${TX('handBtn')}</button>`;
-    if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
+    if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?bankLabel(pend):''}</button>`;
   }
   const slot=S.card?(S.card.k||'turn'):(S.summary&&!S.turn.rev.length?'summary':'turn');
   bar.innerHTML=cardHTML(slot,{mini,title,sub,acts})+`<div class="foot">${copyHTML()}</div>`;
@@ -3319,7 +3323,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131854;
+const BUILD=2610131905;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
