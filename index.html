@@ -238,9 +238,21 @@ p{margin:0}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
   font-family:var(--credit,'Rubik'),var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
 .credit b{font-weight:400;color:var(--ink)}
-.iconbtn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--panel-2);background:transparent;display:grid;place-items:center;color:var(--ink-2);padding:0}
+.iconbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#e9f8f7;padding:0;cursor:pointer;
+  border:1.5px solid rgba(225,250,255,.6);
+  background:radial-gradient(circle at 30% 27%,rgba(255,255,255,.95) 0 2.5px,rgba(255,255,255,.35) 4px,rgba(255,255,255,0) 8px),
+    radial-gradient(circle at 50% 55%,rgba(160,225,235,.08) 0 55%,rgba(205,246,255,.32) 92%,rgba(255,255,255,.5) 100%);
+  box-shadow:inset -2px -3px 6px rgba(255,255,255,.2),inset 2px 2px 5px rgba(0,40,50,.12),0 3px 8px rgba(0,35,45,.22);
+  transition:transform .15s}
+.iconbtn:active{transform:scale(.92)}
+.iconbtn[data-pref][aria-pressed="false"]{color:rgba(233,248,247,.6)}
+.menu-top .iconbtn{width:46px;height:46px}
+.menu-top .iconbtn svg{width:22px;height:22px}
+.iconbtn.guidebtn[aria-pressed="true"]{outline:2.5px solid var(--sea);outline-offset:2px}
+.menu-top .tools{flex-wrap:wrap;justify-content:center}
+.guideback{align-self:flex-start;color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55)}
 .iconbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.iconbtn[aria-pressed="true"]{color:var(--ink)}
+.iconbtn[aria-pressed="true"]{color:#fff}
 .hbtn svg{display:none;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .hbtn.armed{color:var(--bust);border-color:var(--bust)}
 .setwrap{position:relative;display:inline-flex}
@@ -330,7 +342,7 @@ p{margin:0}
 .st-narrprev{width:72px;height:72px;display:grid;place-items:center;flex:none}
 .st-narrprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-h3{margin:14px 0 2px;font-family:var(--display);font-weight:var(--dw,600)}
-.st-titleprev{width:110px;height:64px;display:grid;place-items:center;flex:none}
+.st-bubbleprev{display:grid;place-items:center;background:var(--sea-2,#1f8a95)}.st-bubbleprev .iconbtn{width:46px;height:46px}.st-titleprev{width:110px;height:64px;display:grid;place-items:center;flex:none}
 .st-titleprev img{max-width:100%;max-height:100%;object-fit:contain}
 .st-swatch{width:64px;height:96px;border-radius:10px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
 .st-color{display:inline-flex;gap:6px;align-items:center;font-size:.85rem}
@@ -599,7 +611,7 @@ const TEXT_DEFAULTS={
   installNow:'Install now', installLater:'Got it',
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
-  tabPlay:'Play', tabGuide:'Guide', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
+  tabPlay:'Play', tabGuide:'Guide', guideBack:'← Back to play', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
   rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left. Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
   rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
@@ -693,7 +705,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.sharkSwim); add(th.cardBg); Object.values(th.cards||{}).forEach(c=>add(c&&c.bg)); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.bubbleBtn); add(th.sharkSwim); add(th.cardBg); Object.values(th.cards||{}).forEach(c=>add(c&&c.bg)); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -748,6 +760,8 @@ function applyTheme(){
     const blend=lg.blend||'normal', m=blend==='ink'?inkSrc(lg.asset||lg.url,logo):null;
     if(m) css.push(`${sel}{${base}background:var(--icon-ink,var(--burn));-webkit-mask:url("${m}") center/contain no-repeat;mask:url("${m}") center/contain no-repeat}`);
     else css.push(`${sel}{${base}background:url("${logo}") center/contain no-repeat;${blend!=='normal'?'mix-blend-mode:multiply;':''}}`) }
+  // the round buttons (music, sound, haptics, guide, share) can use an uploaded bubble picture
+  const bb=srcOf(THEME.bubbleBtn); if(bb) css.push(`.iconbtn{background:url("${bb}") center/cover no-repeat !important;border-color:transparent !important;box-shadow:none !important}`);
   // a picture behind the game's cards and pop-ups, darkened so the words stay readable
   const cb=THEME.cardBg, cbs=srcOf(cb);
   if(cbs){ const d=cb.dark!=null?cb.dark:.45; css.push(`.overlay .sheet{background:linear-gradient(rgba(10,6,4,${d}),rgba(10,6,4,${d})),url("${cbs}") center/cover no-repeat,var(--panel) !important}`,`.bar.bust .in{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}`) }
@@ -857,8 +871,7 @@ function installCardHTML(force){
 function menuHeaderHTML(){
   const tl=THEME.titleLogo, own=srcOf(tl), useDefault=!own&&T('title')===TEXT_DEFAULTS.title, src=own||(useDefault?MENU_LOGO:'');
   return `<header class="menu-top">${homeNarrHTML('header')}${src?`<h1 class="menu-logo"><img src="${src}" alt="${esc(T('title'))}"></h1>`:`<h1>${TX('title')}</h1>`}
-    <p class="muted">${TX('tagline')}</p><div class="tools">${toggleHTML()}</div>
-    <button class="btn small sharebtn" id="shareApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg><span>${TX('shareBtn')}</span></button>
+    <p class="muted">${TX('tagline')}</p><div class="tools">${toggleHTML()}<button class="iconbtn guidebtn" id="guideBtn" aria-pressed="${HOME.tab==='guide'}" aria-label="${esc(T('tabGuide'))}" title="${esc(T('tabGuide'))}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS.guide}</svg></button><button class="iconbtn" id="shareApp" aria-label="${esc(T('shareBtn'))}" title="${esc(T('shareBtn'))}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS.share}</svg></button></div>
     ${SHARE.note?`<p class="muted st-small">${esc(SHARE.note)}</p>`:''}</header>`;
 }
 // the copyright line, with the company name linking to its website
@@ -1230,6 +1243,8 @@ const ICONS={
   sound:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11"/>',
   soundOff:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
   haptics:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/>',
+  guide:'<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v14H5.5A1.5 1.5 0 0 0 4 18.5z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H20"/><path d="M8 7h8M8 10.5h5"/>',
+  share:'<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>',
   hapticsOff:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M3 3l18 18"/>',
 };
 const TOGGLES=[['music','Music','music','musicOff'],['sound','Sound effects','sound','soundOff'],['haptics','Haptics','haptics','hapticsOff']];
@@ -1680,7 +1695,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
-const TEXT_LABELS={tabPlay:'Home tabs: Play',tabGuide:'Home tabs: Guide',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const TEXT_LABELS={tabPlay:'Home tabs: Play',tabGuide:'Guide button (tooltip)',guideBack:'Guide: back link',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button (tooltip)',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
@@ -1943,6 +1958,10 @@ function renderStudio(){
         <div class="st-acts"><button class="btn small" data-brandup="titleLogo">${tsrc?'Replace logo':'Upload logo'}</button>
           ${tsrc?`<label class="st-check"><input type="checkbox" data-titlehide ${tl.hideName?'checked':''}> Show the logo instead of the name text</label>
           <button class="btn small ghost" data-brandreset="titleLogo">Remove</button>`:''}</div></div></div>
+      <div class="st-row"><div class="st-prev st-bubbleprev"><span class="iconbtn" style="${srcOf(E.bubbleBtn)?`background:url('${srcOf(E.bubbleBtn)}') center/cover no-repeat;border-color:transparent;box-shadow:none`:''}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS.music}</svg></span></div>
+        <div class="st-grow"><b>Round buttons</b><p class="muted st-small">The bubble behind the round buttons on the home screen (music, sound, haptics, guide, share) and in the game’s settings. Use a square PNG with a see-through background; the icons are drawn on top.</p>
+        <div class="st-acts"><button class="btn small" data-brandup="bubbleBtn">${srcOf(E.bubbleBtn)?'Replace bubble':'Upload bubble'}</button>
+          ${srcOf(E.bubbleBtn)?`<button class="btn small ghost" data-brandreset="bubbleBtn">Use the built-in bubble</button>`:''}</div></div></div>
       <p class="muted st-small">Phones keep the icon and name from when the game was added to the home screen. To see a new icon there, remove the old shortcut and add it again${live?'':' (with this set live or previewed)'}.</p>`;
   } else if(STUDIO.tab==='tokens'||STUDIO.tab==='fish'){
     const item=(key,label,prev)=>{ const e=key==='back'?E.back:E.tokens&&E.tokens[key], has=!!srcOf(e);
@@ -2796,8 +2815,7 @@ function renderSetup(){
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
     ${menuHeaderHTML()}
-    ${homeTabsHTML()}
-    ${HOME.tab==='guide'?`${trayCardHTML()}${rulesCardHTML()}`:`${installCardHTML()}${resume?resumeCardHTML(resume):''}${codeCardHTML()}${playersCardHTML(st,kinds)}
+    ${HOME.tab==='guide'?`<button class="linkbtn guideback" data-hometab="play">${TX('guideBack')}</button>${trayCardHTML()}${rulesCardHTML()}`:`${installCardHTML()}${resume?resumeCardHTML(resume):''}${codeCardHTML()}${playersCardHTML(st,kinds)}
     <div class="card" id="lobby" hidden></div>
     ${lbCardHTML()}`}
     <footer class="foot">${copyHTML()}${BUILD?` · <span class="ver">v${BUILD}</span>`:''}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>
@@ -2806,6 +2824,7 @@ function renderSetup(){
   const sb=app.querySelector('#studioBtn'); if(sb) sb.onclick=openStudio;
   const sa=app.querySelector('#shareApp'); if(sa) sa.onclick=()=>{ sfx('tap'); shareApp() };
   wireLbCard();
+  const gb=app.querySelector('#guideBtn'); if(gb) gb.onclick=()=>{ sfx('tap'); HOME.tab=HOME.tab==='guide'?'play':'guide'; render(); scrollTo({top:0}) };
   app.querySelectorAll('[data-hometab]').forEach(b=>b.onclick=()=>{ if(HOME.tab===b.dataset.hometab) return; sfx('tap'); HOME.tab=b.dataset.hometab; render(); scrollTo({top:0}) });
   const inow=app.querySelector('#installNow'); if(inow) inow.onclick=async()=>{ const pr=INSTALL.prompt; if(!pr) return; INSTALL.prompt=null; pr.prompt(); try{ const r=await pr.userChoice; if(r&&r.outcome==='accepted') dismissInstall(); else render() }catch(e){ render() } };
   const ilater=app.querySelector('#installLater'); if(ilater) ilater.onclick=()=>{ sfx('tap'); dismissInstall() };
@@ -3131,7 +3150,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610130150;
+const BUILD=2610130506;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
