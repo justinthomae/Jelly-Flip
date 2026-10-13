@@ -44,7 +44,8 @@ body{
   margin:0;font-family:var(--body);font-size:16px;line-height:1.45;color:var(--ink);
   background:#2f9ea3;
 }
-body::before,body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+/* full screen height even while a phone's browser bars slide in and out (lvh = the tallest the screen gets) */
+body::before,body::after{content:"";position:fixed;top:0;left:0;right:0;height:100vh;height:100lvh;z-index:-1;pointer-events:none;
   background:linear-gradient(180deg,rgba(6,40,46,.18),rgba(6,40,46,.32)),var(--water) center/cover no-repeat,#2f9ea3}
 /* the same water again, clipped to the strip behind the phone's status bar and laid over the page, so text never scrolls under it */
 body::after{z-index:9;-webkit-mask-image:linear-gradient(to bottom,#000 0,#000 calc(var(--safe-top,0px) * .75),transparent var(--safe-top,0px));
@@ -761,7 +762,7 @@ function applyTheme(){
     l.href=key?'https://fonts.googleapis.com/css2?'+key.split('|').map(f=>'family='+encodeURIComponent(f).replace(/%20/g,'+')+':wght@400;700').join('&')+'&display=swap':'' }
   // backgrounds
   const bgCss=(sel,e)=>{ if(!e) return; const src=srcOf(e), c=e.color||'var(--table)';
-    if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat fixed !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
+    if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
   bgCss('body::before,body::after',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
   { const n=css.length; bgCss('body::before,body::after',THEME.bg&&THEME.bg.gamePhone); if(css.length>n) css.push('@media (max-aspect-ratio:9/10){'+css.pop()+'}') }
   { const sa=THEME.splashArt||{}, w=srcOf(sa.wide), t=srcOf(sa.tall); if(w||t) css.push(`.splash.art{--splash-wide:url("${w||t}");--splash-tall:url("${t||w}")}`) }
@@ -3323,7 +3324,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131905;
+const BUILD=2610131914;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
