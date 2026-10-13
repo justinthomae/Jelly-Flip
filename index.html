@@ -381,6 +381,26 @@ p{margin:0}
 .leaderboard .lbrows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .leaderboard li{display:grid;grid-template-columns:28px minmax(0,1fr) auto 44px;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--table-2)}
 .leaderboard li:first-child{background:color-mix(in srgb,var(--sea) 22%,var(--table-2))}
+.hometabs{box-sizing:border-box;display:flex;gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--panel) 92%,transparent);max-width:420px;width:100%;margin:0 auto}
+.hometab{flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:1rem;padding:10px 6px;border-radius:11px;cursor:pointer}
+.hometab.on{background:var(--sea);color:#fff;font-weight:600}
+.footlink{color:inherit;text-decoration:underline;text-underline-offset:2px}
+/* narrators on the home page: phone layout by default, computer layout on wide screens (or forced in the Studio preview) */
+.app .card,.app .menu-top{position:relative}
+html,body{overflow-x:clip}
+.hnarr{position:absolute;top:50%;width:auto;max-width:none;object-fit:contain;pointer-events:none;z-index:2;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));
+  --s:var(--hm-s);--x:var(--hm-x);--y:var(--hm-y);--r:var(--hm-r);--f:var(--hm-f);left:var(--hm-L);right:var(--hm-R);
+  height:calc(120px * var(--s));transform:translate(var(--x),calc(-50% + var(--y))) rotate(var(--r)) scaleX(var(--f))}
+@media (min-width:760px){ .hnarr{--s:var(--hd-s);--x:var(--hd-x);--y:var(--hd-y);--r:var(--hd-r);--f:var(--hd-f);left:var(--hd-L);right:var(--hd-R)} }
+.hnprev.m .hnarr{--s:var(--hm-s);--x:var(--hm-x);--y:var(--hm-y);--r:var(--hm-r);--f:var(--hm-f);left:var(--hm-L);right:var(--hm-R)}
+.hnprev.d .hnarr{--s:var(--hd-s);--x:var(--hd-x);--y:var(--hd-y);--r:var(--hd-r);--f:var(--hd-f);left:var(--hd-L);right:var(--hd-R)}
+.st-homeprev{position:relative;overflow:hidden;border-radius:14px;margin:6px 0 10px;background:var(--table);outline:1.5px solid var(--panel-2)}
+.hnprev{transform-origin:0 0;padding:28px 16px;box-sizing:border-box}
+.hnprev.d{padding:28px 60px}
+.hnprev .hnapp{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.st-seg{display:inline-flex;gap:3px;padding:3px;border-radius:10px;background:var(--table-2)}
+.st-seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;padding:6px 12px;border-radius:8px;cursor:pointer}
+.st-seg button.on{background:var(--sea);color:#fff}
 .lbtabs{display:flex;gap:4px;padding:3px;border-radius:12px;background:var(--table-2);margin:2px 0 10px}
 .lbtab{flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:.9rem;padding:7px 4px;border-radius:9px;cursor:pointer}
 .lbtab.on{background:var(--sea);color:#fff;font-weight:600}
@@ -576,7 +596,7 @@ const TEXT_DEFAULTS={
   installNow:'Install now', installLater:'Got it',
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
-  howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
+  tabPlay:'Play', tabGuide:'Guide', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
   rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left. Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
   rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
@@ -812,6 +832,7 @@ async function shareApp(){
 }
 // The first time someone opens the game in Chrome (not already installed), show how to make it an app on their device.
 const INSTALL={prompt:null, seen:(()=>{ try{ return !!localStorage.getItem('jellyflip.installTip') }catch(e){ return true } })()};
+addEventListener('resize',()=>{ try{ fitHomePreview() }catch(e){} });
 addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); INSTALL.prompt=e; if(S&&S.screen==='setup') render() });
 addEventListener('appinstalled',()=>{ INSTALL.prompt=null; dismissInstall() });
 function installPlatform(){
@@ -823,20 +844,22 @@ function installPlatform(){
   return /Android/.test(ua)?'android':/Mobile/.test(ua)?null:'desktop';
 }
 function dismissInstall(){ INSTALL.seen=true; try{ localStorage.setItem('jellyflip.installTip','1') }catch(e){} if(S&&S.screen==='setup') render() }
-function installCardHTML(){
-  const pf=installPlatform(); if(INSTALL.seen||!pf) return '';
+function installCardHTML(force){
+  const pf=installPlatform()||(force&&'desktop'); if((INSTALL.seen||!pf)&&!force) return '';
   const steps=TX(pf==='ios'?'installIOS':pf==='android'?'installAndroid':'installDesktop');
   const icon=(BRAND.icons&&BRAND.icons.i180)||'apple-touch-icon.png';
-  return `<div class="card installtip"><div class="installhead"><img class="appicon" src="${icon}" alt="${esc(T('title'))} app icon"><h3>${fmt(TT('installTitle',{title:T('title')}))}</h3></div><p class="muted">${TX('installIntro')}</p><p>${steps}</p>
+  return `<div class="card installtip">${homeNarrHTML('install')}<div class="installhead"><img class="appicon" src="${icon}" alt="${esc(T('title'))} app icon"><h3>${fmt(TT('installTitle',{title:T('title')}))}</h3></div><p class="muted">${TX('installIntro')}</p><p>${steps}</p>
     <div class="btnrow left">${INSTALL.prompt?`<button class="btn primary" id="installNow">${TX('installNow')}</button>`:''}<button class="btn ghost" id="installLater">${TX('installLater')}</button></div></div>`;
 }
 function menuHeaderHTML(){
   const tl=THEME.titleLogo, own=srcOf(tl), useDefault=!own&&T('title')===TEXT_DEFAULTS.title, src=own||(useDefault?MENU_LOGO:'');
-  return `<header class="menu-top">${src?`<h1 class="menu-logo"><img src="${src}" alt="${esc(T('title'))}"></h1>`:`<h1>${TX('title')}</h1>`}
+  return `<header class="menu-top">${homeNarrHTML('header')}${src?`<h1 class="menu-logo"><img src="${src}" alt="${esc(T('title'))}"></h1>`:`<h1>${TX('title')}</h1>`}
     <p class="muted">${TX('tagline')}</p><div class="tools">${toggleHTML()}</div>
     <button class="btn small sharebtn" id="shareApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg><span>${TX('shareBtn')}</span></button>
     ${SHARE.note?`<p class="muted st-small">${esc(SHARE.note)}</p>`:''}</header>`;
 }
+// the copyright line, with the company name linking to its website
+const copyHTML=()=>TX('copyright').replace(/Grudge Match Games/i,m=>`<a class="footlink" href="https://grudgematchgames.com" target="_blank" rel="noopener">${m}</a>`);
 const titleHTML = () => { const tl=THEME.titleLogo, src=srcOf(tl); return src?`<img class="hlogo" src="${src}" alt="${tl.hideName?esc(T('title')):''}">${tl.hideName?'':TX('title')}`:TX('title') };
 // Narrators: characters (uploaded in the Studio) who appear on chosen cards. cardNarrator maps a card slot to a narrator,
 // with 'all' as the default for every card and 'none' to keep a card narrator-free.
@@ -935,7 +958,7 @@ function roomNameFrom(seed){
   const k=r(); return k<.45?`${pk(ROOM_ADJ)} ${pk(ROOM_PLACE)}`:k<.8?`${pk(ROOM_WHO)}’s ${pk(ROOM_PLACE)}`:`The ${pk(ROOM_ADJ)} ${pk(ROOM_PLACE)}`;
 }
 const roomName=()=>S&&(S.roomName||(S.roomName=roomNameFrom(S.rs||1)));
-function newGame(setup,seed){
+function newGame(setup,seed){ HOME.tab='play';
   const names = setup.names.slice(0,setup.count).map((n,i)=>n.trim()||`Player ${i+1}`);
   const rs0=seed??Math.floor(Math.random()*2147483647);
   S = {screen:'play', setup, h:null, layout:null, tick:0, turnNo:0, rs:rs0, roomName:roomNameFrom(rs0), net:null,
@@ -1578,7 +1601,7 @@ function renderWait(){
         <div class="seats" id="waitSeats"></div>
         <div class="btnrow" id="waitBtns"></div>
       </div>
-      <footer class="foot">${TX('copyright')}</footer>`;
+      <footer class="foot">${copyHTML()}</footer>`;
     bindToggles(app);
     const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{ NET.myName=cleanName(mn.value);
       clearTimeout(NET.nameT); NET.nameT=setTimeout(()=>{ if(NET.room&&NET.myName) NET.room.presence({name:NET.myName}).catch(()=>{}) },400) };
@@ -1645,7 +1668,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
-const TEXT_LABELS={lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const TEXT_LABELS={tabPlay:'Home tabs: Play',tabGuide:'Home tabs: Guide',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
@@ -1975,7 +1998,8 @@ function renderStudio(){
       <div class="st-list">${NARR_SLOTS().filter(([k])=>k==='handoff'||k==='over').map(([k,l])=>`<label class="st-row slim"><span class="st-grow">${esc(l)}</span><select data-narrslot="${k}">
         ${k==='all'?'':`<option value="" ${map[k]==null?'selected':''}>${k==='handoff'||k==='over'?'Nobody':'Same as every card'}</option>`}
         <option value="none" ${(map[k]==='none'||(k==='all'&&!map.all))?'selected':''}>Nobody</option>
-        ${ids.map(id=>`<option value="${id}" ${map[k]===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></label>`).join('')}</div>`:''}`;
+        ${ids.map(id=>`<option value="${id}" ${map[k]===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></label>`).join('')}</div>`:''}
+      ${homeEditorHTML(E)}`;
   } else if(STUDIO.tab==='cards'){
     body=cardEditorHTML(E);
   } else if(STUDIO.tab==='colors'){
@@ -2082,6 +2106,20 @@ function renderStudio(){
   on('[data-cardbgreset]',async()=>{ await removeOldAsset('cardBg'); saveTheme('cardBg',null) });
   on('#narrAdd',()=>{ const inp=document.getElementById('narrNew'), name=(inp.value||'').trim().slice(0,30)||'Narrator'; const id='n'+newId(); saveTheme('narrators/'+id,{name}) });
   on('[data-narrname]',el=>{ const v=el.value.trim().slice(0,30); if(v) saveTheme('narrators/'+el.dataset.narrname+'/name',v) });
+  // ---- home page narrators ----
+  const hslot=()=>STUDIO.homeSlot||'players', hlay=()=>STUDIO.homeLay||'m', hpath=k=>'home/'+hslot()+'/'+hlay()+'/'+k;
+  const hlocal=(path,val)=>{ const E=editTheme(), parts=path.split('/'); let o=E; for(let i=0;i<parts.length-1;i++){ o[parts[i]]=o[parts[i]]||{}; o=o[parts[i]] } if(val==null) delete o[parts[parts.length-1]]; else o[parts[parts.length-1]]=val };
+  const hpreview=()=>{ const pv=document.getElementById('homePrev'); if(pv){ pv.innerHTML=homePreviewHTML(editTheme()); fitHomePreview() } };
+  on('[data-homeslot]',el=>{ STUDIO.homeSlot=el.value; renderStudio() });
+  b.querySelectorAll('[data-homelay]').forEach(el=>el.onclick=()=>{ STUDIO.homeLay=el.dataset.homelay; renderStudio() });
+  on('[data-hwho]',el=>{ const val=el.value==='none'?null:el.value; hlocal('home/'+hslot()+'/id',val); hpreview(); saveTheme('home/'+hslot()+'/id',val) });
+  b.querySelectorAll('input[type=range][data-hset]').forEach(el=>el.addEventListener('input',()=>{ hlocal(hpath(el.dataset.hset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.hset==='rot'?'°':'%'); hpreview() }));
+  on('[data-hset]',el=>{ const k=el.dataset.hset, val=cval(el); hlocal(hpath(k),val); hpreview(); saveTheme(hpath(k),val) });
+  on('[data-hnudge]',el=>{ if(el.dataset.hnudge==='center'){ hlocal(hpath('dx'),0); hlocal(hpath('dy'),0); saveTheme(hpath('dx'),0); return saveTheme(hpath('dy'),0) }
+    const [ax,ay]=el.dataset.hnudge.split(',').map(Number), keep=THEME; THEME=editTheme(); const dx=hv(hslot(),hlay(),'dx',0)+ax, dy=hv(hslot(),hlay(),'dy',0)+ay; THEME=keep;
+    hlocal(hpath('dx'),dx); hlocal(hpath('dy'),dy); hpreview(); saveTheme(hpath('dx'),Math.max(-400,Math.min(400,dx))); saveTheme(hpath('dy'),Math.max(-400,Math.min(400,dy))) });
+  on('[data-hreset]',()=>saveTheme('home/'+hslot()+'/'+hlay(),null));
+  fitHomePreview();
   on('[data-narrup]',el=>{ const id=el.dataset.narrup, cur=(editTheme().narrators||{})[id]||{}; pickFile('image/*',f=>uploadAsset('narrators/'+id,f,'image',{max:600,keep:{name:cur.name||'Narrator',size:cur.size||null}})) });
   on('[data-narrsize]',el=>saveTheme('narrators/'+el.dataset.narrsize+'/size',(+el.value)/100));
   on('[data-narrdel]',async el=>{ const id=el.dataset.narrdel; if(STUDIO.armNarr!==id){ STUDIO.armNarr=id; return renderStudio() } STUDIO.armNarr=null;
@@ -2490,6 +2528,66 @@ function endTurn(summary){
 }
 function finish(){ cloudDrop(S.saveCode); S.screen='over'; S.phase=null; render(); sfx('fanfare'); if(S.net&&S.net.host){NET.g.st='over';publishG();lobbyAnnounce()} }
 
+// ---------- home page: Play and Guide tabs, and narrators on each section ----------
+const HOME={tab:'play'};
+const HOME_SLOTS=[['header','Top: logo and share button'],['install','Get-the-app tip'],['resume','Game in progress'],['code','Have a game code?'],['players','Players and start'],['lb','Leaderboard'],['tray','Guide: tokens in the bag'],['rules','Guide: how to play']];
+// THEME.home[section] = {id, m:{phone layout}, d:{computer layout}}; the computer layout falls back to the phone one
+const hv=(slot,lay,k,def)=>{ const H=(THEME.home||{})[slot]||{}, a=H[lay]&&H[lay][k]; if(a!=null) return a; const b=lay==='d'&&H.m&&H.m[k]; return b!=null?b:def };
+function homeNarrHTML(slot){
+  const H=(THEME.home||{})[slot], id=H&&H.id, n=id&&id!=='none'&&THEME.narrators&&THEME.narrators[id], src=srcOf(n); if(!src) return '';
+  const vars=['m','d'].map(l=>{ const side=hv(slot,l,'side','right'), edge=`calc(-14px * ${hv(slot,l,'size',1)*(n.size||1)})`;
+    return `--h${l}-s:${hv(slot,l,'size',1)*(n.size||1)};--h${l}-x:${hv(slot,l,'dx',0)}px;--h${l}-y:${hv(slot,l,'dy',0)}px;--h${l}-r:${hv(slot,l,'rot',0)}deg;--h${l}-f:${hv(slot,l,'flip',false)?-1:1};--h${l}-L:${side==='left'?edge:'auto'};--h${l}-R:${side==='left'?'auto':edge}` }).join(';');
+  return `<img class="hnarr" src="${src}" alt="" aria-hidden="true" style="${vars}">`;
+}
+function homeTabsHTML(){ return `<nav class="hometabs" role="tablist">${['play','guide'].map(t=>`<button class="hometab${HOME.tab===t?' on':''}" data-hometab="${t}" role="tab" aria-selected="${HOME.tab===t}">${TX(t==='play'?'tabPlay':'tabGuide')}</button>`).join('')}</nav>` }
+function resumeCardHTML(resume){
+  return `<div class="card">${homeNarrHTML('resume')}<h3>Game in progress${resume.roomName?` · <span class="resroom">${esc(resume.roomName)}</span>`:''}</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
+      ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
+        <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
+        <span class="muted st-small">${CLOUD.status==='saving'?'Saving online…':CLOUD.status==='error'?'Couldn’t save online yet; it’s still saved on this device.':CLOUD.status==='saved'?'Saved online.':''}</span></div>`:''}</div>`;
+}
+function trayCardHTML(){
+  return `<div class="card">${homeNarrHTML('tray')}<span class="label">${TX('inBag')}</span>
+      <div class="tray">${ORDER.filter(t=>!isFish(t)||t==='fish').map(t=>`<figure>${face(t)}<figcaption><b>×${t==='fish'?FISH.length*2:TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
+      <p class="muted">${TX('trayFish')}</p><div class="tray fishes">${FISH.map(t=>`<figure>${face(t)}<figcaption>×2</figcaption></figure>`).join('')}</div>
+    </div>`;
+}
+const rulesCardHTML=()=>`<div class="card">${homeNarrHTML('rules')}<h2>${TX('howTo')}</h2>${rulesHTML()}</div>`;
+// a stand-in for one home section, for the Studio preview
+function homeSampleHTML(slot){
+  const st=S&&S.setup||{count:2,names:['Player 1','Player 2'],kinds:['human','human']};
+  if(slot==='header') return menuHeaderHTML();
+  if(slot==='install') return installCardHTML(true);
+  if(slot==='resume') return resumeCardHTML({roomName:roomNameFrom(7),players:[{name:'Kim'},{name:'Ben'}],slots:Array(22).fill(1)});
+  if(slot==='code') return codeCardHTML(true);
+  if(slot==='players') return playersCardHTML(st,KINDS.filter(([v])=>v!=='remote'));
+  if(slot==='lb') return lbCardHTML(true);
+  if(slot==='tray') return trayCardHTML();
+  return rulesCardHTML();
+}
+function homePreviewHTML(E){
+  const keep=THEME; THEME=E; try{ const lay=STUDIO.homeLay||'m';
+    return `<div class="hnprev ${lay}" inert style="width:${lay==='d'?840:375}px"><div class="hnapp">${homeSampleHTML(STUDIO.homeSlot||'players')}</div></div>` } finally{ THEME=keep }
+}
+function fitHomePreview(){ const f=document.getElementById('homePrev'), p=f&&f.firstElementChild; if(!p) return; const k=Math.min(1,f.clientWidth/p.offsetWidth); p.style.transform=`scale(${k})`; f.style.height=Math.ceil(p.offsetHeight*k)+'px' }
+function homeEditorHTML(E){
+  const N=E.narrators||{}, ids=Object.keys(N); if(!ids.length) return '';
+  const slot=STUDIO.homeSlot||'players', lay=STUDIO.homeLay||'m', H=(E.home||{})[slot]||{}, own=H[lay]||{};
+  const keep=THEME; THEME=E; const v=(k,d)=>hv(slot,lay,k,d); 
+  const range=(k,min,max,step,def,label,u,scale=1)=>{ const val=v(k,def); return `<label class="st-color">${label} <input type="range" min="${min}" max="${max}" step="${step}" value="${Math.round(val*scale)}" data-hset="${k}" data-scale="${scale}"> <span class="st-pct">${Math.round(val*scale)}${u}</span></label>` };
+  const html=`<h3 class="st-h3">Home page</h3><p class="muted st-small">Put a narrator beside any section of the home page. Set the phone layout first; the computer layout starts out the same, then you can change it separately.</p>
+    <label class="st-row slim"><b class="st-grow">Section</b><select data-homeslot>${HOME_SLOTS.map(([k,l])=>{ const h=(E.home||{})[k]; return `<option value="${k}" ${k===slot?'selected':''}>${esc(l)}${h&&h.id&&h.id!=='none'?' •':''}</option>` }).join('')}</select></label>
+    <div class="st-row slim"><b class="st-grow">Who</b><select data-hwho><option value="none" ${!H.id||H.id==='none'?'selected':''}>Nobody</option>${ids.map(id=>`<option value="${id}" ${H.id===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></div>
+    <div class="st-row slim"><b class="st-grow">Layout</b><div class="st-seg">${[['m','Phone'],['d','Computer']].map(([l,t])=>`<button data-homelay="${l}" class="${l===lay?'on':''}">${t}</button>`).join('')}</div></div>
+    <div class="st-homeprev" id="homePrev">${homePreviewHTML(E)}</div>
+    ${H.id&&H.id!=='none'?`<div class="st-row"><div class="st-grow"><b>${lay==='d'?'Computer':'Phone'} layout</b>${lay==='d'&&!Object.keys(own).length?'<p class="muted st-small">Same as the phone layout until you change something here.</p>':''}<div class="st-acts">
+      <label class="st-color">Side <select data-hset="side"><option value="right" ${v('side','right')==='right'?'selected':''}>Right</option><option value="left" ${v('side','right')==='left'?'selected':''}>Left</option></select></label>
+      ${range('size',30,300,5,1,'Size','%',100)}${range('rot',-45,45,1,0,'Rotate','°')}
+      <label class="st-check"><input type="checkbox" data-hset="flip" data-kind="bool" ${v('flip',false)?'checked':''}> Mirror</label>
+      <div class="st-color">Position <div class="st-nudge"><button class="nb up" data-hnudge="0,-6">↑</button><button class="nb lf" data-hnudge="-6,0">←</button><button class="nb ct" data-hnudge="center" title="Center">${v('dx',0)||v('dy',0)?'⦿':'·'}</button><button class="nb rt" data-hnudge="6,0">→</button><button class="nb dn" data-hnudge="0,6">↓</button></div></div>
+      ${Object.keys(own).length?`<button class="linkbtn" data-hreset>${lay==='d'?'match the phone layout':'reset phone layout'}</button>`:''}</div></div></div>`:''}`;
+  THEME=keep; return html;
+}
 // ---------- leaderboards: today, this week, all-time ----------
 // Scores live in jf/leaderboard/<board key>: "d-<date>" for a day, "<Monday's date>" for a week, "all" for all-time.
 // Days and weeks run on Mountain Time (America/Denver), so the daily board starts fresh at midnight there
@@ -2527,13 +2625,13 @@ const lbQualifies=sc=>lbReady()&&sc>0&&lbMakes('day',sc);
 // the biggest board a score makes: all-time beats this week beats today
 const lbBest=sc=>['all','week','day'].find(b=>lbMakes(b,sc))||'day';
 const lbBoardWords=b=>T(b==='all'?'lbOfAll':b==='week'?'lbOfWeek':'lbOfDay');
-function lbCardHTML(){
-  if(!lbAvailable()) return '';
+function lbCardHTML(force){
+  if(!lbAvailable()&&!force) return '';
   const tab=LB.tab, list=lbList(tab);
   const when=t=>tab==='day'?new Date(t).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit',timeZone:LB_TZ}):new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',...(tab==='all'?{year:'numeric'}:{}),timeZone:LB_TZ});
   const tabs=LB_TABS.map(b=>`<button class="lbtab${b===tab?' on':''}" data-lbtab="${b}" role="tab" aria-selected="${b===tab}">${TX(b==='day'?'lbTabDay':b==='week'?'lbTabWeek':'lbTabAll')}</button>`).join('');
   const empty=tab==='day'?'lbEmptyDay':tab==='week'?'lbEmpty':'lbEmptyAll', note=tab==='day'?'lbResetDay':tab==='week'?'lbReset':'lbResetAll';
-  return `<div class="card leaderboard" id="lbCard"><span class="label">${TX('lbTitle')}</span>
+  return `<div class="card leaderboard" id="lbCard">${homeNarrHTML('lb')}<span class="label">${TX('lbTitle')}</span>
     <div class="lbtabs" role="tablist">${tabs}</div>
     ${!LB.loaded[tab]?'<p class="muted">Loading…</p>':list.length?`<ol class="lbrows">${list.map((e,i)=>`<li><span class="lbrank">${i+1}</span><span class="lbname">${esc(e.name||T('lbAnon'))}</span><span class="lbdate">${when(e.ts)}</span><b class="lbscore">${e.score}</b></li>`).join('')}</ol>`:`<p class="muted">${TX(empty)}</p>`}
     <p class="muted st-small">${TX(note)}</p></div>`;
@@ -2671,38 +2769,32 @@ function rulesHTML(){
   </div>`;
 }
 
+function codeCardHTML(force){ return force||FIREBASE_CONFIG&&!(window.claude&&window.claude.use)?`<div class="card slim">${homeNarrHTML('code')}<span class="label">Have a game code?</span><div class="coderow"><input id="codeIn" maxlength="9" placeholder="Game code" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Game code"><button class="btn small" id="codeGo">Open game</button></div>${CLOUD.note?`<p class="muted st-small">${esc(CLOUD.note)}</p>`:''}</div>`:'' }
+function playersCardHTML(st,kinds){ return `
+    <div class="card">${homeNarrHTML('players')}
+      <span class="label">${TX('players')}</span>
+      <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
+      <div class="names">${st.names.slice(0,st.count).map((n,i)=>`<div class="name ${st.kinds[i]!=='human'?'bot':''}"><i style="background:${COLORS[i]}"></i><input id="name${i}" data-i="${i}" maxlength="16" value="${esc(n)}" aria-label="Player ${i+1} name"><select id="kind${i}" data-i="${i}" aria-label="Player ${i+1} type">${kinds.map(([v,l])=>`<option value="${v}" ${st.kinds[i]===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
+      ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}
+      <button class="btn primary" id="start">${st.kinds.slice(0,st.count).includes('remote')?TX('openOnline'):TX('startGame')}</button>
+    </div>` }
 function renderSetup(){
   bar.hidden=true; ov.hidden=true; boardEl=null;
   const st=S.setup, saved=load(), resume=saved&&saved.screen==='play'?saved:null;
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
     ${menuHeaderHTML()}
-    ${installCardHTML()}
-    ${resume?`<div class="card"><h3>Game in progress${resume.roomName?` · <span class="resroom">${esc(resume.roomName)}</span>`:''}</h3><p class="muted">${resume.players.map(p=>esc(p.name)).join(', ')} · ${resume.slots.filter(Boolean).length} tokens left</p><div><button class="btn primary" id="resume">Resume game</button></div>
-      ${resume.saveCode&&!resume.net?`<div class="savecode"><span class="muted">Keep playing on another device with code</span> <b class="code">${fmtCode(resume.saveCode)}</b>
-        <button class="btn small ghost" id="copyGame">${navigator.share?'Share link':'Copy link'}</button>
-        <span class="muted st-small">${CLOUD.status==='saving'?'Saving online…':CLOUD.status==='error'?'Couldn’t save online yet; it’s still saved on this device.':CLOUD.status==='saved'?'Saved online.':''}</span></div>`:''}</div>`:''}
-    ${FIREBASE_CONFIG&&!(window.claude&&window.claude.use)?`<div class="card slim"><span class="label">Have a game code?</span><div class="coderow"><input id="codeIn" maxlength="9" placeholder="Game code" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="Game code"><button class="btn small" id="codeGo">Open game</button></div>${CLOUD.note?`<p class="muted st-small">${esc(CLOUD.note)}</p>`:''}</div>`:''}
-    <div class="card">
-      <span class="label">${TX('players')}</span>
-      <div class="stepper"><button type="button" id="minus" aria-label="Fewer players">−</button><output id="count">${st.count}</output><button type="button" id="plus" aria-label="More players">+</button><span class="muted">2 to 8, passing one device</span></div>
-      <div class="names">${st.names.slice(0,st.count).map((n,i)=>`<div class="name ${st.kinds[i]!=='human'?'bot':''}"><i style="background:${COLORS[i]}"></i><input id="name${i}" data-i="${i}" maxlength="16" value="${esc(n)}" aria-label="Player ${i+1} name"><select id="kind${i}" data-i="${i}" aria-label="Player ${i+1} type">${kinds.map(([v,l])=>`<option value="${v}" ${st.kinds[i]===v?'selected':''}>${l}</option>`).join('')}</select></div>`).join('')}</div>
-      ${NET.err?`<p class="err">${esc(NET.err)}</p>`:''}
-      <button class="btn primary" id="start">${st.kinds.slice(0,st.count).includes('remote')?TX('openOnline'):TX('startGame')}</button>
-    </div>
+    ${homeTabsHTML()}
+    ${HOME.tab==='guide'?`${trayCardHTML()}${rulesCardHTML()}`:`${installCardHTML()}${resume?resumeCardHTML(resume):''}${codeCardHTML()}${playersCardHTML(st,kinds)}
     <div class="card" id="lobby" hidden></div>
-    ${lbCardHTML()}
-    <div class="card"><span class="label">${TX('inBag')}</span>
-      <div class="tray">${ORDER.filter(t=>!isFish(t)||t==='fish').map(t=>`<figure>${face(t)}<figcaption><b>×${t==='fish'?FISH.length*2:TYPES[t].n}</b> ${TYPES[t].name}</figcaption></figure>`).join('')}</div>
-      <p class="muted">${TX('trayFish')}</p><div class="tray fishes">${FISH.map(t=>`<figure>${face(t)}<figcaption>×2</figcaption></figure>`).join('')}</div>
-    </div>
-    <div class="card"><h2>${TX('howTo')}</h2>${rulesHTML()}</div>
-    <footer class="foot">${TX('copyright')}${BUILD?` · <span class="ver">v${BUILD}</span>`:''}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>
+    ${lbCardHTML()}`}
+    <footer class="foot">${copyHTML()}${BUILD?` · <span class="ver">v${BUILD}</span>`:''}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>
     ${PREVIEW&&SETS[PREVIEW]&&PREVIEW!==ACTIVE?`<div class="preview-bar">Previewing “${esc((SETS[PREVIEW].meta&&SETS[PREVIEW].meta.name)||'Untitled set')}” on this device only <button class="btn small" id="endPreview">Show what players see</button></div>`:''}`;
   bindToggles(app);
   const sb=app.querySelector('#studioBtn'); if(sb) sb.onclick=openStudio;
   const sa=app.querySelector('#shareApp'); if(sa) sa.onclick=()=>{ sfx('tap'); shareApp() };
   wireLbCard();
+  app.querySelectorAll('[data-hometab]').forEach(b=>b.onclick=()=>{ if(HOME.tab===b.dataset.hometab) return; sfx('tap'); HOME.tab=b.dataset.hometab; render(); scrollTo({top:0}) });
   const inow=app.querySelector('#installNow'); if(inow) inow.onclick=async()=>{ const pr=INSTALL.prompt; if(!pr) return; INSTALL.prompt=null; pr.prompt(); try{ const r=await pr.userChoice; if(r&&r.outcome==='accepted') dismissInstall(); else render() }catch(e){ render() } };
   const ilater=app.querySelector('#installLater'); if(ilater) ilater.onclick=()=>{ sfx('tap'); dismissInstall() };
   const ep=app.querySelector('#endPreview'); if(ep) ep.onclick=()=>{ setPreview(''); render() };
@@ -2714,6 +2806,7 @@ function renderSetup(){
     if(!AI[sel.value]&&AI[was]&&st.names[i]===BOT_NAMES[i]) st.names[i]=`Player ${i+1}`;
     render();
   });
+  if(HOME.tab==='play'){
   app.querySelector('#minus').onclick=()=>{sync();st.count=Math.max(2,st.count-1);render()};
   app.querySelector('#plus').onclick=()=>{sync();st.count=Math.min(8,st.count+1);render()};
   app.querySelector('#start').onclick=()=>{
@@ -2722,6 +2815,7 @@ function renderSetup(){
     newGame(st);render();
   };
   renderLobby();
+  }
   if(resume) cloudFreshen(resume);
   const cg=app.querySelector('#codeGo'); if(cg) cg.onclick=()=>openSavedGame(app.querySelector('#codeIn').value);
   const ci=app.querySelector('#codeIn'); if(ci) ci.onkeydown=e=>{ if(e.key==='Enter') openSavedGame(ci.value) };
@@ -2837,7 +2931,7 @@ function renderGame(){
     if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?' +'+pend:''}</button>`;
   }
   const slot=S.card?(S.card.k||'turn'):(S.summary&&!S.turn.rev.length?'summary':'turn');
-  bar.innerHTML=cardHTML(slot,{mini,title,sub,acts})+`<div class="foot">${TX('copyright')}</div>`;
+  bar.innerHTML=cardHTML(slot,{mini,title,sub,acts})+`<div class="foot">${copyHTML()}</div>`;
   const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
   const hb=bar.querySelector('#handBtn'); if(hb) hb.onclick=()=>{ sfx('tap'); handOpen=S.cur; render() };
   sc.querySelectorAll('.chip').forEach(ch=>{ const i=+ch.dataset.p; if(canSeeHand(i)){ ch.classList.add('seehand'); ch.onclick=()=>{ sfx('tap'); handOpen=i; render() } } });
@@ -2913,7 +3007,7 @@ function renderOver(){
     <div class="podium">${ranked.map((r,i)=>{ if(i===0||r.sc!==ranked[i-1].sc||r.jellies!==ranked[i-1].jellies) place=i+1;
       return `<div class="row ${winners.includes(r)?'win':''}"><span class="n">${place}</span><i style="background:${r.color}"></i><div><b>${esc(r.name)}</b><small>${fish(r)} fish · ${star(r)} starfish · ${r.jellies} jellyfish${r.pairs?' · '+fmt(TT('overPairs',{pairs:plural(r.pairs,'fish pair'),bonus:r.pairs})):''}</small></div><span class="s">${r.sc}</span></div>`}).join('')}</div>
     ${lbOverHTML()}
-    <div class="btnrow"><button class="btn primary" id="again">${TX('grudge')}</button><button class="btn ghost" id="setup">${TX('newPlayers')}</button></div><p class="foot">${TX('copyright')}</p></div>`;
+    <div class="btnrow"><button class="btn primary" id="again">${TX('grudge')}</button><button class="btn ghost" id="setup">${TX('newPlayers')}</button></div><p class="foot">${copyHTML()}</p></div>`;
   app.innerHTML='';
   ov.querySelectorAll('[data-lbsend]').forEach(b=>b.onclick=()=>lbSubmit(+b.dataset.lbsend,false));
   ov.querySelectorAll('[data-lbanon]').forEach(b=>b.onclick=()=>lbSubmit(+b.dataset.lbanon,true));
@@ -3024,7 +3118,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610130025;
+const BUILD=2610130042;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
