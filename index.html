@@ -659,7 +659,7 @@ const MSG_DEFAULTS={
   bustTitle:'{token}!', jellyBody:'{name} keeps it for −1 and banks nothing this turn.',
   sharkBody:'{lose} of the {tokens} in {name}’s hand go back on the table, then the shark scares the whole reef into new spots and swims off to the scrap pile.',
   sharkEmpty:'{name}’s hand is empty, but the shark still scares the whole reef into new spots, then swims off to the scrap pile.',
-  sharkLast:'{lose} of the {tokens} in {name}’s hand go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.', endWhirl:'{name} flipped the whirlpool on the last flip, and it swept this turn’s catch away.',
+  sharkLast:'{lose} of the {tokens} in {name}’s hand go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.', firstPlayer:'{name} was picked at random to go first.', endWhirl:'{name} flipped the whirlpool on the last flip, and it swept this turn’s catch away.',
   sumBanked:'{name} banked {points}.', sumAction:'{name} {banked}.', sumStung:'{name} got stung by a jellyfish.',
   sumShark:'The shark scattered the reef! {name} lost {tokens} to the table, and every token on the table moved to a new spot.', sumSharkEmpty:'The shark scattered the reef! Every token on the table moved to a new spot.',
   sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} lost this turn’s catch to the whirlpool, and every token swirled to a new spot.',
@@ -1000,6 +1000,8 @@ function newGame(setup,seed){ HOME.tab='play'; ZM.s=1; ZM.x=0; ZM.y=0;
     phase:'handoff', summary:null, card:null, quitArm:false, rulesOpen:false};
   const bag=[]; for(const t of ORDER) for(let i=0;i<TYPES[t].n;i++) bag.push(t);
   gshuffle(bag); S.slots=bag.map((t,i)=>({id:i,t,up:false})); S.nextId=bag.length;
+  // a random first player (from the game's seed, so every device in an online game agrees)
+  S.cur=Math.floor(grand()*S.players.length); S.summary=TT('firstPlayer',{name:P().name});
   if(isAI(P())||S.players.filter(p=>!isAI(p)).length<2) S.phase='flip';
   boardEl=null;
 }
@@ -1708,7 +1710,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   jellyBody:'Jellyfish card',sharkBody:'Shark card',sharkEmpty:'Shark card (empty hand)',sharkLast:'Shark card (last flip)',sharkLastEmpty:'Shark card (last flip, empty hand)',lastFlip:'Last flip note',
   sumBanked:'Turn summary: banked',sumAction:'Turn summary: action used',sumStung:'Turn summary: jellyfish',sumShark:'Turn summary: shark',sumSharkEmpty:'Turn summary: shark (empty hand)',
   sumSharkLast:'Turn summary: shark on the last flip',sumWhirl:'Turn summary: whirlpool',sumHook:'Turn summary: hook',sumSub:'Turn summary: submarine',sumPeek:'Turn summary: snorkel mask',
-  sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',endWhirl:'Game over note: whirlpool on the last flip',
+  sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',endWhirl:'Game over note: whirlpool on the last flip',firstPlayer:'New game: who goes first',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
@@ -3309,7 +3311,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131717;
+const BUILD=2610131730;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
