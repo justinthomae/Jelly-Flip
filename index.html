@@ -558,7 +558,7 @@ html,body{overflow-x:clip}
 <script>
 // ---------- tokens ----------
 const TYPES = {
-  fish:   {name:'Fish', kind:'catch', pts:1, n:2, say:'+1 point. Keep flipping or bank. There are 10 fish designs, two of each: every matching pair in your hand at the end of the game scores +1 bonus point.'},
+  fish:   {name:'Fish', kind:'catch', pts:1, n:2, say:'+1 point. Keep flipping or bank. There are 10 fish designs, two of each: every matching pair in your hand scores +1 bonus point right away (and loses it if the pair is broken up).'},
   star:   {name:'Starfish', kind:'catch', pts:3, n:5, say:'+3 points. Keep flipping or bank.'},
   extra:  {name:'Sea Turtle', kind:'go', n:2, say:'Go again: bank your catch, scrap it, then take another turn.'},
   bigeye: {name:'Snorkel Mask', kind:'stop', n:2, say:'Bank, scrap it, then secretly peek at 3 tokens. Turn ends.'},
@@ -639,7 +639,7 @@ const TEXT_DEFAULTS={
 for(const t of ORDER){ if(isFish(t)&&t!=='fish') continue; TEXT_DEFAULTS['name_'+t]=TYPES[t].name; TEXT_DEFAULTS['say_'+t]=TYPES[t].say }
 // Everything the bottom card, pass-the-device screen and pop-ups say. {name} and the other words in braces are filled in by the game.
 const MSG_DEFAULTS={
-  turnTitle:'{name}’s turn', aiTag:' · AI {level}',
+  turnTitle:'{name}’s turn',
   statusFlip:'Tap any face-down token to flip it.', statusMore:'This turn: +{pts}. Flip again or bank it.', statusNoneLeft:'No face-down tokens left. Bank your catch.',
   statusThinking:'Thinking…', statusThinkingPts:'This turn: +{pts}. Thinking…', statusWaiting:'Waiting for {name}…', statusWaitingPts:'This turn: +{pts}. Waiting for {name}…',
   handBtn:'Hand', saveHome:'Save and go home',
@@ -670,7 +670,7 @@ const MSG_DEFAULTS={
   dolPickTitle:'Pick up to {tokens} to hide', dolPickBody:'They go back on the table face down with the dolphin, in spots you choose. Nobody else will know which is which.',
   dolPickHelp:'Tap a token to pick it; tap again for another of the same kind, until it goes back to none.', dolClear:'Clear all',
   dolHideOnly:'Hide just the dolphin', dolHideSome:'Hide the dolphin and {tokens}',
-  handTitle:'Your hand · {points}', handPairs:'{pairs}: +{bonus} at the end of the game', trayFish:'10 fish designs, two of each. Every matching pair in your hand at the end scores +1 bonus point.', overPairs:'{pairs} +{bonus}', handEmpty:'Nothing banked yet.', handNote:'A shark sends half of these (rounded up, picked at random) back to the table.', close:'Close',
+  handTitle:'Your hand · {points}', handPairs:'{pairs}: +{bonus} bonus, already in your score', trayFish:'10 fish designs, two of each. A matching pair in your hand scores +1 bonus point right away, and loses it if the pair is broken up.', overPairs:'{pairs} +{bonus}', handEmpty:'Nothing banked yet.', handNote:'A shark sends half of these (rounded up, picked at random) back to the table.', close:'Close',
 };
 Object.assign(TEXT_DEFAULTS,MSG_DEFAULTS);
 const COLOR_DEFAULTS={table:'#2b211b','table-2':'#241b16',seam:'#120c09',wood:'#efdcc0','wood-2':'#dcbb94','wood-3':'#b98a62',burn:'#4b2816',ink:'#f4ebde','ink-2':'#bba997',sea:'#6cc4b6','sea-ink':'#0e2724',bust:'#f08a6e',panel:'#3a2d25','panel-2':'#463830'};
@@ -1008,16 +1008,19 @@ function newGame(setup,seed){ HOME.tab='play'; ZM.s=1; ZM.x=0; ZM.y=0;
 const freshTurn = () => ({rev:[], picks:0, pending:null, banked:0, peek:null, act:null, peeked:[]});
 const P = () => S.players[S.cur];
 // a hand holds fish, starfish and jellyfish; the score is simply their points added up
-const score = p => p.bank.reduce((a,t)=>a+(TYPES[t].pts||0),0) - (p.jellies||0);
+// matching fish pairs count +1 each as soon as the pair is in the hand, and the bonus goes again if the pair is broken up
+const score = p => p.bank.reduce((a,t)=>a+(TYPES[t].pts||0),0) - (p.jellies||0) + fishPairs(p);
 // matching fish pairs, each worth +1 at the end of the game
-const fishPairs = p => FISH.filter(t=>p.bank.filter(x=>x===t).length>=2).length;
-const finalScore = p => score(p)+fishPairs(p);
+const fishPairs = p => pairsIn(p.bank);
+const pairsIn = bank => FISH.filter(t=>bank.filter(x=>x===t).length>=2).length;
+const finalScore = p => score(p);
 const jellyCount = p => p.bank.filter(t=>t==='jelly').length + (p.jellies||0);
 const faceDown = () => S.slots.map((s,i)=>s&&!s.up?i:-1).filter(i=>i>=0);
 const empties = () => S.slots.map((s,i)=>s?-1:i).filter(i=>i>=0);
 const onTable = () => S.slots.filter(Boolean).length;
 const isCatch = s => s && s.up && TYPES[s.t].kind==='catch';
-const turnPts = () => S.turn.rev.reduce((a,i)=>a+(isCatch(S.slots[i])?TYPES[S.slots[i].t].pts:0),0);
+const turnPts = () => { const got=S.turn.rev.filter(i=>isCatch(S.slots[i])).map(i=>S.slots[i].t), bank=P().bank;
+  return got.reduce((a,t)=>a+TYPES[t].pts,0)+pairsIn([...bank,...got])-pairsIn(bank) };
 function scrapSeen(t){ S.scrapMass=S.scrapMass||{}; S.scrapMass[t]=(S.scrapMass[t]||0)+1; (S.seenScrap=S.seenScrap||[]).push(t) }
 function scrapTaken(n){ const m=S.scrapMass||{}, tot=Object.values(m).reduce((a,b)=>a+b,0); if(tot&&n) for(const k in m) m[k]*=Math.max(0,1-n/tot) }
 const bankedNote = () => S.turn.banked ? TT('noteBanked',{points:plural(S.turn.banked,'point')}) : TT('noteNothing');
@@ -1086,8 +1089,9 @@ async function bankFlights(){
   const dot=chipTarget(), to={...dot,s:dot.s*1.3};
   items.forEach((_,k)=>setTimeout(()=>sfx('plip',k),(560+k*130)*M()));
   await Promise.all(items.map((i,k)=>fly(from[k],to,{t:S.slots[i].t,up:true,dur:620,delay:k*130})));
-  let pts=0;
+  let pts=0; const pairs0=fishPairs(P());
   for(const i of items){const s=S.slots[i];P().bank.push(s.t);pts+=TYPES[s.t].pts;away.delete(s.id);S.slots[i]=null;forget(i)}
+  pts+=fishPairs(P())-pairs0;
   S.turn.rev=S.turn.rev.filter(i=>S.slots[i]); S.turn.banked+=pts; bump(S.cur); render();
   return pts;
 }
@@ -1699,7 +1703,7 @@ const BLENDS=[['normal','Normal (as uploaded)'],['multiply','Multiply (white tur
 const GOOGLE_FONTS=['Gochi Hand','Atkinson Hyperlegible','Rubik','Fredoka','Baloo 2','Nunito','Quicksand','Comfortaa','Patrick Hand','Caveat','Amatic SC','Pacifico','Lilita One','Luckiest Guy','Chewy','Bubblegum Sans','Sniglet','Short Stack','Poppins','Montserrat','Lato','Open Sans','Merriweather','Playfair Display','Lora'];
 const COLOR_LABELS={table:'Page background',"table-2":'Page background (shade)',seam:'Plank lines',wood:'Token wood (light)',"wood-2":'Token wood (dark)',"wood-3":'Token edge',burn:'Token artwork lines',ink:'Main text',"ink-2":'Secondary text',sea:'Accent (buttons, highlights)',"sea-ink":'Text on accent buttons',bust:'Warnings and busts',panel:'Cards, menus and pop-ups',"panel-2":'Raised buttons and inputs'};
 // labels for the card and message wording in the Studio
-const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',statusFlip:'Card: start of a turn',statusMore:'Card: after a catch',statusNoneLeft:'Card: nothing left to flip',
+const MSG_LABELS={turnTitle:'Card title: whose turn',statusFlip:'Card: start of a turn',statusMore:'Card: after a catch',statusNoneLeft:'Card: nothing left to flip',
   statusThinking:'Card: AI thinking',statusThinkingPts:'Card: AI thinking with a catch',statusWaiting:'Card: waiting for another player',statusWaitingPts:'Card: waiting, with a catch',
   handBtn:'Hand button',saveHome:'Pass-the-device: save and go home link',bankedPrefix:'“Banked” at the start of action cards',noteBanked:'Summary piece: banked points',noteNothing:'Summary piece: banked nothing',
   extraTitle:'Sea Turtle card title',extraBody:'Sea Turtle card',whirlTitle:'Whirlpool card title',whirlBody:'Whirlpool card',dolphinTitle:'Dolphin card title',dolphinMine:'Dolphin card (your turn)',
@@ -3037,7 +3041,7 @@ function renderGame(){
   } else {
     const fd=faceDown().length;
     mini=avatar;
-    title=fmt(TT('turnTitle',{name:p.name})+(bot?TT('aiTag',{level:AI[p.kind].label}):''));
+    title=fmt(TT('turnTitle',{name:p.name}));
     if(S.summary&&!S.turn.rev.length) sub=fmt(S.summary);
     else if(bot) sub=fmt(TT(pend?'statusThinkingPts':'statusThinking',{pts:pend}));
     else if(!me) sub=fmt(TT(pend?'statusWaitingPts':'statusWaiting',{pts:pend,name:p.name}));
@@ -3315,7 +3319,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131832;
+const BUILD=2610131854;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
