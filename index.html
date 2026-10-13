@@ -620,7 +620,7 @@ const TEXT_DEFAULTS={
   lbEmptyDay:'No scores yet today. Finish a game to be the first!', lbEmpty:'No scores yet this week. Finish a game to be the first!', lbEmptyAll:'No scores yet. Finish a game to be the first!',
   lbResetDay:'Resets every night at midnight Mountain Time.', lbReset:'Resets every Monday at midnight Mountain Time.', lbResetAll:'The best scores ever played.', lbAnon:'Anonymous',
   lbOfDay:'today', lbOffline:'Couldn’t reach the leaderboard. Trying again…', lbBlocked:'The leaderboard isn’t switched on yet.', lbOfWeek:'this week', lbOfAll:'of all time',
-  lbNew:'New high score!', lbPrompt:'{score} points is a top-5 score {board}. Add it to the leaderboard?', lbSubmit:'Add with my name', lbPostAnon:'Post anonymously', lbSkip:'No thanks', lbDone:'Added! {name} is #{rank} {board}.',
+  lbNew:'New high score!', lbPrompt:'You won with {score} points, a top-5 score {board}. Add it to the leaderboard?', lbSubmit:'Add with my name', lbPostAnon:'Post anonymously', lbSkip:'No thanks', lbDone:'Added! {name} is #{rank} {board}.',
   shareBtn:'Share with a friend', shareText:'Come play {title} with me! A push-your-luck memory game you can play on your phone or computer.', shareCopied:'Link copied! Paste it to a friend.',
   installTitle:'Get {title} as an app', installIntro:'Add it to your device so it opens in its own window, like any other app.',
   installDesktop:'Click the **install icon** at the right end of Chrome’s address bar, then **Install**. Or open Chrome’s **⋮ menu → Cast, save, and share → Install page as app**.',
@@ -2754,12 +2754,14 @@ async function lbSubmit(i,anon){
   }catch(e){ console.warn('leaderboard save',e); st.state='error' }
   render();
 }
-// the players on this device who just made the top 5
+// only a winner's score can go on the leaderboard (ties for the win count): highest score, then fewest jellyfish
+function wonGame(i){ const key=p=>[finalScore(p),-jellyCount(p)], best=S.players.map(key).sort((a,b)=>b[0]-a[0]||b[1]-a[1])[0], k=key(S.players[i]); return k[0]===best[0]&&k[1]===best[1] }
+// the players on this device who just won and made the top 5
 function lbOverHTML(){
   if(!lbAvailable()) return '';
   S.lb=S.lb||{};
   const rows=S.players.map((p,i)=>{
-    if(isAI(p)||!mine(i)) return '';
+    if(isAI(p)||!mine(i)||!wonGame(i)) return '';
     const sc=finalScore(p), st=S.lb[i]||(S.lb[i]={state:lbQualifies(sc)?'ask':'no'});
     if(st.state==='ask'||st.state==='sending') return `<div class="lbnew"><b>🏆 ${TX('lbNew')}</b><p class="muted">${esc(p.name)}: ${fmt(TT('lbPrompt',{score:sc,board:lbBoardWords(lbBest(sc))}))}</p>
       <div class="coderow"><input id="lbName${i}" maxlength="20" value="${esc(p.name)}" aria-label="Name for the leaderboard"></div>
@@ -3313,7 +3315,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131825;
+const BUILD=2610131832;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
