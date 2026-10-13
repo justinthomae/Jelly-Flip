@@ -231,7 +231,12 @@ p{margin:0}
 .splash.art .splash-in{position:absolute;left:0;right:0;top:62%;padding:0 16px}
 .splash.art .credit,.splash.art .foot{color:#f1fbfa;text-shadow:0 1px 3px rgba(0,25,35,.95),0 0 10px rgba(0,25,35,.6)}
 .splash.art .credit b{color:#fff}
-.splash.art #splashGo{font-size:1.15rem;padding:.75em 2.4em;box-shadow:0 6px 18px rgba(0,30,40,.35)}
+.splogo{position:absolute;z-index:2;pointer-events:none;height:auto;max-width:none;transform:translate(-50%,-50%) rotate(var(--rot,0deg));filter:drop-shadow(0 6px 14px rgba(0,30,40,.35))}
+.splogo[hidden]{display:none}
+.splash.melt .splogo{animation:jfFade .3s ease-in .05s forwards}
+.splashmock{position:relative!important;inset:auto!important;z-index:0!important;transform-origin:0 0;transition:none!important}
+.st-splprev{position:sticky;top:-16px;z-index:3;overflow:hidden;border-radius:14px;margin:6px 0 10px;outline:1.5px solid var(--panel-2);background:var(--panel)}
+.splash.art .splgo,.splash.art #splashGo{font-size:1.15rem;padding:.75em 2.4em;box-shadow:0 6px 18px rgba(0,30,40,.35)}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
 .top h1.roomname{font-family:var(--room);font-size:1.5rem;line-height:1.05;min-width:0;flex:1;overflow-wrap:anywhere}
@@ -414,6 +419,7 @@ html,body{overflow-x:clip}
   --s:var(--hm-s);--x:var(--hm-x);--y:var(--hm-y);--r:var(--hm-r);--f:var(--hm-f);left:var(--hm-L);right:var(--hm-R);
   height:calc(120px * var(--s));transform:translate(var(--x),calc(-50% + var(--y))) rotate(var(--r)) scaleX(var(--f))}
 @media (min-width:760px){ .hnarr{--s:var(--hd-s);--x:var(--hd-x);--y:var(--hd-y);--r:var(--hd-r);--f:var(--hd-f);left:var(--hd-L);right:var(--hd-R)} }
+.hnarr.back{z-index:-1}
 .hnprev.m .hnarr{--s:var(--hm-s);--x:var(--hm-x);--y:var(--hm-y);--r:var(--hm-r);--f:var(--hm-f);left:var(--hm-L);right:var(--hm-R)}
 .hnprev.d .hnarr{--s:var(--hd-s);--x:var(--hd-x);--y:var(--hd-y);--r:var(--hd-r);--f:var(--hd-f);left:var(--hd-L);right:var(--hd-R)}
 .st-homeprev{position:relative;overflow:hidden;border-radius:14px;margin:6px 0 10px;background:var(--table);outline:1.5px solid var(--panel-2)}
@@ -534,10 +540,11 @@ html,body{overflow-x:clip}
 <div id="fx"></div>
 <div id="splash" class="splash art" role="dialog" aria-label="Fliptide">
   <div class="sea" id="sea" aria-hidden="true"></div>
+  <img id="splashTop" class="splogo" alt="" hidden>
   <div class="splash-in">
     <img id="splashLogo" class="title-logo" alt="" hidden>
     <h1 class="logo" data-t="title">Fliptide</h1>
-    <button class="btn primary" id="splashGo" data-t="play">Play</button>
+    <button class="btn primary splgo" id="splashGo" data-t="play">Play</button>
   </div>
   <p class="credit" data-t="credit">Created by <b>Lydia Lichti</b><br>in partnership with <b>Grudge Match Games</b></p>
   <footer class="foot" data-t="copyright">Copyright © 2026 Grudge Match Games</footer>
@@ -712,7 +719,7 @@ const idb=(()=>{ let p; const open=()=>p||(p=new Promise((res,rej)=>{ const r=in
 
 function themeAssetIds(th=THEME){
   const ids=[], add=e=>{ if(e&&e.asset) ids.push(e.asset) };
-  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.bubbleBtn); add(th.sharkSwim); add(th.cardBg); Object.values(th.cards||{}).forEach(c=>add(c&&c.bg)); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
+  Object.values(th.tokens||{}).forEach(add); add(th.back); add(th.material); add(th.backLogo); add(th.appIcon); add(th.titleLogo); add(th.splashLogo); Object.values(th.splashArt||{}).forEach(add); Object.values(th.homeArt||{}).forEach(add); add(th.bubbleBtn); add(th.sharkSwim); add(th.cardBg); Object.values(th.cards||{}).forEach(c=>add(c&&c.bg)); Object.values(th.narrators||{}).forEach(add); Object.values(th.bg||{}).forEach(add);
   Object.values(th.fontFiles||{}).forEach(add); add(th.audio&&th.audio.music); Object.values((th.audio&&th.audio.sfx)||{}).forEach(add);
   return ids;
 }
@@ -752,6 +759,8 @@ function applyTheme(){
   const bgCss=(sel,e)=>{ if(!e) return; const src=srcOf(e), c=e.color||'var(--table)';
     if(src) css.push(`${sel}{background:${c} url("${src}") center/cover no-repeat fixed !important}`); else if(e.color) css.push(`${sel}{background:${c} !important}`) };
   bgCss('body::before,body::after',THEME.bg&&THEME.bg.game); bgCss('.splash',THEME.bg&&THEME.bg.splash);
+  { const n=css.length; bgCss('body::before,body::after',THEME.bg&&THEME.bg.gamePhone); if(css.length>n) css.push('@media (max-aspect-ratio:9/10){'+css.pop()+'}') }
+  { const sa=THEME.splashArt||{}, w=srcOf(sa.wide), t=srcOf(sa.tall); if(w||t) css.push(`.splash.art{--splash-wide:url("${w||t}");--splash-tall:url("${t||w}")}`) }
   { const sb=THEME.bg&&THEME.bg.splash, own=!!(sb&&(srcOf(sb)||sb.color)), sp=document.getElementById('splash'); if(sp){ sp.classList.toggle('art',!own); layoutSplash() } }
   // token material: the surface of every token, wood unless the admin picked a color or a picture
   const mat=THEME.material||{}, gloss='radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 45%)';
@@ -856,7 +865,7 @@ async function shareApp(){
 }
 // The first time someone opens the game in Chrome (not already installed), show how to make it an app on their device.
 const INSTALL={prompt:null, seen:(()=>{ try{ return !!localStorage.getItem('jellyflip.installTip') }catch(e){ return true } })()};
-addEventListener('resize',()=>{ try{ fitHomePreview() }catch(e){} });
+addEventListener('resize',()=>{ try{ fitHomePreview(); fitSplashPreview() }catch(e){} });
 addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); INSTALL.prompt=e; if(S&&S.screen==='setup') render() });
 addEventListener('appinstalled',()=>{ INSTALL.prompt=null; dismissInstall() });
 function installPlatform(){
@@ -1937,7 +1946,7 @@ function cardEditorHTML(E){
 function renderStudio(){
   const b=studioBox(); if(b.hidden) return;
   const E=editTheme(), TE=k=>{ const v=E.text&&E.text[k]; return v!=null&&v!==''?v:(TEXT_DEFAULTS[k]??'') };
-  const tabs=[['brand','Name & logo'],['tokens','Tokens'],['fish','Fish pairs'],['narr','Narrators'],['cards','Cards'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
+  const tabs=[['brand','Name & logo'],['splash','Loading screen'],['home','Home page'],['tokens','Tokens'],['fish','Fish pairs'],['narr','Narrators'],['cards','Cards'],['bg','Backgrounds'],['colors','Colors'],['fonts','Fonts'],['text','Text'],['sound','Music & sounds']];
   let body='';
   if(!STUDIO.ok){
     body=`<div class="st-center"><h2>Studio</h2><p class="muted">Change every image, color, font, word and sound in ${esc(T('title'))}. Only admins can open it.</p>
@@ -2008,14 +2017,15 @@ function renderStudio(){
     if(STUDIO.tab==='fish') body=`<p class="muted">There are 10 fish designs, and each one is printed on two tokens. A player holding both tokens of a design at the end of the game scores +1 bonus point. Upload one picture per design (PNG, JPG or SVG; black-and-white drawings work with the Ink or Multiply style in the Tokens tab). Designs without a picture use the built-in fish with its own markings.</p>
       <div class="st-grid">${FISH.map(t=>item(t,`Fish ${fishNo(t)}`,face(t))).join('')}</div>`;
   } else if(STUDIO.tab==='bg'){
-    const row=(key,label)=>{ const e=E.bg&&E.bg[key]||{}, src=srcOf(e);
+    const row=(key,label,opt)=>{ const e=E.bg&&E.bg[key]||{}, src=srcOf(e);
       return `<div class="st-row"><div class="st-swatch" style="background:${src?`url('${src}') center/cover,`:e.color?'':'var(--water) center/cover,'}${e.color||'#2f9ea3'}"></div>
         <div class="st-grow"><b>${label}</b><div class="st-acts">
           <button class="btn small" data-bgup="${key}">Upload picture</button>
-          <button class="btn small" data-bgocean="${key}">Use the water picture</button>
+          ${opt?'':`<button class="btn small" data-bgocean="${key}">Use the water picture</button>`}
           <label class="st-color">Color <input type="color" data-bgcolor="${key}" value="${e.color||COLOR_DEFAULTS.table}"></label>
           ${e.color||src?`<button class="btn small ghost" data-bgreset="${key}">Reset</button>`:''}</div></div></div>` };
-    body=`<p class="muted">Pictures fill the screen behind everything. Pick a color too: it shows while the picture loads and around its edges.</p>${row('game','Game and setup screens')}${row('splash','Loading screen')}
+    body=`<p class="muted">Pictures fill the screen behind everything. Pick a color too: it shows while the picture loads and around its edges.</p>${row('game','Game and setup screens')}${row('gamePhone','Game and setup screens on phones (optional)',true)}
+      <p class="muted st-small">Leave the phone picture empty to use the one above everywhere. Loading-screen pictures are in the <button class="linkbtn" data-tab="splash">Loading screen</button> tab.</p>
       <div class="st-row"><div class="st-swatch" style="height:64px;background:${srcOf(E.cardBg)?`linear-gradient(rgba(10,6,4,${E.cardBg.dark!=null?E.cardBg.dark:.45}),rgba(10,6,4,${E.cardBg.dark!=null?E.cardBg.dark:.45})),url('${srcOf(E.cardBg)}') center/cover`:'var(--panel)'}"></div>
         <div class="st-grow"><b>Card background</b><p class="muted st-small">A picture behind the game’s cards (the bottom card and pop-ups) instead of the plain card color.</p><div class="st-acts">
           <button class="btn small" data-cardbgup>${srcOf(E.cardBg)?'Replace picture':'Upload picture'}</button>
@@ -2034,7 +2044,11 @@ function renderStudio(){
         ${k==='all'?'':`<option value="" ${map[k]==null?'selected':''}>${k==='handoff'||k==='over'?'Nobody':'Same as every card'}</option>`}
         <option value="none" ${(map[k]==='none'||(k==='all'&&!map.all))?'selected':''}>Nobody</option>
         ${ids.map(id=>`<option value="${id}" ${map[k]===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></label>`).join('')}</div>`:''}
-      ${homeEditorHTML(E)}`;
+      <p class="muted st-small">To put narrators on the home page, use the <button class="linkbtn" data-tab="home">Home page</button> tab.</p>`;
+  } else if(STUDIO.tab==='splash'){
+    body=splashEditorHTML(E);
+  } else if(STUDIO.tab==='home'){
+    body=homeEditorHTML(E);
   } else if(STUDIO.tab==='cards'){
     body=cardEditorHTML(E);
   } else if(STUDIO.tab==='colors'){
@@ -2141,20 +2155,45 @@ function renderStudio(){
   on('[data-cardbgreset]',async()=>{ await removeOldAsset('cardBg'); saveTheme('cardBg',null) });
   on('#narrAdd',()=>{ const inp=document.getElementById('narrNew'), name=(inp.value||'').trim().slice(0,30)||'Narrator'; const id='n'+newId(); saveTheme('narrators/'+id,{name}) });
   on('[data-narrname]',el=>{ const v=el.value.trim().slice(0,30); if(v) saveTheme('narrators/'+el.dataset.narrname+'/name',v) });
-  // ---- home page narrators ----
-  const hslot=()=>STUDIO.homeSlot||'players', hlay=()=>STUDIO.homeLay||'m', hpath=k=>'home/'+hslot()+'/'+hlay()+'/'+k;
+  // ---- home page: narrators and graphics ----
+  const hpk=()=>homePick(editTheme()), hlay=()=>STUDIO.homeLay||'m', hpath=k=>hpk().base+'/'+hlay()+'/'+k;
   const hlocal=(path,val)=>{ const E=editTheme(), parts=path.split('/'); let o=E; for(let i=0;i<parts.length-1;i++){ o[parts[i]]=o[parts[i]]||{}; o=o[parts[i]] } if(val==null) delete o[parts[parts.length-1]]; else o[parts[parts.length-1]]=val };
   const hpreview=()=>{ const pv=document.getElementById('homePrev'); if(pv){ pv.innerHTML=homePreviewHTML(editTheme()); fitHomePreview() } };
-  on('[data-homeslot]',el=>{ STUDIO.homeSlot=el.value; renderStudio() });
+  on('[data-homeslot]',el=>{ STUDIO.homeSlot=el.value; STUDIO.homePick='narr'; renderStudio() });
+  on('[data-homepick]',el=>{ STUDIO.homePick=el.value; STUDIO.armArt=null; renderStudio() });
   b.querySelectorAll('[data-homelay]').forEach(el=>el.onclick=()=>{ STUDIO.homeLay=el.dataset.homelay; renderStudio() });
-  on('[data-hwho]',el=>{ const val=el.value==='none'?null:el.value; hlocal('home/'+hslot()+'/id',val); hpreview(); saveTheme('home/'+hslot()+'/id',val) });
+  on('[data-hwho]',el=>{ const val=el.value==='none'?null:el.value, p='home/'+(STUDIO.homeSlot||'players')+'/id'; hlocal(p,val); hpreview(); saveTheme(p,val) });
   b.querySelectorAll('input[type=range][data-hset]').forEach(el=>el.addEventListener('input',()=>{ hlocal(hpath(el.dataset.hset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.hset==='rot'?'°':'%'); hpreview() }));
   on('[data-hset]',el=>{ const k=el.dataset.hset, val=cval(el); hlocal(hpath(k),val); hpreview(); saveTheme(hpath(k),val) });
   on('[data-hnudge]',el=>{ if(el.dataset.hnudge==='center'){ hlocal(hpath('dx'),0); hlocal(hpath('dy'),0); saveTheme(hpath('dx'),0); return saveTheme(hpath('dy'),0) }
-    const [ax,ay]=el.dataset.hnudge.split(',').map(Number), keep=THEME; THEME=editTheme(); const dx=hv(hslot(),hlay(),'dx',0)+ax, dy=hv(hslot(),hlay(),'dy',0)+ay; THEME=keep;
-    hlocal(hpath('dx'),dx); hlocal(hpath('dy'),dy); hpreview(); saveTheme(hpath('dx'),Math.max(-400,Math.min(400,dx))); saveTheme(hpath('dy'),Math.max(-400,Math.min(400,dy))) });
-  on('[data-hreset]',()=>saveTheme('home/'+hslot()+'/'+hlay(),null));
+    const [ax,ay]=el.dataset.hnudge.split(',').map(Number), H=hpk().H, dx=pvOf(H,hlay(),'dx',0)+ax, dy=pvOf(H,hlay(),'dy',0)+ay;
+    hlocal(hpath('dx'),dx); hlocal(hpath('dy'),dy); hpreview(); saveTheme(hpath('dx'),Math.max(-600,Math.min(600,dx))); saveTheme(hpath('dy'),Math.max(-600,Math.min(600,dy))) });
+  on('[data-hreset]',()=>saveTheme(hpk().base+'/'+hlay(),null));
+  on('[data-hartadd]',()=>pickFile('image/*',f=>{ const id='a'+Date.now().toString(36); STUDIO.homePick=id;
+    uploadAsset('homeArt/'+id,f,'image',{max:1400,keep:{name:(f.name||'Graphic').replace(/\.[a-z0-9]+$/i,'').slice(0,30),slot:STUDIO.homeSlot||'players',layer:'front'}}) }));
+  on('[data-hartup]',()=>{ const p=hpk(); if(p.art) pickFile('image/*',f=>uploadAsset(p.base,f,'image',{max:1400})) });
+  on('[data-hartname]',el=>{ const p=hpk(); if(p.art) saveTheme(p.base+'/name',el.value.trim().slice(0,30)||'Graphic') });
+  on('[data-hartslot]',el=>{ const p=hpk(); if(!p.art) return; STUDIO.homeSlot=el.value; saveTheme(p.base+'/slot',el.value) });
+  on('[data-hartlayer]',el=>{ const p=hpk(); if(p.art){ hlocal(p.base+'/layer',el.value); hpreview(); saveTheme(p.base+'/layer',el.value) } });
+  on('[data-hartdel]',async()=>{ const p=hpk(); if(!p.art) return; if(STUDIO.armArt!==p.art){ STUDIO.armArt=p.art; return renderStudio() }
+    STUDIO.armArt=null; STUDIO.homePick='narr'; await removeOldAsset(p.base); saveTheme(p.base,null) });
   fitHomePreview();
+  // ---- loading screen ----
+  const splpreview=()=>{ const pv=document.getElementById('splPrev'); if(pv){ pv.innerHTML=splashPreviewHTML(editTheme()); fitSplashPreview() } };
+  b.querySelectorAll('[data-spllay]').forEach(el=>el.onclick=()=>{ STUDIO.splLay=el.dataset.spllay; renderStudio() });
+  b.querySelectorAll('input[type=range][data-sp]').forEach(el=>el.addEventListener('input',()=>{ hlocal(el.dataset.sp,cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.u||''); splpreview() }));
+  on('[data-sp]',el=>{ const v=cval(el)===''?null:cval(el); hlocal(el.dataset.sp,v); splpreview(); saveTheme(el.dataset.sp,v) });
+  on('[data-spnudge]',el=>{ const p=el.dataset.spnudge, kx=el.dataset.kx, ky=el.dataset.ky, cur=k=>{ const o=p.split('/').reduce((o,q)=>o&&o[q],editTheme()); return (o&&o[k])||0 };
+    const put=(k,v)=>{ hlocal(p+'/'+k,v||null); saveTheme(p+'/'+k,v||null) };
+    if(el.dataset.d==='center'){ if(kx) put(kx,0); if(ky) put(ky,0) }
+    else { const [ax,ay]=el.dataset.d.split(',').map(Number); if(ax&&kx) put(kx,Math.max(-800,Math.min(800,cur(kx)+ax))); if(ay&&ky) put(ky,Math.max(-800,Math.min(800,cur(ky)+ay))) }
+    splpreview() });
+  on('[data-spreset]',el=>saveTheme(el.dataset.spreset,null));
+  on('[data-splup]',el=>pickFile('image/*',f=>uploadAsset('splashArt/'+el.dataset.splup,f,'image',{max:2000})));
+  on('[data-spldel]',async el=>{ const p='splashArt/'+el.dataset.spldel; await removeOldAsset(p); saveTheme(p,null) });
+  on('[data-splogoup]',()=>pickFile('image/*',f=>uploadAsset('splashLogo',f,'image',{max:1400})));
+  on('[data-splogodel]',async()=>{ await removeOldAsset('splashLogo'); saveTheme('splashLogo',null) });
+  fitSplashPreview();
   on('[data-narrup]',el=>{ const id=el.dataset.narrup, cur=(editTheme().narrators||{})[id]||{}; pickFile('image/*',f=>uploadAsset('narrators/'+id,f,'image',{max:600,keep:{name:cur.name||'Narrator',size:cur.size||null}})) });
   on('[data-narrsize]',el=>saveTheme('narrators/'+el.dataset.narrsize+'/size',(+el.value)/100));
   on('[data-narrdel]',async el=>{ const id=el.dataset.narrdel; if(STUDIO.armNarr!==id){ STUDIO.armNarr=id; return renderStudio() } STUDIO.armNarr=null;
@@ -2567,12 +2606,19 @@ function finish(){ cloudDrop(S.saveCode); S.screen='over'; S.phase=null; render(
 const HOME={tab:'play'};
 const HOME_SLOTS=[['header','Top: logo and share button'],['install','Get-the-app tip'],['resume','Game in progress'],['code','Have a game code?'],['players','Players and start'],['lb','Leaderboard'],['tray','Guide: tokens in the bag'],['rules','Guide: how to play']];
 // THEME.home[section] = {id, m:{phone layout}, d:{computer layout}}; the computer layout falls back to the phone one
-const hv=(slot,lay,k,def)=>{ const H=(THEME.home||{})[slot]||{}, a=H[lay]&&H[lay][k]; if(a!=null) return a; const b=lay==='d'&&H.m?H.m[k]:null; return b!=null?b:def };
+// a picture placed on a home section: H={m:{phone layout}, d:{computer layout}}; the computer layout falls back to the phone one
+const pvOf=(H,lay,k,def)=>{ const a=H&&H[lay]&&H[lay][k]; if(a!=null) return a; const b=lay==='d'&&H&&H.m?H.m[k]:null; return b!=null?b:def };
+const hv=(slot,lay,k,def)=>pvOf((THEME.home||{})[slot]||{},lay,k,def);
+function placedHTML(H,src,base,cls){
+  const vars=['m','d'].map(l=>{ const sz=pvOf(H,l,'size',1)*base, side=pvOf(H,l,'side','right'), edge=`calc(-14px * ${sz})`;
+    return `--h${l}-s:${sz};--h${l}-x:${pvOf(H,l,'dx',0)}px;--h${l}-y:${pvOf(H,l,'dy',0)}px;--h${l}-r:${pvOf(H,l,'rot',0)}deg;--h${l}-f:${pvOf(H,l,'flip',false)?-1:1};--h${l}-L:${side==='left'?edge:'auto'};--h${l}-R:${side==='left'?'auto':edge}` }).join(';');
+  return `<img class="${cls}" src="${src}" alt="" aria-hidden="true" style="${vars}">`;
+}
+// THEME.homeArt[id] = {asset, name, slot (which section), layer ('front' or 'back'), m, d}
+const homeArtIn=(slot,th=THEME)=>Object.entries(th.homeArt||{}).filter(([,a])=>a&&a.slot===slot);
 function homeNarrHTML(slot){
-  const H=(THEME.home||{})[slot], id=H&&H.id, n=id&&id!=='none'&&THEME.narrators&&THEME.narrators[id], src=srcOf(n); if(!src) return '';
-  const vars=['m','d'].map(l=>{ const side=hv(slot,l,'side','right'), edge=`calc(-14px * ${hv(slot,l,'size',1)*(n.size||1)})`;
-    return `--h${l}-s:${hv(slot,l,'size',1)*(n.size||1)};--h${l}-x:${hv(slot,l,'dx',0)}px;--h${l}-y:${hv(slot,l,'dy',0)}px;--h${l}-r:${hv(slot,l,'rot',0)}deg;--h${l}-f:${hv(slot,l,'flip',false)?-1:1};--h${l}-L:${side==='left'?edge:'auto'};--h${l}-R:${side==='left'?'auto':edge}` }).join(';');
-  return `<img class="hnarr" src="${src}" alt="" aria-hidden="true" style="${vars}">`;
+  const H=(THEME.home||{})[slot], id=H&&H.id, n=id&&id!=='none'&&THEME.narrators&&THEME.narrators[id], src=srcOf(n);
+  return (src?placedHTML(H,src,n.size||1,'hnarr'):'')+homeArtIn(slot).map(([,a])=>srcOf(a)?placedHTML(a,srcOf(a),1,'hnarr hart'+(a.layer==='back'?' back':'')):'').join('');
 }
 function homeTabsHTML(){ return `<nav class="hometabs" role="tablist">${['play','guide'].map(t=>`<button class="hometab${HOME.tab===t?' on':''}" data-hometab="${t}" role="tab" aria-selected="${HOME.tab===t}">${TX(t==='play'?'tabPlay':'tabGuide')}</button>`).join('')}</nav>` }
 function resumeCardHTML(resume){
@@ -2605,23 +2651,32 @@ function homePreviewHTML(E){
     return `<div class="hnprev ${lay}" inert style="width:${lay==='d'?840:375}px"><div class="hnapp">${homeSampleHTML(STUDIO.homeSlot||'players')}</div></div>` } finally{ THEME=keep }
 }
 function fitHomePreview(){ const f=document.getElementById('homePrev'), p=f&&f.firstElementChild; if(!p) return; const k=Math.min(1,f.clientWidth/p.offsetWidth); p.style.transform=`scale(${k})`; f.style.height=Math.ceil(p.offsetHeight*k)+'px' }
+// what the Home page editor is working on: the section's narrator, or one of its graphics
+const homePick=E=>{ const slot=STUDIO.homeSlot||'players', p=STUDIO.homePick, a=p&&p!=='narr'&&(E.homeArt||{})[p];
+  return a&&a.slot===slot?{art:p,base:'homeArt/'+p,H:a}:{art:null,base:'home/'+slot,H:(E.home||{})[slot]||{}} };
 function homeEditorHTML(E){
-  const N=E.narrators||{}, ids=Object.keys(N); if(!ids.length) return '';
-  const slot=STUDIO.homeSlot||'players', lay=STUDIO.homeLay||'m', H=(E.home||{})[slot]||{}, own=H[lay]||{};
-  const keep=THEME; THEME=E; const v=(k,d)=>hv(slot,lay,k,d); 
+  const N=E.narrators||{}, ids=Object.keys(N), slot=STUDIO.homeSlot||'players', lay=STUDIO.homeLay||'m', pk=homePick(E), H=pk.H, own=H[lay]||{};
+  const v=(k,d)=>pvOf(H,lay,k,d), arts=homeArtIn(slot,E), shown=pk.art?!!srcOf(H):!!(H.id&&H.id!=='none');
   const range=(k,min,max,step,def,label,u,scale=1)=>{ const val=v(k,def); return `<label class="st-color">${label} <input type="range" min="${min}" max="${max}" step="${step}" value="${Math.round(val*scale)}" data-hset="${k}" data-scale="${scale}"> <span class="st-pct">${Math.round(val*scale)}${u}</span></label>` };
-  const html=`<h3 class="st-h3">Home page</h3><p class="muted st-small">Put a narrator beside any section of the home page. Set the phone layout first; the computer layout starts out the same, then you can change it separately.</p>
-    <label class="st-row slim"><b class="st-grow">Section</b><select data-homeslot>${HOME_SLOTS.map(([k,l])=>{ const h=(E.home||{})[k]; return `<option value="${k}" ${k===slot?'selected':''}>${esc(l)}${h&&h.id&&h.id!=='none'?' •':''}</option>` }).join('')}</select></label>
-    <div class="st-row slim"><b class="st-grow">Who</b><select data-hwho><option value="none" ${!H.id||H.id==='none'?'selected':''}>Nobody</option>${ids.map(id=>`<option value="${id}" ${H.id===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select></div>
+  const count=k=>{ const h=(E.home||{})[k], n=homeArtIn(k,E).length+(h&&h.id&&h.id!=='none'?1:0); return n?` (${n})`:'' };
+  return `<p class="muted">Put narrators and other pictures on any section of the home page. Set the phone layout first; the computer layout starts out the same, then you can change it separately.</p>
+    <label class="st-row slim"><b class="st-grow">Section</b><select data-homeslot>${HOME_SLOTS.map(([k,l])=>`<option value="${k}" ${k===slot?'selected':''}>${esc(l)}${count(k)}</option>`).join('')}</select></label>
+    <div class="st-row slim"><b class="st-grow">Picture</b><select data-homepick><option value="narr" ${!pk.art?'selected':''}>Narrator</option>${arts.map(([id,a])=>`<option value="${id}" ${pk.art===id?'selected':''}>${esc(a.name||'Graphic')}</option>`).join('')}</select>
+      <button class="btn small" data-hartadd>+ Add a graphic</button></div>
     <div class="st-row slim"><b class="st-grow">Layout</b><div class="st-seg">${[['m','Phone'],['d','Computer']].map(([l,t])=>`<button data-homelay="${l}" class="${l===lay?'on':''}">${t}</button>`).join('')}</div></div>
     <div class="st-homeprev" id="homePrev">${homePreviewHTML(E)}</div>
-    ${H.id&&H.id!=='none'?`<div class="st-row"><div class="st-grow"><b>${lay==='d'?'Computer':'Phone'} layout</b>${lay==='d'&&!Object.keys(own).length?'<p class="muted st-small">Same as the phone layout until you change something here.</p>':''}<div class="st-acts">
+    ${pk.art?`<div class="st-row"><div class="st-prev st-narrprev">${srcOf(H)?`<img src="${srcOf(H)}" alt="">`:''}</div><div class="st-grow">
+      <input class="st-input" data-hartname value="${esc(H.name||'')}" maxlength="30" aria-label="Graphic name">
+      <div class="st-acts"><label class="st-color">Section <select data-hartslot>${HOME_SLOTS.map(([k,l])=>`<option value="${k}" ${k===slot?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
+      <label class="st-color">Layer <select data-hartlayer><option value="front" ${H.layer!=='back'?'selected':''}>In front of the section</option><option value="back" ${H.layer==='back'?'selected':''}>Behind the section</option></select></label>
+      <button class="btn small" data-hartup>Replace picture</button><button class="btn small ghost" data-hartdel>${STUDIO.armArt===pk.art?'Tap again to remove':'Remove'}</button></div></div></div>`
+    :`<div class="st-row slim"><b class="st-grow">Who</b>${ids.length?`<select data-hwho><option value="none" ${!H.id||H.id==='none'?'selected':''}>Nobody</option>${ids.map(id=>`<option value="${id}" ${H.id===id?'selected':''}>${esc(N[id].name||'Unnamed')}</option>`).join('')}</select>`:'<span class="muted st-small">Add characters in the Narrators tab first.</span>'}</div>`}
+    ${shown?`<div class="st-row"><div class="st-grow"><b>${lay==='d'?'Computer':'Phone'} layout</b>${lay==='d'&&!Object.keys(own).length?'<p class="muted st-small">Same as the phone layout until you change something here.</p>':''}<div class="st-acts">
       <label class="st-color">Side <select data-hset="side"><option value="right" ${v('side','right')==='right'?'selected':''}>Right</option><option value="left" ${v('side','right')==='left'?'selected':''}>Left</option></select></label>
-      ${range('size',30,300,5,1,'Size','%',100)}${range('rot',-45,45,1,0,'Rotate','°')}
+      ${range('size',10,500,5,1,'Size','%',100)}${range('rot',-180,180,1,0,'Rotate','°')}
       <label class="st-check"><input type="checkbox" data-hset="flip" data-kind="bool" ${v('flip',false)?'checked':''}> Mirror</label>
       <div class="st-color">Position <div class="st-nudge"><button class="nb up" data-hnudge="0,-6">↑</button><button class="nb lf" data-hnudge="-6,0">←</button><button class="nb ct" data-hnudge="center" title="Center">${v('dx',0)||v('dy',0)?'⦿':'·'}</button><button class="nb rt" data-hnudge="6,0">→</button><button class="nb dn" data-hnudge="0,6">↓</button></div></div>
       ${Object.keys(own).length?`<button class="linkbtn" data-hreset>${lay==='d'?'match the phone layout':'reset phone layout'}</button>`:''}</div></div></div>`:''}`;
-  THEME=keep; return html;
 }
 // ---------- leaderboards: today, this week, all-time ----------
 // Scores live in jf/leaderboard/<board key>: "d-<date>" for a day, "<Monday's date>" for a week, "all" for all-time.
@@ -3089,22 +3144,71 @@ function waterDissolve(sp,done){
   setTimeout(done,1400);
 }
 // Place Play just under the logo in the loading-screen picture (wherever the picture's cropping puts it), with the credits below,
-// keeping clear of the copyright line.
-function layoutSplash(){
-  const SPLASH_ART={tall:{w:941,h:1672,logoBottom:.70},wide:{w:1672,h:941,logoBottom:.86}};
-  const sp=document.getElementById('splash'); if(!sp) return;
-  const inn=sp.querySelector('.splash-in'), cr=sp.querySelector('.credit'), ft=sp.querySelector('.foot');
-  const tall=innerWidth/innerHeight<0.9;
-  // on wide screens the credits go on one line just above the copyright, leaving room under the logo for Play
-  cr.innerHTML=sp.classList.contains('art')&&!tall?TX('credit').replace(/<br>/g,' '):TX('credit');
-  if(!sp.classList.contains('art')){ inn.style.top=''; cr.style.top=''; cr.style.bottom=''; return }
-  const W=innerWidth, H=innerHeight, a=tall?SPLASH_ART.tall:SPLASH_ART.wide;
-  const sc=Math.max(W/a.w,H/a.h), y=(H-a.h*sc)/2+a.logoBottom*a.h*sc;
-  const footTop=ft?ft.getBoundingClientRect().top:H-30, bh=inn.offsetHeight, ch=cr.offsetHeight;
+// keeping clear of the copyright line. Then apply the Studio's per-device adjustments: a logo on top, Play's size and position,
+// and the size, position, alignment and line layout of the credits and copyright. Phone layout = portrait screens.
+// (functions, not constants: the loading screen is laid out while the page is still starting up)
+function splashDef(L){ return L==='m'?{x:50,y:24,size:80}:{x:50,y:22,size:45} }
+function spv(path,k,def){ const o=path.split('/').reduce((o,p)=>o&&o[p],THEME); const v=o&&o[k]; return v!=null?v:def }
+function placeSplash(sp,W,H,tall){
+  const L=tall?'m':'d', inn=sp.querySelector('.splash-in'), cr=sp.querySelector('.credit'), ft=sp.querySelector('.foot'), go=sp.querySelector('.splgo'), lg=sp.querySelector('.splogo');
+  const art=sp.classList.contains('art'), sa=THEME.splashArt||{}, custom=!!srcOf(tall?(sa.tall||sa.wide):(sa.wide||sa.tall)), t=k=>spv('splashText/'+L,k,null);
+  const ls=srcOf(THEME.splashLogo);
+  if(lg){ lg.hidden=!ls; if(ls){ if(lg.getAttribute('src')!==ls) lg.src=ls; const g=k=>spv('splashLogo/'+L,k,splashDef(L)[k]);
+    lg.style.left=(g('x')/100*W)+'px'; lg.style.top=(g('y')/100*H)+'px'; lg.style.width=(g('size')/100*Math.min(W,H))+'px'; lg.style.setProperty('--rot',spv('splashLogo/'+L,'rot',0)+'deg') } }
+  const lines=t('lines')||'auto', one=lines==='one'||(lines==='auto'&&art&&!tall);
+  cr.innerHTML=one?TX('credit').replace(/<br>/g,' '):TX('credit');
+  cr.style.fontSize=t('csize')!=null?(.95*t('csize'))+'rem':''; cr.style.textAlign=t('align')||'';
+  const fdy=t('fdy')||0; if(ft){ ft.style.fontSize=t('fsize')!=null?(.75*t('fsize'))+'rem':''; ft.style.transform=fdy?`translateY(${fdy}px)`:'' }
+  const P=k=>spv('splashPlay/'+L,k,k==='size'?1:0), pdx=P('dx'), pdy=P('dy'), cdx=t('cdx')||0, cdy=t('cdy')||0;
+  if(go) go.style.fontSize=P('size')!==1?(1.15*P('size'))+'rem':'';
+  if(!art){ inn.style.top=''; cr.style.top=''; cr.style.bottom=''; inn.style.transform=pdx||pdy?`translate(${pdx}px,${pdy}px)`:''; cr.style.transform=cdx||cdy?`translate(${cdx}px,${cdy}px)`:''; return }
+  const a=tall?{w:941,h:1672,logoBottom:.70}:{w:1672,h:941,logoBottom:.86}, sc=Math.max(W/a.w,H/a.h), y=custom?H*.6:(H-a.h*sc)/2+a.logoBottom*a.h*sc;
+  const footTop=ft?ft.offsetTop+fdy:H-30, bh=inn.offsetHeight, ch=cr.offsetHeight;
   let top=y+10, ctop=tall?top+bh+16:footTop-ch-6;
   if(tall){ const over=ctop+ch-(footTop-8); if(over>0){ top-=over; ctop-=over } }
   else if(top+bh>ctop-10) top=ctop-10-bh;
-  inn.style.top=Math.round(top)+'px'; cr.style.top=Math.round(ctop)+'px'; cr.style.bottom='auto';
+  inn.style.top=Math.round(top+pdy)+'px'; inn.style.transform=pdx?`translateX(${pdx}px)`:'';
+  cr.style.top=Math.round(ctop+cdy)+'px'; cr.style.bottom='auto'; cr.style.transform=cdx?`translateX(${cdx}px)`:'';
+}
+function layoutSplash(){ const sp=document.getElementById('splash'); if(sp) placeSplash(sp,innerWidth,innerHeight,innerWidth/innerHeight<0.9) }
+// a small copy of the loading screen for the Studio
+function splashPreviewHTML(E){
+  const lay=STUDIO.splLay||'m', W=lay==='m'?390:1280, H=lay==='m'?780:800, sa=E.splashArt||{}, src=srcOf(lay==='m'?(sa.tall||sa.wide):(sa.wide||sa.tall));
+  const sb=E.bg&&E.bg.splash, legacy=!!(sb&&(srcOf(sb)||sb.color));
+  const bg=legacy?`background:${sb.color||'#2f9ea3'} ${srcOf(sb)?`url('${srcOf(sb)}') center/cover no-repeat`:''}`:`background:#1b8f9b ${src?`url('${src}')`:`var(--splash-${lay==='m'?'tall':'wide'})`} center/cover no-repeat`;
+  const keep=THEME; THEME=E; try{
+    return `<div class="splash${legacy?'':' art'} splashmock" inert style="width:${W}px;height:${H}px;${bg}"><img class="splogo" alt="" hidden><div class="splash-in">${legacy?`<h1 class="logo">${TX('title')}</h1>`:''}<button class="btn primary splgo" tabindex="-1">${TX('play')}</button></div><p class="credit"></p><footer class="foot">${TX('copyright')}</footer></div>` } finally{ THEME=keep }
+}
+function fitSplashPreview(){
+  const f=document.getElementById('splPrev'), m=f&&f.firstElementChild; if(!m) return;
+  const keep=THEME; THEME=editTheme(); try{ placeSplash(m,m.offsetWidth,m.offsetHeight,(STUDIO.splLay||'m')==='m') } finally{ THEME=keep }
+  const k=Math.min(1,f.clientWidth/m.offsetWidth); m.style.transform=`scale(${k})`; f.style.height=Math.ceil(m.offsetHeight*k)+'px';
+}
+function splashEditorHTML(E){
+  const sa=E.splashArt||{}, L=STUDIO.splLay||'m', lg=E.splashLogo||{}, sb=E.bg&&E.bg.splash, legacy=!!(sb&&(srcOf(sb)||sb.color));
+  const g=(path,k,d)=>{ const o=path.split('/').reduce((o,p)=>o&&o[p],E); return o&&o[k]!=null?o[k]:d };
+  const rng=(path,k,min,max,step,def,label,u,scale=1)=>{ const val=g(path,k,def); return `<label class="st-color">${label} <input type="range" min="${Math.round(min*scale)}" max="${Math.round(max*scale)}" step="${Math.max(1,Math.round(step*scale))}" value="${Math.round(val*scale)}" data-sp="${path}/${k}" data-scale="${scale}" data-u="${u}"> <span class="st-pct">${Math.round(val*scale)}${u}</span></label>` };
+  const nud=(path,kx,ky,label='Position')=>`<div class="st-color">${label} <div class="st-nudge">${ky?`<button class="nb up" data-spnudge="${path}" data-kx="" data-ky="${ky}" data-d="0,-4">↑</button>`:''}${kx?`<button class="nb lf" data-spnudge="${path}" data-kx="${kx}" data-ky="" data-d="-4,0">←</button>`:''}<button class="nb ct" data-spnudge="${path}" data-kx="${kx}" data-ky="${ky}" data-d="center" title="Back to the starting spot">·</button>${kx?`<button class="nb rt" data-spnudge="${path}" data-kx="${kx}" data-ky="" data-d="4,0">→</button>`:''}${ky?`<button class="nb dn" data-spnudge="${path}" data-kx="" data-ky="${ky}" data-d="0,4">↓</button>`:''}</div></div>`;
+  const has=p=>{ const o=g(p.split('/').slice(0,-1).join('/'),p.split('/').pop(),null); return o&&typeof o==='object'&&Object.keys(o).length };
+  const reset=(p,label)=>has(p)?`<button class="linkbtn" data-spreset="${p}">reset ${label}</button>`:'';
+  const dev=L==='m'?'phone':'computer';
+  const pic=(key,label,hint)=>{ const e=sa[key], src=srcOf(e); return `<div class="st-row"><div class="st-swatch" style="background:${src?`url('${src}')`:`var(--splash-${key})`} center/cover no-repeat;width:${key==='tall'?44:78}px;height:78px"></div>
+    <div class="st-grow"><b>${label}</b><p class="muted st-small">${hint}</p><div class="st-acts"><button class="btn small" data-splup="${key}">${src?'Replace picture':'Upload picture'}</button>${src?`<button class="btn small ghost" data-spldel="${key}">Use the built-in picture</button>`:''}</div></div></div>` };
+  return `<p class="muted">The first screen players see. Each part can be set separately for phones (portrait screens) and computers (landscape screens). The words themselves are in the <button class="linkbtn" data-tab="text">Text</button> tab.</p>
+    ${pic('tall','Phone picture','Portrait, about 9:16 (for example 1080×1920).')}${pic('wide','Computer picture','Landscape, about 16:9 (for example 1920×1080).')}
+    ${legacy?`<div class="st-row"><div class="st-grow"><b>Older loading-screen picture</b><p class="muted st-small">A single picture set from the Backgrounds tab is still in use and replaces the pictures above.</p><button class="btn small ghost" data-bgreset="splash">Remove it</button></div></div>`:''}
+    <div class="st-row slim"><b class="st-grow">Layout</b><div class="st-seg">${[['m','Phone'],['d','Computer']].map(([l,t])=>`<button data-spllay="${l}" class="${l===L?'on':''}">${t}</button>`).join('')}</div></div>
+    <div class="st-splprev" id="splPrev">${splashPreviewHTML(E)}</div>
+    <div class="st-row"><div class="st-prev st-titleprev">${srcOf(lg)?`<img src="${srcOf(lg)}" alt="">`:'<span class="muted st-small">none</span>'}</div><div class="st-grow"><b>Logo on top</b><p class="muted st-small">An optional picture (such as the game’s logo) placed over the loading-screen picture. A PNG with a see-through background works best.</p>
+      <div class="st-acts"><button class="btn small" data-splogoup>${srcOf(lg)?'Replace logo':'Upload logo'}</button>${srcOf(lg)?`<button class="btn small ghost" data-splogodel>Remove</button>`:''}</div>
+      ${srcOf(lg)?`<div class="st-acts">${rng('splashLogo/'+L,'size',5,150,1,splashDef(L).size,'Size','%')}${rng('splashLogo/'+L,'x',0,100,1,splashDef(L).x,'Left ↔ right','%')}${rng('splashLogo/'+L,'y',0,100,1,splashDef(L).y,'Up ↕ down','%')}${rng('splashLogo/'+L,'rot',-180,180,1,0,'Rotate','°')}${reset('splashLogo/'+L,'the '+dev+' logo')}</div>`:''}</div></div>
+    <div class="st-row"><div class="st-grow"><b>Play button</b> <span class="muted st-small">(${dev})</span><div class="st-acts">${rng('splashPlay/'+L,'size',.5,2.5,.05,1,'Size','%',100)}${nud('splashPlay/'+L,'dx','dy')}${reset('splashPlay/'+L,'Play')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>“Created by” credits</b> <span class="muted st-small">(${dev})</span><div class="st-acts">
+      ${rng('splashText/'+L,'csize',.4,3,.05,1,'Size','%',100)}
+      <label class="st-color">Align <select data-sp="splashText/${L}/align">${[['','Centered'],['left','Left'],['right','Right']].map(([v,l])=>`<option value="${v}" ${(g('splashText/'+L,'align','')||'')===v?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="st-color">Lines <select data-sp="splashText/${L}/lines">${[['auto','Automatic'],['two','Two lines'],['one','One line']].map(([v,l])=>`<option value="${v}" ${g('splashText/'+L,'lines','auto')===v?'selected':''}>${l}</option>`).join('')}</select></label>
+      ${nud('splashText/'+L,'cdx','cdy')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Copyright line</b> <span class="muted st-small">(${dev})</span><div class="st-acts">${rng('splashText/'+L,'fsize',.4,3,.05,1,'Size','%',100)}${nud('splashText/'+L,'','fdy','Up or down')}${reset('splashText/'+L,'credits and copyright')}</div></div></div>`;
 }
 addEventListener('resize',layoutSplash);
 function startSplash(){
@@ -3164,7 +3268,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131515;
+const BUILD=2610131709;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
