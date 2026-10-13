@@ -1153,9 +1153,13 @@ function savePrefs(){try{localStorage.setItem(PREFS_KEY,JSON.stringify(PREFS))}c
 let actx=null, master=null, noiseBuf=null;
 function audio(){
   if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); master=actx.createGain(); master.gain.value=.8; master.connect(actx.destination) }catch(e){ return null } }
-  if(actx.state==='suspended') actx.resume().catch(()=>{});
+  AUDIO_USED=Date.now(); if(actx.state==='suspended'&&!AWAY) actx.resume().catch(()=>{});
   return actx;
 }
+// Phones can turn a running audio stream into a short buzz or beep when the app is closed or frozen,
+// so the sound engine sleeps whenever nothing is playing, and goes silent the moment the app starts to leave.
+let AUDIO_USED=0, AWAY=false;
+setInterval(()=>{ if(actx&&actx.state==='running'&&!(MUSIC.playing&&!MUSIC.el)&&Date.now()-AUDIO_USED>3000) actx.suspend().catch(()=>{}) },1000);
 // the first tap anywhere unlocks audio; music starts then, unless the loading screen is still up
 addEventListener('pointerdown',()=>{ if(PREFS.sound||PREFS.music) audio(); if(!document.getElementById('splash')) musicStart() },{passive:true});
 function tone(f0,f1,dur,{type='sine',vol=.15,delay=0,vib=0,lp=0}={}){
@@ -1211,7 +1215,7 @@ async function playCustom(e,vol=1){
   const n=a.createBufferSource(), g=a.createGain(); g.gain.value=vol; n.buffer=b; n.connect(g).connect(master); n.start();
 }
 const customSfx = name => THEME.audio&&THEME.audio.sfx&&THEME.audio.sfx[name];
-function playBubbleSound(vol=.04){ const c=customSfx('bubble'); if(srcOf(c)) return playCustom(c,1); if(actx) bubble(actx.currentTime,vol) }
+function playBubbleSound(vol=.04){ const c=customSfx('bubble'); if(srcOf(c)) return playCustom(c,1); if(actx&&audio()) bubble(actx.currentTime,vol) }
 function sfx(name,...args){
   if(NET.ff) return;
   if(PREFS.sound){ try{ const c=customSfx(name); if(srcOf(c)) playCustom(c); else SFX[name]&&SFX[name](...args) }catch(e){} }
@@ -1299,18 +1303,27 @@ function musicStart(){
 }
 function musicRestart(){ if(MUSIC.playing){ musicStop(); setTimeout(musicStart,950) } }
 function quietForBackground(hidden){
-  if(!actx||!master) { if(MUSIC.el) hidden?MUSIC.el.pause():(MUSIC.playing&&MUSIC.el.play().catch(()=>{})); return }
-  const t=actx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value,t);
+  if(hidden===AWAY) return; AWAY=hidden;
+  if(MUSIC.el) hidden?MUSIC.el.pause():(MUSIC.playing&&MUSIC.el.play().catch(()=>{}));
+  if(!actx||!master) return;
   if(hidden){
-    master.gain.linearRampToValueAtTime(0,t+.06); clearInterval(MUSIC.timer); if(MUSIC.el) MUSIC.el.pause();
-    setTimeout(()=>{ if(document.visibilityState==='hidden') actx.suspend().catch(()=>{}) },90);
+    // cut to silence straight away (no fade: the app may be frozen before a fade could finish), unplug, then sleep
+    clearInterval(MUSIC.timer);
+    try{ master.gain.cancelScheduledValues(0); master.gain.value=0; master.disconnect() }catch(e){}
+    actx.suspend().catch(()=>{});
   } else {
-    actx.resume().catch(()=>{}).then(()=>{ const n=actx.currentTime; master.gain.setValueAtTime(0,n); master.gain.linearRampToValueAtTime(.8,n+.25);
-      if(MUSIC.playing){ if(MUSIC.el) MUSIC.el.play().catch(()=>{}); else { MUSIC.next=Math.max(MUSIC.next,n+.1); clearInterval(MUSIC.timer); MUSIC.timer=setInterval(musicTick,120) } } });
+    try{ master.connect(actx.destination) }catch(e){}
+    actx.resume().catch(()=>{}).then(()=>{ const n=actx.currentTime; master.gain.cancelScheduledValues(n); master.gain.setValueAtTime(0,n); master.gain.linearRampToValueAtTime(.8,n+.25); AUDIO_USED=Date.now();
+      if(MUSIC.playing&&!MUSIC.el){ MUSIC.next=Math.max(MUSIC.next,n+.1); clearInterval(MUSIC.timer); MUSIC.timer=setInterval(musicTick,120) } });
   }
 }
+const touchDevice=matchMedia('(pointer:coarse)').matches;
 addEventListener('visibilitychange',()=>quietForBackground(document.visibilityState==='hidden'));
-addEventListener('pagehide',()=>quietForBackground(true));
+addEventListener('pagehide',e=>{ quietForBackground(true); if(!e.persisted&&actx){ try{ actx.close() }catch(x){} } });
+addEventListener('pageshow',e=>{ if(e.persisted&&actx&&actx.state==='closed'){ actx=null; master=null; MUSIC.bus=null; MUSIC.playing=false; quietForBackground(false) } });
+document.addEventListener('freeze',()=>quietForBackground(true));
+// on phones and tablets, the window loses focus as soon as the app switcher opens, a beat before the app is hidden
+if(touchDevice){ addEventListener('blur',()=>quietForBackground(true)); addEventListener('focus',()=>{ if(document.visibilityState==='visible') quietForBackground(false) }) }
 function musicStop(){
   if(!MUSIC.playing) return; MUSIC.playing=false;
   if(MUSIC.el){ MUSIC.el.pause(); MUSIC.el=null; return }
@@ -1325,10 +1338,6 @@ function bubble(t,vol=.05){
   g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.008); g.gain.exponentialRampToValueAtTime(.0001,t+.09);
   o.connect(g).connect(master); o.start(t); o.stop(t+.1);
 }
-// pause everything while the page is hidden
-document.addEventListener('visibilitychange',()=>{
-  if(MUSIC.el){ if(document.hidden) MUSIC.el.pause(); else if(MUSIC.playing) MUSIC.el.play().catch(()=>{}) }
-  if(!actx) return; if(document.hidden) actx.suspend().catch(()=>{}); else actx.resume().catch(()=>{}) });
 
 // Firebase settings for the stand-alone site (the claude.ai version uses claude.ai's own live room instead).
 const FIREBASE_CONFIG = {
@@ -3070,6 +3079,7 @@ function startSplash(){
   // soft bubbles every second or two while the loading screen is up (once the browser allows sound)
   const bubbles=setInterval(()=>{
     if(gone||!PREFS.sound||!actx||actx.state!=='running') return;
+    AUDIO_USED=Date.now();
     if(srcOf(customSfx('bubble'))) return playCustom(customSfx('bubble'),.8);
     const t=actx.currentTime, n=1+Math.floor(Math.random()*3);
     for(let k=0;k<n;k++) bubble(t+k*(.08+Math.random()*.12),.035);
@@ -3118,7 +3128,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610130042;
+const BUILD=2610130046;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
