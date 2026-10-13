@@ -241,13 +241,15 @@ p{margin:0}
 .credit{position:absolute;left:16px;right:16px;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:2;margin:0;text-align:center;
   font-family:var(--credit,'Rubik'),var(--body);font-weight:300;font-size:.95rem;line-height:1.7;letter-spacing:.01em;color:var(--ink-2)}
 .credit b{font-weight:400;color:var(--ink)}
-.iconbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#e9f8f7;padding:0;cursor:pointer;
+.iconbtn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;padding:0;cursor:pointer}
+/* the bubble look, shared by the home-screen round buttons and the in-game header buttons */
+.iconbtn,.btn.hbtn{color:#e9f8f7;
   border:1.5px solid rgba(225,250,255,.6);
   background:radial-gradient(circle at 30% 27%,rgba(255,255,255,.95) 0 2.5px,rgba(255,255,255,.35) 4px,rgba(255,255,255,0) 8px),
     radial-gradient(circle at 50% 55%,rgba(160,225,235,.08) 0 55%,rgba(205,246,255,.32) 92%,rgba(255,255,255,.5) 100%);
   box-shadow:inset -2px -3px 6px rgba(255,255,255,.2),inset 2px 2px 5px rgba(0,40,50,.12),0 3px 8px rgba(0,35,45,.22);
   transition:transform .15s}
-.iconbtn:active{transform:scale(.92)}
+.iconbtn:active,.btn.hbtn:active{transform:scale(.92)}
 .iconbtn[data-pref][aria-pressed="false"]{color:rgba(233,248,247,.6)}
 .menu-top .iconbtn{width:46px;height:46px}
 .menu-top .iconbtn svg{width:22px;height:22px}
@@ -256,15 +258,17 @@ p{margin:0}
 .guideback{align-self:flex-start;color:#eef8f6;text-shadow:0 1px 3px rgba(4,36,42,.55)}
 .iconbtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .iconbtn[aria-pressed="true"]{color:#fff}
-.hbtn svg{display:none;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.hbtn.armed{color:var(--bust);border-color:var(--bust)}
+.btn.hbtn{width:38px;height:38px;min-width:38px;padding:0;display:grid;place-items:center;border-radius:50%;box-sizing:border-box;line-height:0}
+.hbtn .lbl{display:none}
+.hbtn svg{display:block;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn.hbtn.armed{width:auto;padding:0 .8em;border-radius:999px;line-height:1.2;color:#fff;border-color:var(--bust);background:color-mix(in srgb,var(--bust) 60%,transparent);box-shadow:0 3px 8px rgba(0,35,45,.22)}
 .setwrap{position:relative;display:inline-flex}
 .setpop{position:absolute;top:calc(100% + 8px);right:0;z-index:20;display:flex;gap:8px;padding:8px;border-radius:999px;background:var(--panel);box-shadow:0 8px 22px rgba(0,0,0,.45)}
 .setpop[hidden]{display:none}
 .top .tools > *{flex:none}
 .top .tools{align-items:center}
 @media (max-width:440px){ .top h1{font-size:1.9rem} .top .tools{gap:5px} .iconbtn{width:32px;height:32px}
-  .btn.hbtn{width:32px;height:32px;min-width:32px;padding:0;display:grid;place-items:center;border-radius:50%;box-sizing:border-box;line-height:0} .hbtn svg{display:block} .hbtn .lbl{display:none} .btn.hbtn.armed{width:auto;padding:0 .7em;border-radius:999px;line-height:1.2} }
+  .btn.hbtn{width:34px;height:34px;min-width:34px} }
 .foot{font-size:.75rem;color:var(--ink-2);text-align:center;letter-spacing:.02em}
 .splash .foot{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:0;right:0;z-index:2}
 .bar .foot{margin-top:6px}
@@ -764,7 +768,7 @@ function applyTheme(){
     if(m) css.push(`${sel}{${base}background:var(--icon-ink,var(--burn));-webkit-mask:url("${m}") center/contain no-repeat;mask:url("${m}") center/contain no-repeat}`);
     else css.push(`${sel}{${base}background:url("${logo}") center/contain no-repeat;${blend!=='normal'?'mix-blend-mode:multiply;':''}}`) }
   // the round buttons (music, sound, haptics, guide, share) can use an uploaded bubble picture
-  const bb=srcOf(THEME.bubbleBtn); if(bb) css.push(`.iconbtn{background:url("${bb}") center/cover no-repeat !important;border-color:transparent !important;box-shadow:none !important}`);
+  const bb=srcOf(THEME.bubbleBtn); if(bb) css.push(`.iconbtn,.btn.hbtn:not(.armed){background:url("${bb}") center/cover no-repeat !important;border-color:transparent !important;box-shadow:none !important}`);
   // a picture behind the game's cards and pop-ups, darkened so the words stay readable
   const cb=THEME.cardBg, cbs=srcOf(cb);
   if(cbs){ const d=cb.dark!=null?cb.dark:.45; css.push(`.overlay .sheet{background:linear-gradient(rgba(10,6,4,${d}),rgba(10,6,4,${d})),url("${cbs}") center/cover no-repeat,var(--panel) !important}`,`.bar.bust .in{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}`) }
@@ -2920,7 +2924,7 @@ function renderGame(){
   if(!boardEl){
     tokMap.clear();
     app.innerHTML=`
-      <header class="top"><h1 class="roomname" title="${esc(roomName())}">${esc(roomName())}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit"></button></div></header>
+      <header class="top"><h1 class="roomname" title="${esc(roomName())}">${esc(roomName())}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" title="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules" title="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit" title="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
@@ -3160,7 +3164,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131513;
+const BUILD=2610131515;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
