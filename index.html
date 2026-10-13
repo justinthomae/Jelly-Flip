@@ -141,7 +141,11 @@ p{margin:0}
 .info b{color:var(--ink);font-variant-numeric:tabular-nums}
 
 /* board: tokens scattered at random spots on the table */
-.boardwrap{width:100%}
+.boardwrap{width:100%;position:relative;touch-action:none}
+.boardwrap.zoomed{overflow:hidden;border-radius:14px}
+.board{transform-origin:0 0}
+.zoomreset{position:absolute;top:6px;right:6px;z-index:8;width:40px;height:40px;font:700 .8rem/1 var(--body)}
+.zoomreset[hidden]{display:none}
 .board{position:relative;margin:0 auto;width:100%;
   aspect-ratio:1 / var(--h);
   background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.22), transparent 70%)}
@@ -564,7 +568,7 @@ const TYPES = {
   g3:     {name:'Submarine · 3 windows', kind:'stop', n:1, picks:3, say:'Bank, scrap it, show 3 tokens to everyone. Turn ends.'},
   jelly:  {name:'Jellyfish', kind:'bust', pts:-1, n:5, say:'Bust. It goes into your hand for −1 point.'},
   shark:  {name:'Shark', kind:'bust', n:1, say:'Bust. Half your hand (rounded up, jellyfish included) goes back on the table, the shark scatters every token on the table to new spots, then it goes to the scrap pile.'},
-  whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Bank, then every token on the table swirls to a new spot. The whirlpool is scrapped. Turn ends.'},
+  whirl:  {name:'Whirlpool', kind:'stop', n:1, say:'Nothing is banked: the tokens you flipped this turn turn back over, then every token on the table swirls to a new spot. The whirlpool is scrapped. Turn ends.'},
   dolphin:{name:'Dolphin', kind:'stop', n:1, say:'Bank, then secretly pick up to 3 tokens from the scrap pile. Hide them and the dolphin face down in spots of your choice. The dolphin always stays in play.'},
 };
 // fish come in 10 designs, two tokens of each; a matching pair in hand is worth a bonus point at the end
@@ -626,7 +630,7 @@ const TEXT_DEFAULTS={
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
   tabPlay:'Play', tabGuide:'Guide', guideBack:'← Back to play', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
-  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left. Most points wins; ties go to whoever has fewer jellyfish.',
+  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left (tokens that get turned back over still count). Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
   rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
   bank:'Bank', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
@@ -641,7 +645,7 @@ const MSG_DEFAULTS={
   handBtn:'Hand', saveHome:'Save and go home',
   bankedPrefix:'Banked {points}.', noteBanked:'banked {points}', noteNothing:'banked nothing',
   extraTitle:'Sea Turtle! Go again', extraBody:'{banked}{name} takes another turn.',
-  whirlTitle:'Whirlpool!', whirlBody:'{banked}The whole table is about to swirl into new spots.',
+  whirlTitle:'Whirlpool!', whirlBody:'The whirlpool sweeps {name}’s catch back into the reef! Those tokens flip back over, then the whole table swirls into new spots.',
   dolphinTitle:'Dolphin!', dolphinMine:'{banked}Others, look away! {name}, pick up to {tokens} from the scrap pile to hide with the dolphin.',
   dolphinEmpty:'{banked}The scrap pile is empty. Hide the dolphin in any glowing spot.', dolphinWatch:'{banked}{name} is secretly hiding the dolphin.',
   dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap a chosen spot to undo it.',
@@ -655,10 +659,10 @@ const MSG_DEFAULTS={
   bustTitle:'{token}!', jellyBody:'{name} keeps it for −1 and banks nothing this turn.',
   sharkBody:'{lose} of the {tokens} in {name}’s hand go back on the table, then the shark scares the whole reef into new spots and swims off to the scrap pile.',
   sharkEmpty:'{name}’s hand is empty, but the shark still scares the whole reef into new spots, then swims off to the scrap pile.',
-  sharkLast:'{lose} of the {tokens} in {name}’s hand go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.',
+  sharkLast:'{lose} of the {tokens} in {name}’s hand go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.', endWhirl:'{name} flipped the whirlpool on the last flip, and it swept this turn’s catch away.',
   sumBanked:'{name} banked {points}.', sumAction:'{name} {banked}.', sumStung:'{name} got stung by a jellyfish.',
   sumShark:'The shark scattered the reef! {name} lost {tokens} to the table, and every token on the table moved to a new spot.', sumSharkEmpty:'The shark scattered the reef! Every token on the table moved to a new spot.',
-  sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} {banked} and the whirlpool moved every token to a new spot.',
+  sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} lost this turn’s catch to the whirlpool, and every token swirled to a new spot.',
   sumHook:'{name} {banked} and hooked a {token} off the table.', sumSub:'{name} {banked} and sent out a submarine.', sumPeek:'{name} {banked} and secretly peeked at {tokens}.',
   sumDolphin:'{name} {banked} and hid the dolphin.', sumDolphinPlus:'{name} {banked} and hid the dolphin along with {tokens} from the scrap pile.',
   endCatch:'{name} banked {points} on the last flip.', endAction:'{name} flipped the {token} with only 3 tokens left, so the game ended before it could be used.',
@@ -987,7 +991,7 @@ function roomNameFrom(seed){
   const k=r(); return k<.45?`${pk(ROOM_ADJ)} ${pk(ROOM_PLACE)}`:k<.8?`${pk(ROOM_WHO)}’s ${pk(ROOM_PLACE)}`:`The ${pk(ROOM_ADJ)} ${pk(ROOM_PLACE)}`;
 }
 const roomName=()=>S&&(S.roomName||(S.roomName=roomNameFrom(S.rs||1)));
-function newGame(setup,seed){ HOME.tab='play';
+function newGame(setup,seed){ HOME.tab='play'; ZM.s=1; ZM.x=0; ZM.y=0;
   const names = setup.names.slice(0,setup.count).map((n,i)=>n.trim()||`Player ${i+1}`);
   const rs0=seed??Math.floor(Math.random()*2147483647);
   S = {screen:'play', setup, h:null, layout:null, tick:0, turnNo:0, rs:rs0, roomName:roomNameFrom(rs0), net:null,
@@ -1704,7 +1708,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',aiTag:'Card title: AI tag',
   jellyBody:'Jellyfish card',sharkBody:'Shark card',sharkEmpty:'Shark card (empty hand)',sharkLast:'Shark card (last flip)',sharkLastEmpty:'Shark card (last flip, empty hand)',lastFlip:'Last flip note',
   sumBanked:'Turn summary: banked',sumAction:'Turn summary: action used',sumStung:'Turn summary: jellyfish',sumShark:'Turn summary: shark',sumSharkEmpty:'Turn summary: shark (empty hand)',
   sumSharkLast:'Turn summary: shark on the last flip',sumWhirl:'Turn summary: whirlpool',sumHook:'Turn summary: hook',sumSub:'Turn summary: submarine',sumPeek:'Turn summary: snorkel mask',
-  sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',
+  sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',endWhirl:'Game over note: whirlpool on the last flip',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
@@ -1877,7 +1881,7 @@ function cardSample(slot){
   const S2={turn:[av,TT('turnTitle',{name:who}),TT('statusFlip'),`<button class="btn ghost small" tabindex="-1">${TX('handBtn')}</button>${btn(TX('bank'))}`],
     summary:[av,TT('turnTitle',{name:'Player 2'}),TT('sumBanked',{name:who,points:'3 points'}),''],
     extra:[tok('extra'),TT('extraTitle'),TT('extraBody',{banked:b,name:who}),btn(TX('continue'))],
-    whirl:[tok('whirl'),TT('whirlTitle'),TT('whirlBody',{banked:b}),btn(TX('continue'))],
+    whirl:[tok('whirl'),TT('whirlTitle'),TT('whirlBody',{banked:b,name:who}),btn(TX('continue'))],
     dolphin:[tok('dolphin'),TT('dolphinTitle'),TT('dolphinMine',{banked:b,name:who,tokens:'3 tokens'}),''],
     mask:[tok('bigeye'),TT('maskTitle'),TT('maskMine',{banked:b,name:who,tokens:'3 tokens'}),''],
     hook:[tok('hook'),TT('hookTitle'),TT('hookMine',{banked:b,name:who}),''],
@@ -2295,6 +2299,7 @@ function blindEV(p,B,pend){
     const f=c[t]/U, T=TYPES[t];
     if(T.kind==='catch') ev+=f*T.pts;
     else if(T.kind==='bust') ev-=f*(pend+(t==='jelly'?1:0)+(t==='shark'?half:0));
+    else if(t==='whirl') ev-=f*pend;
     else ev+=f*.6;
   }
   return ev;
@@ -2319,7 +2324,7 @@ function aiChooseFlip(p){
   }
   if(p.kind==='easy') return pend>=beliefCache.target||!unknown.length?-1:pick(unknown);
   if(unknown.length&&blindEV(p,B,pend)>cfg.caution) return pick(unknown);
-  const stops=known.filter(i=>kindOf(i)==='stop'); if(stops.length) return pick(stops);
+  const stops=known.filter(i=>kindOf(i)==='stop'&&B[i]!=='whirl'); if(stops.length) return pick(stops);
   return -1;
 }
 
@@ -2457,11 +2462,19 @@ async function doFlip(i){
   sfx('flip'); s.up=true; S.turn.rev.push(i); seeAll(i); S.summary=null; render();
   sfx(isFish(s.t)?'fish':T.kind==='catch'||T.kind==='bust'||s.t==='dolphin'?s.t:s.t==='extra'?'extra':'chime');
   await wait(500);
-  if(faceDown().length<=3) return lastFlip(i);
+  // the game ends once only 3 face-down tokens are left; a jellyfish, shark or whirlpool turns this turn's other tokens back over, so they still count
+  const back=T.kind==='bust'||s.t==='whirl'?S.turn.rev.filter(j=>j!==i).length:0;
+  if(faceDown().length+back<=3) return lastFlip(i);
   if(T.kind==='catch') return;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
     await toCard(i,{k:s.t,t:s.t,title:TT('bustTitle',{token:T.name}),body:bustBody(s.t),bust:true});
+    S.phase='card'; return;
+  }
+  // the whirlpool sweeps the catch away: nothing is banked, this turn's tokens flip back over, then everything swirls
+  if(s.t==='whirl'){
+    S.turn.act=i; S.turn.pending={type:'whirl'};
+    await toCard(i,{k:'whirl',t:'whirl',title:TT('whirlTitle'),body:TT('whirlBody',{banked:'',name:p.name})});
     S.phase='card'; return;
   }
   // action token: bank the catch, then the token moves into the card and later on to the scrap pile
@@ -2470,11 +2483,6 @@ async function doFlip(i){
   if(s.t==='extra'){
     S.turn.pending={type:'extra'};
     await toCard(i,{k:'extra',t:'extra',title:TT('extraTitle'),body:TT('extraBody',{banked,name:p.name})});
-    S.phase='card'; return;
-  }
-  if(s.t==='whirl'){
-    S.turn.pending={type:'whirl'};
-    await toCard(i,{k:'whirl',t:'whirl',title:TT('whirlTitle'),body:TT('whirlBody',{banked})});
     S.phase='card'; return;
   }
   if(s.t==='dolphin'){
@@ -2508,6 +2516,7 @@ async function lastFlip(i){
     await toCard(i,{k:'last',t:s.t,title:TT('bustTitle',{token:T.name}),body:`${bustBody(s.t,true)} ${TT('lastFlip')}`,bust:true});
     S.phase='card'; return;
   }
+  if(s.t==='whirl'){ S.endNote=TT('endWhirl',{name:p.name}); return finish() }
   const pts=await bankFlights();
   S.endNote=TT(T.kind==='catch'?'endCatch':'endAction',{name:p.name,points:plural(pts,'point'),token:T.name.toLowerCase()})+(T.kind!=='catch'&&pts?' '+TT('sumBanked',{name:p.name,points:plural(pts,'point')}):'');
   finish();
@@ -2853,8 +2862,8 @@ function rulesHTML(){
   return `<div class="rules">
     <p>${TX('rulesIntro')}</p>
     <section><h3>${TX('rulesKeep')}</h3><ul>${['fish','star','extra'].map(li).join('')}</ul></section>
-    <section><h3>${TX('rulesStop')}</h3><ul>${['bigeye','hook','g1','g2','g3','dolphin','whirl'].map(li).join('')}</ul></section>
-    <section><h3>${TX('rulesBust')}</h3><ul>${['jelly','shark'].map(li).join('')}</ul></section>
+    <section><h3>${TX('rulesStop')}</h3><ul>${['bigeye','hook','g1','g2','g3','dolphin'].map(li).join('')}</ul></section>
+    <section><h3>${TX('rulesBust')}</h3><ul>${['jelly','shark','whirl'].map(li).join('')}</ul></section>
     <p class="muted">${TX('rulesNote')}</p>
   </div>`;
 }
@@ -2982,8 +2991,8 @@ function renderGame(){
       <header class="top"><h1 class="roomname" title="${esc(roomName())}">${esc(roomName())}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" title="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules" title="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit" title="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
-      <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div></div>`;
-    boardEl=app.querySelector('#board');
+      <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div><button class="iconbtn zoomreset" id="zoomReset" hidden aria-label="Zoom back out" title="Zoom back out">1×</button></div>`;
+    boardEl=app.querySelector('#board'); wireZoom(boardEl.parentElement);
     boardEl.addEventListener('click',e=>{const b=e.target.closest('.tok');if(b) onSlot(+b.dataset.i)});
     fitPending=true; bindToggles(app);
     app.querySelector('#rulesBtn').onclick=()=>{S.rulesOpen=true;render()};
@@ -3086,12 +3095,44 @@ function renderGame(){
 let fitPending=false, fittedBarH=0;
 // if the card at the bottom grows taller than when the board was sized, shrink the board so no token hides behind it
 if(window.ResizeObserver) new ResizeObserver(()=>{ if(boardEl&&S&&S.screen==='play'&&!bar.hidden&&bar.offsetHeight>fittedBarH+2) fitBoard() }).observe(bar);
+// Pinch the board (or ctrl + scroll / trackpad pinch on a computer) to zoom just the tokens; drag to look around while zoomed.
+const ZM={s:1,x:0,y:0,pts:new Map(),pinch:null,pan:null,moved:false,eat:false};
+function zoomReset(){ ZM.s=1; ZM.x=0; ZM.y=0; applyZoom() }
+function clampZoom(){ if(!boardEl) return; const W=boardEl.offsetWidth, H=boardEl.offsetHeight;
+  ZM.s=Math.min(3,Math.max(1,ZM.s)); if(ZM.s<1.02){ ZM.s=1; ZM.x=0; ZM.y=0 }
+  ZM.x=Math.min(0,Math.max(W*(1-ZM.s),ZM.x)); ZM.y=Math.min(0,Math.max(H*(1-ZM.s),ZM.y)) }
+function applyZoom(){ if(!boardEl) return; clampZoom(); const z=ZM.s>1, w=boardEl.parentElement, r=w.querySelector('#zoomReset');
+  boardEl.style.transform=z?`translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`:''; w.classList.toggle('zoomed',z); if(r) r.hidden=!z }
+function wireZoom(w){
+  const org=()=>{ const r=w.getBoundingClientRect(); return {x:r.left+boardEl.offsetLeft,y:r.top+boardEl.offsetTop} };
+  const zoomTo=(cx,cy,ns)=>{ const o=org(), px=cx-o.x, py=cy-o.y, k=Math.min(3,Math.max(1,ns))/ZM.s; ZM.x=px-(px-ZM.x)*k; ZM.y=py-(py-ZM.y)*k; ZM.s*=k; applyZoom() };
+  const two=()=>{ const [a,b]=[...ZM.pts.values()]; return {d:Math.hypot(a.x-b.x,a.y-b.y)||1,x:(a.x+b.x)/2,y:(a.y+b.y)/2} };
+  w.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&ZM.s===1) return; ZM.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ZM.pts.size===2){ const t=two(), o=org(); ZM.pinch={d:t.d,s:ZM.s,cx:(t.x-o.x-ZM.x)/ZM.s,cy:(t.y-o.y-ZM.y)/ZM.s}; ZM.pan=null; ZM.moved=true }
+    else if(ZM.pts.size===1){ ZM.pan={x:e.clientX,y:e.clientY,zx:ZM.x,zy:ZM.y}; ZM.moved=false } });
+  w.addEventListener('pointermove',e=>{ if(!ZM.pts.has(e.pointerId)) return; ZM.pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ZM.pinch&&ZM.pts.size>=2){ const t=two(), o=org(); ZM.s=ZM.pinch.s*t.d/ZM.pinch.d; clampZoom(); ZM.x=t.x-o.x-ZM.pinch.cx*ZM.s; ZM.y=t.y-o.y-ZM.pinch.cy*ZM.s; applyZoom(); return }
+    if(ZM.pan&&ZM.s>1){ const dx=e.clientX-ZM.pan.x, dy=e.clientY-ZM.pan.y; if(!ZM.moved&&Math.hypot(dx,dy)<8) return; ZM.moved=true; ZM.x=ZM.pan.zx+dx; ZM.y=ZM.pan.zy+dy; applyZoom() } });
+  const lift=e=>{ ZM.pts.delete(e.pointerId); if(ZM.pts.size<2) ZM.pinch=null;
+    if(!ZM.pts.size){ if(ZM.moved){ ZM.eat=true; setTimeout(()=>ZM.eat=false,350) } ZM.pan=null; ZM.moved=false }
+    else if(ZM.pts.size===1){ const [p]=[...ZM.pts.values()]; ZM.pan={x:p.x,y:p.y,zx:ZM.x,zy:ZM.y} } };
+  w.addEventListener('pointerup',lift); w.addEventListener('pointercancel',lift);
+  // a drag or pinch shouldn't also flip the token it ended on
+  w.addEventListener('click',e=>{ if(ZM.eat&&!e.target.closest('#zoomReset')){ ZM.eat=false; e.stopPropagation(); e.preventDefault() } },true);
+  w.addEventListener('wheel',e=>{ if(e.ctrlKey){ e.preventDefault(); zoomTo(e.clientX,e.clientY,ZM.s*Math.exp(-e.deltaY*.01)) }
+    else if(ZM.s>1){ e.preventDefault(); ZM.x-=e.deltaX; ZM.y-=e.deltaY; applyZoom() } },{passive:false});
+  // Safari's own pinch gestures
+  ['gesturestart','gesturechange'].forEach(t=>w.addEventListener(t,e=>e.preventDefault()));
+  w.querySelector('#zoomReset').onclick=e=>{ e.stopPropagation(); sfx('tap'); zoomReset() };
+  applyZoom();
+}
 function fitBoard(){
   fittedBarH=bar.hidden?0:bar.offsetHeight;
   const wrap=boardEl.parentElement, top=wrap.getBoundingClientRect().top+scrollY;
   const availW=wrap.clientWidth, availH=Math.max(180,innerHeight-top-(bar.hidden?0:bar.offsetHeight)-8);
   if(!S.layout){ if(!S.h) S.h=Math.round(Math.min(1.45,Math.max(.55,availH/availW))*100)/100; S.layout=makeLayout(S.h); boardEl.style.setProperty('--h',S.h) }
   boardEl.style.width=Math.min(availW,availH/S.h)+'px';
+  applyZoom();
 }
 addEventListener('resize',()=>{ if(boardEl&&S&&S.screen==='play'&&S.layout) fitBoard() });
 
@@ -3268,7 +3309,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131709;
+const BUILD=2610131717;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
