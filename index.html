@@ -147,6 +147,10 @@ p{margin:0}
   background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.22), transparent 70%)}
 .tok{position:absolute;aspect-ratio:1;border:0;padding:0;background:none;perspective:600px;border-radius:50%}
 .tok .tilt{position:absolute;inset:0;transform:rotate(var(--r,0deg))}
+/* on small screens a token swells to double size as it flips face up, nudged inward so it stays on the table */
+.tok.swell{z-index:6;animation:tokSwell 1.5s cubic-bezier(.3,.8,.3,1) both}
+.tok.swell .front{filter:drop-shadow(0 10px 14px rgba(0,0,0,.45))}
+@keyframes tokSwell{0%{transform:none}24%{transform:translate(var(--sx,0px),var(--sy,0px)) scale(2)}76%{transform:translate(var(--sx,0px),var(--sy,0px)) scale(2)}100%{transform:none}}
 .tok .inner,.fly .inner{position:absolute;inset:0;transform-style:preserve-3d}
 .tok .inner{transition:transform .42s cubic-bezier(.3,.7,.3,1.2)}
 .tok.up .inner{transform:rotateY(180deg)}
@@ -518,7 +522,7 @@ html,body{overflow-x:clip}
 .btnrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
 
 @media (max-width:420px){ h1{font-size:2.2rem} .bar .msg strong{font-size:1.2rem} }
-@media (prefers-reduced-motion:reduce){ .tok .inner{transition:none} .btn{transition:none} .chip.got{animation:none} .bar .avatar.think{animation:none} }
+@media (prefers-reduced-motion:reduce){ .tok.swell{animation:none} .tok .inner{transition:none} .btn{transition:none} .chip.got{animation:none} .bar .avatar.think{animation:none} }
 </style>
 
 <div class="app" id="app"></div>
@@ -2860,6 +2864,15 @@ function renderSetup(){
     CLOUD.note=''; boardEl=null; render()};
 }
 
+// small screens: a token doubles in size while it flips over, then settles back
+const swellOK=()=>matchMedia('(max-width:700px), (max-height:500px)').matches&&!NET.ff;
+function swell(el,sp,D){
+  const W=boardEl.clientWidth, H=W*S.h, r=D*W, cx=sp.x*W, cy=sp.y*W;  // after doubling, the radius is the token's full width
+  const sx=Math.max(r-cx,Math.min(0,W-r-cx)), sy=Math.max(r-cy,Math.min(0,H-r-cy));
+  el.style.setProperty('--sx',Math.round(sx)+'px'); el.style.setProperty('--sy',Math.round(sy)+'px');
+  el.classList.remove('swell'); void el.offsetWidth; el.classList.add('swell');
+  el.addEventListener('animationend',()=>el.classList.remove('swell'),{once:true});
+}
 function renderBoard(){
   const pickable=!busy&&!NET.pending&&mine(S.cur)&&(['flip','peek','hook','goggles'].includes(S.phase)||goAgainCard());
   if(S.net&&!S.net.host&&!NET.pending) boardEl.querySelectorAll('.tok.aim').forEach(e=>e.classList.remove('aim'));
@@ -2878,6 +2891,7 @@ function renderBoard(){
     el.dataset.i=i;
     el.style.left=`${(sp.x-D/2)*100}%`; el.style.top=`${(sp.y-D/2)/S.h*100}%`; el.style.width=`${D*100}%`;
     el.style.setProperty('--r',sp.r+'deg');
+    if(s.up&&!el.classList.contains('up')&&swellOK()) swell(el,sp,D);
     el.classList.toggle('up',s.up);
     el.classList.toggle('rev',s.up&&S.turn.rev.includes(i));
     el.classList.toggle('away',away.has(s.id));
@@ -3150,7 +3164,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610130506;
+const BUILD=2610131451;
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
   fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
