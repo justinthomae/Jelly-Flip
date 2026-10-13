@@ -655,7 +655,7 @@ const MSG_DEFAULTS={
   whirlTitle:'Whirlpool!', whirlBody:'The whirlpool sweeps {name}’s catch back into the reef! Those tokens flip back over, then the whole table swirls into new spots.',
   dolphinTitle:'Dolphin!', dolphinMine:'{banked}Others, look away! {name}, pick up to {tokens} from the scrap pile to hide with the dolphin.',
   dolphinEmpty:'{banked}The scrap pile is empty. Hide the dolphin in any glowing spot.', dolphinWatch:'{banked}{name} is secretly hiding the dolphin.',
-  dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap a chosen spot to undo it.',
+  dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap a chosen spot to undo it.', dolphinDone:'All hidden! In they go…',
   maskTitle:'Snorkel mask', maskMine:'{banked}Others, look away! {name}, peek at {tokens}, one at a time.', maskWatch:'{banked}{name} is secretly peeking at {tokens}.',
   peekMore:'Tap {more} to peek at.', peekMoreWatch:'{name} has {peeks} left.',
   hookTitle:'Cast the hook', hookMine:'{banked}Tap a face-down token. It gets revealed and scrapped.', hookWatch:'{banked}{name} is choosing a token to hook.',
@@ -1718,7 +1718,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',statusFlip:'Card: start of 
   statusThinking:'Card: AI thinking',statusThinkingPts:'Card: AI thinking with a catch',statusWaiting:'Card: waiting for another player',statusWaitingPts:'Card: waiting, with a catch',
   handBtn:'Hand button',saveHome:'Pass-the-device: save and go home link',bankedPrefix:'“Banked” at the start of action cards',noteBanked:'Summary piece: banked points',noteNothing:'Summary piece: banked nothing',
   extraTitle:'Sea Turtle card title',extraBody:'Sea Turtle card',whirlTitle:'Whirlpool card title',whirlBody:'Whirlpool card',dolphinTitle:'Dolphin card title',dolphinMine:'Dolphin card (your turn)',
-  dolphinEmpty:'Dolphin card (empty scrap pile)',dolphinWatch:'Dolphin card (watching)',dolphinPlace:'Dolphin: choosing hiding spots',maskTitle:'Snorkel mask card title',maskMine:'Snorkel mask card (your turn)',
+  dolphinEmpty:'Dolphin card (empty scrap pile)',dolphinWatch:'Dolphin card (watching)',dolphinPlace:'Dolphin: choosing hiding spots',dolphinDone:'Dolphin: all spots chosen',maskTitle:'Snorkel mask card title',maskMine:'Snorkel mask card (your turn)',
   maskWatch:'Snorkel mask card (watching)',peekMore:'Snorkel mask: more peeks',peekMoreWatch:'Snorkel mask: more peeks (watching)',hookTitle:'Hook card title',hookMine:'Hook card (your turn)',
   hookWatch:'Hook card (watching)',hookedTitle:'Hooked card title',hookedBody:'Hooked card',subTitle:'Submarine card title',subMine:'Submarine card (your turn)',subWatch:'Submarine card (watching)',
   subMore:'Submarine: more to show',subMoreWatch:'Submarine: more to show (watching)',lookTitle:'Submarine: memorize card title',lookBody:'Submarine: memorize card',bustTitle:'Bust card title',
@@ -2997,10 +2997,14 @@ function renderBoard(){
       g.style.left=`${(sp.x-D/2)*100}%`; g.style.top=`${(sp.y-D/2)/S.h*100}%`; g.style.width=`${D*100}%`;
       if(at>=0) g.innerHTML=face(items[at]);
       g.onclick=()=>{
+        if(DOL.done) return;
         if(at>=0){ DOL.spots.splice(at,1); return render() }
         DOL.spots.push(i); sfx('tap');
         if(DOL.spots.length<items.length) return render();
-        const move='D'+DOL.spots[0]+DOL.picks.map((k,j)=>'d'+k+'s'+DOL.spots[j+1]).join(''); resetDol(); act(move);
+        // show the finished hiding spots for a moment before the tokens dive in
+        DOL.done=true; render();
+        const move='D'+DOL.spots[0]+DOL.picks.map((k,j)=>'d'+k+'s'+DOL.spots[j+1]).join('');
+        setTimeout(()=>{ resetDol(); act(move) },1300);
       };
       boardEl.appendChild(g);
     }
@@ -3049,7 +3053,7 @@ function renderGame(){
     mini=S.card.t?`<div class="mini ${cardHidden?'hide':''}" id="cardFace">${face(S.card.t)}</div>`:avatar;
     title=fmt(S.card.title); sub=fmt(S.card.body);
     if(S.phase==='dolphin'&&me&&DOL.confirmed){ const items=['dolphin',...DOL.picks.map(k=>S.scrap[k])], next=items[DOL.spots.length];
-      sub=next?fmt(TT('dolphinPlace',{token:TYPES[next].name.toLowerCase(),step:items.length>1?` (${DOL.spots.length+1} of ${items.length})`:''})):'' }
+      sub=next?fmt(TT('dolphinPlace',{token:TYPES[next].name.toLowerCase(),step:items.length>1?` (${DOL.spots.length+1} of ${items.length})`:''})):fmt(TT('dolphinDone')) }
     if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>${TX('continue')}</button>`;
   } else {
     const fd=faceDown().length;
@@ -3335,7 +3339,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131921;
+const BUILD=2610132011;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
