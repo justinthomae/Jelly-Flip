@@ -90,7 +90,7 @@ p{margin:0}
 .top .tools{display:flex;gap:8px}
 
 /* setup */
-.card{background:color-mix(in srgb,var(--panel) 92%,transparent);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.card{background:color-mix(in srgb,var(--panel) var(--card-a,92%),transparent);-webkit-backdrop-filter:var(--card-blur,none);backdrop-filter:var(--card-blur,none);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
 .stepper{display:flex;align-items:center;gap:14px}
 .stepper button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel-2);font-size:1.4rem;font-weight:700}
 .stepper output{font-family:var(--display);font-size:2.2rem;min-width:1.5ch;text-align:center;font-variant-numeric:tabular-nums}
@@ -751,6 +751,9 @@ function applyTheme(){
   const css=[], col=THEME.colors||{};
   const vars=Object.keys(COLOR_DEFAULTS).filter(k=>col[k]).map(k=>`--${k}:${col[k]}`);
   if(THEME.iconInk) vars.push(`--icon-ink:${THEME.iconInk}`);
+  // how see-through the sections are, and an optional frosted blur of the background behind them
+  if(THEME.cardAlpha!=null) vars.push(`--card-a:${Math.round(THEME.cardAlpha*100)}%`);
+  if(THEME.cardBlur) vars.push(`--card-blur:blur(${THEME.cardBlur}px)`);
   // fonts: a Google font by name, or a font file the admin uploaded
   const fam={}, google=[];
   for(const role of ['display','body','credit','room']){
@@ -2077,7 +2080,12 @@ function renderStudio(){
     body=cardEditorHTML(E);
   } else if(STUDIO.tab==='colors'){
     body=`<p class="muted">These colors are used across every screen, menu, card and pop-up.</p><div class="st-list">${Object.keys(COLOR_DEFAULTS).map(k=>{ const v=(E.colors&&E.colors[k])||COLOR_DEFAULTS[k];
-      return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${E.colors&&E.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>`;
+      return `<label class="st-row slim"><input type="color" data-color="${k}" value="${v}"><span class="st-grow">${COLOR_LABELS[k]}</span>${E.colors&&E.colors[k]?`<button class="btn small ghost" data-colorreset="${k}">Reset</button>`:''}</label>` }).join('')}</div>
+      <h3 class="st-h3">Sections</h3>
+      <div class="st-row"><div class="st-grow"><b>Section see-through</b><p class="muted st-small">How much of the background shows through the home-page sections (players, leaderboard, guide…). 100% is solid.</p>
+        <div class="st-acts"><label class="st-color">Solid <input type="range" min="20" max="100" step="2" value="${Math.round((E.cardAlpha!=null?E.cardAlpha:.92)*100)}" data-cardalpha> <span class="st-pct">${Math.round((E.cardAlpha!=null?E.cardAlpha:.92)*100)}%</span></label>
+        <label class="st-color">Frosted blur <input type="range" min="0" max="24" step="1" value="${E.cardBlur||0}" data-cardblur> <span class="st-pct">${E.cardBlur||0}px</span></label>
+        ${E.cardAlpha!=null||E.cardBlur?'<button class="linkbtn" data-cardlookreset>reset</button>':''}</div></div></div>`;
   } else if(STUDIO.tab==='fonts'){
     const roles=[['display','Titles and headings'],['room','Game room names'],['body','Everything else'],['credit','Loading-screen credits']];
     body=`<p class="muted">Choose from Google Fonts or upload your own font file (WOFF2, WOFF, TTF or OTF).</p>${roles.map(([r,l])=>{ const cur=(E.fonts&&E.fonts[r])||FONT_DEFAULTS[r], up=srcOf(E.fontFiles&&E.fontFiles[r]);
@@ -2227,6 +2235,12 @@ function renderStudio(){
   on('[data-bgreset]',async el=>{ const p='bg/'+el.dataset.bgreset; await removeOldAsset(p); saveTheme(p,null) });
   on('[data-color]',el=>saveTheme('colors/'+el.dataset.color,el.value));
   on('[data-colorreset]',el=>saveTheme('colors/'+el.dataset.colorreset,null));
+  // section see-through and blur: shown on the page underneath as the slider moves, saved when it's let go
+  b.querySelectorAll('[data-cardalpha]').forEach(el=>el.addEventListener('input',()=>{ document.documentElement.style.setProperty('--card-a',el.value+'%'); el.parentElement.querySelector('.st-pct').textContent=el.value+'%' }));
+  b.querySelectorAll('[data-cardblur]').forEach(el=>el.addEventListener('input',()=>{ document.documentElement.style.setProperty('--card-blur',+el.value?`blur(${el.value}px)`:'none'); el.parentElement.querySelector('.st-pct').textContent=el.value+'px' }));
+  on('[data-cardalpha]',el=>{ document.documentElement.style.removeProperty('--card-a'); saveTheme('cardAlpha',(+el.value)/100) });
+  on('[data-cardblur]',el=>{ document.documentElement.style.removeProperty('--card-blur'); saveTheme('cardBlur',+el.value||null) });
+  on('[data-cardlookreset]',async()=>{ await saveTheme('cardAlpha',null); saveTheme('cardBlur',null) });
   on('[data-font]',el=>saveTheme('fonts/'+el.dataset.font,el.value));
   on('[data-fontup]',el=>{ const r=el.dataset.fontup; pickFile('.woff2,.woff,.ttf,.otf',async f=>{ await uploadAsset('fontFiles/'+r,f,'font'); saveTheme('fonts/'+r,'__upload') }) });
   on('[data-fontreset]',async el=>{ const r=el.dataset.fontreset; await removeOldAsset('fontFiles/'+r); await saveTheme('fontFiles/'+r,null); saveTheme('fonts/'+r,null) });
@@ -3344,7 +3358,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610132042;
+const BUILD=2610132111;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
