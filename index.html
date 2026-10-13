@@ -241,6 +241,8 @@ p{margin:0}
 .splash.melt .splogo{animation:jfFade .3s ease-in .05s forwards}
 .splashmock{position:relative!important;inset:auto!important;z-index:0!important;transform-origin:0 0;transition:none!important}
 .st-splprev{position:sticky;top:-16px;z-index:3;overflow:hidden;border-radius:14px;margin:6px 0 10px;outline:1.5px solid var(--panel-2);background:var(--panel)}
+.splgo.waiting{animation:jfWait 1s ease-in-out infinite}
+@keyframes jfWait{0%,100%{transform:scale(.96);opacity:.75}50%{transform:scale(1);opacity:1}}
 .splash.art .splgo,.splash.art #splashGo{font-size:1.15rem;padding:.75em 2.4em;box-shadow:0 6px 18px rgba(0,30,40,.35)}
 .splash-in{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding:24px 16px}
 .title-logo{display:block;max-width:min(78vw,420px);max-height:38vh;margin:0 auto 6px;object-fit:contain;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
@@ -416,6 +418,7 @@ p{margin:0}
 .hometabs{box-sizing:border-box;display:flex;gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--panel) 92%,transparent);max-width:420px;width:100%;margin:0 auto}
 .hometab{flex:1;border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:1rem;padding:10px 6px;border-radius:11px;cursor:pointer}
 .hometab.on{background:var(--sea);color:#fff;font-weight:600}
+.updbtn{align-self:center;background:var(--sea);color:var(--sea-ink)}
 .footlink{color:inherit;text-decoration:underline;text-underline-offset:2px}
 /* narrators on the home page: phone layout by default, computer layout on wide screens (or forced in the Studio preview) */
 .app .card,.app .menu-top{position:relative}
@@ -554,6 +557,9 @@ html,body{overflow-x:clip}
   <p class="credit" data-t="credit">Created by <b>Lydia Lichti</b><br>in partnership with <b>Grudge Match Games</b></p>
   <footer class="foot" data-t="copyright">Copyright © 2026 Grudge Match Games</footer>
 </div>
+<script>/* Play can be tapped before the rest of the game has loaded: remember the tap, and the game starts the moment it's ready */
+(function(){ var g=document.getElementById('splashGo'); if(!g) return; function f(){ if(window.__jfLive) return; window.__jfPlay=1; g.classList.add('waiting') }
+  g.addEventListener('pointerdown',f); g.addEventListener('touchstart',f,{passive:true}); g.addEventListener('click',f) })();</script>
 
 
 <script>
@@ -630,7 +636,7 @@ const TEXT_DEFAULTS={
   installNow:'Install now', installLater:'Got it',
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
-  tabPlay:'Play', tabGuide:'Guide', guideBack:'← Back to play', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
+  tabPlay:'Play', tabGuide:'Guide', updateReady:'A new version is ready: tap to update', guideBack:'← Back to play', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
   rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left (tokens that get turned back over still count). Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
   rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
@@ -1723,7 +1729,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',statusFlip:'Card: start of 
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
   handTitle:'Hand pop-up title',handPairs:'Hand pop-up: matching fish pairs',trayFish:'Token tray: fish designs note',overPairs:'Game over: matching fish pairs',handEmpty:'Hand pop-up: empty',handNote:'Hand pop-up note',close:'Close button'};
-const TEXT_LABELS={tabPlay:'Home tabs: Play',tabGuide:'Guide button (tooltip)',guideBack:'Guide: back link',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOffline:'Leaderboard: can’t connect',lbBlocked:'Leaderboard: blocked by database rules',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button (tooltip)',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',bankPair:'Bank button: pair bonus',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
+const TEXT_LABELS={tabPlay:'Home tabs: Play',updateReady:'Home: update button',tabGuide:'Guide button (tooltip)',guideBack:'Guide: back link',lbTitle:'Leaderboard: heading',lbTabDay:'Leaderboard: today tab',lbTabWeek:'Leaderboard: this week tab',lbTabAll:'Leaderboard: all-time tab',lbEmptyDay:'Leaderboard: empty today',lbEmpty:'Leaderboard: empty this week',lbEmptyAll:'Leaderboard: empty all-time',lbResetDay:'Leaderboard: today note',lbReset:'Leaderboard: this week note',lbResetAll:'Leaderboard: all-time note',lbOfDay:'High score: “today” wording',lbOffline:'Leaderboard: can’t connect',lbBlocked:'Leaderboard: blocked by database rules',lbOfWeek:'High score: “this week” wording',lbOfAll:'High score: “of all time” wording',lbAnon:'Leaderboard: anonymous name',lbNew:'High score: heading',lbPrompt:'High score: question',lbSubmit:'High score: post with name',lbPostAnon:'High score: post anonymously',lbSkip:'High score: skip',lbDone:'High score: added',shareBtn:'Share button (tooltip)',shareText:'Share message',shareCopied:'Share: link copied note',installTitle:'Install tip: title',installIntro:'Install tip: intro',installDesktop:'Install tip: Chrome on a computer',installAndroid:'Install tip: Chrome on Android',installIOS:'Install tip: Chrome on iPhone/iPad',installNow:'Install tip: install button',installLater:'Install tip: dismiss button',title:'Game title',tagline:'Tagline under the title',credit:'Loading-screen credits',copyright:'Copyright line',play:'Loading-screen button',players:'Players label',startGame:'Start button',openOnline:'Online start button',inBag:'Token tray heading',onlineGames:'Online games heading',howTo:'How to play heading',rules:'Rules pop-up heading',backToGame:'Close rules button',rulesIntro:'Rules introduction',rulesKeep:'Rules: keep going heading',rulesStop:'Rules: bank and stop heading',rulesBust:'Rules: bust heading',rulesNote:'Rules footnote',bank:'Bank button',bankPair:'Bank button: pair bonus',continue:'Continue button',passTo:'Hand-off label',startTurn:'Hand-off button',gameOver:'Game over label',grudge:'Rematch button',newPlayers:'New players button'};
 const SFX_LABELS={flip:'Token flip',fish:'Fish revealed',star:'Starfish revealed',plip:'Token lands in a hand',jelly:'Jellyfish',shark:'Shark',whirl:'Whirlpool and shark scatter',dolphin:'Dolphin',extra:'Sea Turtle (go again)',chime:'Action token',hook:'Hook',peek:'Peek',thud:'Token lands on the table',turn:'Turn start',tap:'Button tap',fanfare:'Game over fanfare',bubble:'Loading-screen bubbles'};
 const STUDIO={tab:'tokens', user:null, ok:false, core:null, msg:'', editId:null, renaming:false};
 const editTheme = () => SETS[STUDIO.editId]||{};
@@ -2901,10 +2907,12 @@ function renderSetup(){
     ${HOME.tab==='guide'?`<button class="linkbtn guideback" data-hometab="play">${TX('guideBack')}</button>${trayCardHTML()}${rulesCardHTML()}`:`${installCardHTML()}${resume?resumeCardHTML(resume):''}${codeCardHTML()}${playersCardHTML(st,kinds)}
     <div class="card" id="lobby" hidden></div>
     ${lbCardHTML()}`}
+    ${UPD.ready?`<button class="btn small updbtn" id="updBtn">${TX('updateReady')}</button>`:''}
     <footer class="foot">${copyHTML()}${BUILD?` · <span class="ver">v${BUILD}</span>`:''}${studioAllowed()?` · <button class="linkbtn studio-link" id="studioBtn">Studio</button>`:''}</footer>
     ${PREVIEW&&SETS[PREVIEW]&&PREVIEW!==ACTIVE?`<div class="preview-bar">Previewing “${esc((SETS[PREVIEW].meta&&SETS[PREVIEW].meta.name)||'Untitled set')}” on this device only <button class="btn small" id="endPreview">Show what players see</button></div>`:''}`;
   bindToggles(app);
   const sb=app.querySelector('#studioBtn'); if(sb) sb.onclick=openStudio;
+  const ub=app.querySelector('#updBtn'); if(ub) ub.onclick=applyUpdate;
   const sa=app.querySelector('#shareApp'); if(sa) sa.onclick=()=>{ sfx('tap'); shareApp() };
   wireLbCard();
   const gb=app.querySelector('#guideBtn'); if(gb) gb.onclick=()=>{ sfx('tap'); HOME.tab=HOME.tab==='guide'?'play':'guide'; render(); scrollTo({top:0}) };
@@ -3207,7 +3215,7 @@ function splashDef(L){ return L==='m'?{x:50,y:24,size:80}:{x:50,y:22,size:45} }
 function spv(path,k,def){ const o=path.split('/').reduce((o,p)=>o&&o[p],THEME); const v=o&&o[k]; return v!=null?v:def }
 function placeSplash(sp,W,H,tall){
   const L=tall?'m':'d', inn=sp.querySelector('.splash-in'), cr=sp.querySelector('.credit'), ft=sp.querySelector('.foot'), go=sp.querySelector('.splgo'), lg=sp.querySelector('.splogo');
-  const art=sp.classList.contains('art'), sa=THEME.splashArt||{}, custom=!!srcOf(tall?(sa.tall||sa.wide):(sa.wide||sa.tall)), t=k=>spv('splashText/'+L,k,null);
+  const art=sp.classList.contains('art'), sa=THEME.splashArt||{}, pic=tall?(sa.tall||sa.wide):(sa.wide||sa.tall), custom=!!(pic&&(pic.asset||pic.url)), t=k=>spv('splashText/'+L,k,null);
   const ls=srcOf(THEME.splashLogo);
   if(lg){ lg.hidden=!ls; if(ls){ if(lg.getAttribute('src')!==ls) lg.src=ls; const g=k=>spv('splashLogo/'+L,k,splashDef(L)[k]);
     lg.style.left=(g('x')/100*W)+'px'; lg.style.top=(g('y')/100*H)+'px'; lg.style.width=(g('size')/100*Math.min(W,H))+'px'; lg.style.setProperty('--rot',spv('splashLogo/'+L,'rot',0)+'deg') } }
@@ -3296,7 +3304,7 @@ function startSplash(){
     }
   };
   const press=e=>{
-    e.stopPropagation(); if(gone) return;
+    e.stopPropagation(); if(gone||UPD.leaving) return;
     try{ sound() }catch(err){}
     try{ bubbleBurst(go) }catch(err){ console.warn('pop',err) }
     close(); try{ buzz(12) }catch(err){}
@@ -3308,6 +3316,9 @@ function startSplash(){
   go.addEventListener('pointerup',lift);
   go.addEventListener('touchend',lift);
   go.addEventListener('click',e=>{ press(e); lift() });
+  window.__jfLive=1;
+  // tapped while the page was still loading: go now
+  if(window.__jfPlay){ go.classList.remove('waiting'); press({stopPropagation(){}}); try{ musicStart() }catch(e){} }
 }
 
 // ---------- boot ----------
@@ -3324,16 +3335,27 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610131914;
+const BUILD=2610131921;
+// A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
+// download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
+// the home screen shows an "Update" link instead.
+const UPD={ready:0,leaving:false,touched:false};
+addEventListener('pointerdown',()=>{ UPD.touched=true },{capture:true});
 function checkUpdate(){
   if(!BUILD||!/^https?:$/.test(location.protocol)) return;
-  fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+  fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(async j=>{
     if(!j||!(j.build>BUILD)) return;
-    const sp=document.getElementById('splash'); if(!sp||sp.classList.contains('out')) return;
-    try{ if(sessionStorage.getItem('jf.reload')===String(j.build)) return; sessionStorage.setItem('jf.reload',String(j.build)) }catch(e){}
-    const u=new URL(location.href); u.searchParams.set('v',j.build); location.replace(u.href);
+    const u=new URL(location.href); u.searchParams.set('v',j.build);
+    const untouched=()=>{ const sp=document.getElementById('splash'); return sp&&!sp.classList.contains('out')&&!UPD.touched&&!window.__jfPlay };
+    let tried=false; try{ tried=sessionStorage.getItem('jf.reload')===String(j.build) }catch(e){}
+    if(!tried&&untouched()&&performance.now()<5000){
+      try{ const r=await fetch(u.href,{cache:'reload'}); await r.text() }catch(e){}
+      if(untouched()){ try{ sessionStorage.setItem('jf.reload',String(j.build)) }catch(e){} UPD.leaving=true; location.replace(u.href); return }
+    }
+    UPD.ready=j.build; if(S&&S.screen==='setup') render();
   }).catch(()=>{});
 }
+function applyUpdate(){ const u=new URL(location.href); u.searchParams.set('v',UPD.ready); location.replace(u.href) }
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
 function start(d){
   const sp=document.getElementById('splash');
