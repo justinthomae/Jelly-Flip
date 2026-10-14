@@ -154,7 +154,8 @@ p{margin:0}
 .access .boardwrap.zoomed .acc-pan{display:grid;position:absolute;z-index:8}
 .acc-pan.up{top:6px;left:calc(50% - 25px)} .acc-pan.down{bottom:6px;left:calc(50% - 25px)}
 .acc-pan.left{left:6px;top:calc(50% - 25px)} .acc-pan.right{right:6px;top:calc(50% - 25px)}
-.acc-pan[disabled],.acc-zoom .iconbtn[disabled]{opacity:.35}
+.boardwrap .acc-pan.off,.boardwrap .acc-zoom .iconbtn.off{opacity:.35}
+.boardwrap .acc-pan,.boardwrap .acc-zoom .iconbtn{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .access .zoomreset{right:auto;left:6px}
 .board{position:relative;margin:0 auto;width:100%;
   aspect-ratio:1 / var(--h);
@@ -3171,14 +3172,14 @@ let fitPending=false, fittedBarH=0;
 // if the card at the bottom grows taller than when the board was sized, shrink the board so no token hides behind it
 if(window.ResizeObserver) new ResizeObserver(()=>{ if(boardEl&&S&&S.screen==='play'&&!bar.hidden&&bar.offsetHeight>fittedBarH+2) fitBoard() }).observe(bar);
 // Pinch the board (or ctrl + scroll / trackpad pinch on a computer) to zoom just the tokens; drag to look around while zoomed.
-const ZM={s:1,x:0,y:0,pts:new Map(),pinch:null,pan:null,moved:false,eat:false};
+const ZM={s:1,x:0,y:0,pts:new Map(),pinch:null,pan:null,moved:false,eat:false,hold:null,press:null,release:null};
 function zoomReset(){ ZM.s=1; ZM.x=0; ZM.y=0; applyZoom() }
 function clampZoom(){ if(!boardEl) return; const W=boardEl.offsetWidth, H=boardEl.offsetHeight;
-  ZM.s=Math.min(3,Math.max(1,ZM.s)); if(ZM.s<1.02){ ZM.s=1; ZM.x=0; ZM.y=0 }
+  ZM.s=Math.min(3,Math.max(1,ZM.s)); if(ZM.s<1.002){ ZM.s=1; ZM.x=0; ZM.y=0 }
   ZM.x=Math.min(0,Math.max(W*(1-ZM.s),ZM.x)); ZM.y=Math.min(0,Math.max(H*(1-ZM.s),ZM.y)) }
 function applyZoom(){ if(!boardEl) return; clampZoom(); const z=ZM.s>1, w=boardEl.parentElement, r=w.querySelector('#zoomReset');
   boardEl.style.transform=z?`translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`:''; w.classList.toggle('zoomed',z); if(r) r.hidden=!z;
-  const W=boardEl.offsetWidth, H=boardEl.offsetHeight, q=(sel,off)=>{ const b=w.querySelector(sel); if(b) b.disabled=off };
+  const W=boardEl.offsetWidth, H=boardEl.offsetHeight, q=(sel,off)=>{ const b=w.querySelector(sel); if(b){ b.classList.toggle('off',off); b.setAttribute('aria-disabled',off) } };
   q('[data-pan="left"]',ZM.x>=-1); q('[data-pan="right"]',ZM.x<=W*(1-ZM.s)+1); q('[data-pan="up"]',ZM.y>=-1); q('[data-pan="down"]',ZM.y<=H*(1-ZM.s)+1);
   q('[data-zoom="in"]',ZM.s>=2.99); q('[data-zoom="out"]',!z) }
 function wireZoom(w){
@@ -3203,14 +3204,29 @@ function wireZoom(w){
   ['gesturestart','gesturechange'].forEach(t=>w.addEventListener(t,e=>e.preventDefault()));
   w.querySelector('#zoomReset').onclick=e=>{ e.stopPropagation(); sfx('tap'); zoomReset() };
   const mid=()=>{ const r=w.getBoundingClientRect(); return [r.left+r.width/2,r.top+r.height/2] };
-  w.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); sfx('tap'); const [cx,cy]=mid(); zoomTo(cx,cy,ZM.s*(b.dataset.zoom==='in'?1.4:1/1.4)) });
-  w.querySelectorAll('[data-pan]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); sfx('tap'); const d=b.dataset.pan, sx=boardEl.offsetWidth*.35, sy=boardEl.offsetHeight*.35;
-    if(d==='left') ZM.x+=sx; if(d==='right') ZM.x-=sx; if(d==='up') ZM.y+=sy; if(d==='down') ZM.y-=sy; applyZoom() });
+  // press and hold: the board glides (and zooms) smoothly for as long as the button is held; a quick tap gives a short glide
+  const step=(kind,dir,dt,t)=>{ const ramp=Math.min(1,.35+t/350);
+    if(kind==='zoom'){ const [cx,cy]=mid(); zoomTo(cx,cy,ZM.s*Math.pow(dir==='in'?1.9:1/1.9,dt*ramp)); return }
+    const v=boardEl.offsetWidth*.9*dt*ramp*ZM.s/2;
+    if(dir==='left') ZM.x+=v; if(dir==='right') ZM.x-=v; if(dir==='up') ZM.y+=v; if(dir==='down') ZM.y-=v; applyZoom() };
+  ZM.hold=null;
+  ZM.press=(kind,dir)=>{ if(ZM.hold) return; const h=ZM.hold={kind,dir,t0:performance.now(),last:performance.now(),up:false};
+    const tick=now=>{ if(ZM.hold!==h||!boardEl) return; const dt=Math.min(.05,(now-h.last)/1000); h.last=now; step(kind,dir,dt,now-h.t0);
+      if(h.up&&now-h.t0>=220){ ZM.hold=null; return } requestAnimationFrame(tick) };
+    requestAnimationFrame(tick) };
+  ZM.release=()=>{ if(ZM.hold) ZM.hold.up=true };
+  w.querySelectorAll('[data-zoom],[data-pan]').forEach(b=>{
+    b.addEventListener('pointerdown',e=>{ e.stopPropagation(); e.preventDefault(); try{ b.setPointerCapture(e.pointerId) }catch(x){} sfx('tap'); ZM.press(b.dataset.zoom?'zoom':'pan',b.dataset.zoom||b.dataset.pan) });
+    ['pointerup','pointercancel','lostpointercapture'].forEach(t=>b.addEventListener(t,ZM.release));
+    b.addEventListener('click',e=>e.stopPropagation());
+    b.addEventListener('contextmenu',e=>e.preventDefault()) });
   applyZoom();
 }
-addEventListener('keydown',e=>{ if(!PREFS.access||!boardEl||!S||S.screen!=='play'||/input|select|textarea/i.test((e.target&&e.target.tagName)||'')) return;
-  const k={'+':'[data-zoom="in"]','=':'[data-zoom="in"]','-':'[data-zoom="out"]',ArrowLeft:'[data-pan="left"]',ArrowRight:'[data-pan="right"]',ArrowUp:'[data-pan="up"]',ArrowDown:'[data-pan="down"]'}[e.key];
-  const b=k&&document.querySelector('.boardwrap '+k); if(b&&!b.disabled&&getComputedStyle(b).display!=='none'){ e.preventDefault(); b.click() } });
+// keyboard in accessibility mode: hold + / - to zoom and the arrow keys to glide around
+const ACC_KEYS={'+':['zoom','in'],'=':['zoom','in'],'-':['zoom','out'],ArrowLeft:['pan','left'],ArrowRight:['pan','right'],ArrowUp:['pan','up'],ArrowDown:['pan','down']};
+addEventListener('keydown',e=>{ const k=ACC_KEYS[e.key]; if(!k||!PREFS.access||!boardEl||!S||S.screen!=='play'||!ZM.press||/input|select|textarea/i.test((e.target&&e.target.tagName)||'')) return;
+  if(k[0]==='pan'&&ZM.s<=1) return; e.preventDefault(); if(!e.repeat) ZM.press(k[0],k[1]) });
+addEventListener('keyup',e=>{ if(ACC_KEYS[e.key]&&ZM.release) ZM.release() });
 function fitBoard(){
   fittedBarH=bar.hidden?0:bar.offsetHeight;
   const wrap=boardEl.parentElement, top=wrap.getBoundingClientRect().top+scrollY;
@@ -3397,7 +3413,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610140234;
+const BUILD=2610140244;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
