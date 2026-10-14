@@ -571,7 +571,7 @@ const TYPES = {
   star:   {name:'Starfish', kind:'catch', pts:3, n:5, say:'+3 points. Keep flipping or bank.'},
   extra:  {name:'Sea Turtle', kind:'go', n:2, say:'Go again: bank your catch, scrap it, then take another turn.'},
   bigeye: {name:'Snorkel Mask', kind:'stop', n:2, say:'Bank, scrap it, then secretly peek at 3 tokens. Turn ends.'},
-  hook:   {name:'Fish Hook', kind:'stop', n:2, say:'Bank, scrap it, then reveal and scrap any face-down token. Turn ends.'},
+  hook:   {name:'Fish Hook', kind:'stop', n:2, say:'Bank. Then you may reveal and scrap any face-down token (the hook is scrapped too), or leave it: the hook flips back over in its spot. Turn ends either way.'},
   g1:     {name:'Submarine · 1 window', kind:'stop', n:1, picks:1, say:'Bank, scrap it, show 1 token to everyone. Turn ends.'},
   g2:     {name:'Submarine · 2 windows', kind:'stop', n:1, picks:2, say:'Bank, scrap it, show 2 tokens to everyone. Turn ends.'},
   g3:     {name:'Submarine · 3 windows', kind:'stop', n:1, picks:3, say:'Bank, scrap it, show 3 tokens to everyone. Turn ends.'},
@@ -660,7 +660,7 @@ const MSG_DEFAULTS={
   dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap a chosen spot to undo it.', dolphinDone:'All hidden! In they go…',
   maskTitle:'Snorkel mask', maskMine:'{banked}Others, look away! {name}, peek at {tokens}, one at a time.', maskWatch:'{banked}{name} is secretly peeking at {tokens}.',
   peekMore:'Tap {more} to peek at.', peekMoreWatch:'{name} has {peeks} left.',
-  hookTitle:'Cast the hook', hookMine:'{banked}Tap a face-down token. It gets revealed and scrapped.', hookWatch:'{banked}{name} is choosing a token to hook.',
+  hookTitle:'Cast the hook', hookMine:'{banked}Tap a face-down token to reveal and scrap it, or skip it: the hook flips back over and your turn ends.', hookWatch:'{banked}{name} is choosing a token to hook.',
   hookedTitle:'Hooked: {token}', hookedBody:'It goes to the scrap pile.',
   subTitle:'Submarine!', subMine:'{banked}Tap {tokens} to show everyone.', subWatch:'{banked}{name} will show everyone {tokens}.',
   subMore:'Tap {more} to show everyone.', subMoreWatch:'{name} is showing everyone {more}.',
@@ -672,7 +672,7 @@ const MSG_DEFAULTS={
   sumBanked:'{name} banked {points}.', sumAction:'{name} {banked}.', sumStung:'{name} got stung by a jellyfish.',
   sumShark:'The shark scattered the reef! {name} lost {tokens} to the table, and every token on the table moved to a new spot.', sumSharkEmpty:'The shark scattered the reef! Every token on the table moved to a new spot.',
   sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} lost this turn’s catch to the whirlpool, and every token swirled to a new spot.',
-  sumHook:'{name} {banked} and hooked a {token} off the table.', sumSub:'{name} {banked} and sent out a submarine.', sumPeek:'{name} {banked} and secretly peeked at {tokens}.',
+  sumHook:'{name} {banked} and hooked a {token} off the table.', sumHookSkip:'{name} {banked} and left the hook where it was.', hookSkip:'Don’t use it', sumSub:'{name} {banked} and sent out a submarine.', sumPeek:'{name} {banked} and secretly peeked at {tokens}.',
   sumDolphin:'{name} {banked} and hid the dolphin.', sumDolphinPlus:'{name} {banked} and hid the dolphin along with {tokens} from the scrap pile.',
   endCatch:'{name} banked {points} on the last flip.', endAction:'{name} flipped the {token} with only 3 tokens left, so the game ended before it could be used.',
   onlyYou:'Only {name} should see this', peekCount:'Peek {i} of {n}. Remember where it was.', peekAgain:'Hide it and peek again', peekDone:'Hide it and end turn',
@@ -1615,13 +1615,14 @@ function legal(a){
     const pairs=dolphinPairs(dm[2]), ks=pairs.map(x=>x[0]), sp=[+dm[1],...pairs.map(x=>x[1])];
     return S.phase==='dolphin'&&new Set(ks).size===ks.length&&new Set(sp).size===sp.length&&ks.every(k=>k<S.scrap.length)&&sp.every(i=>i<S.slots.length&&(!S.slots[i]||i===S.turn.act));
   }
-  const m=/^([fp])(\d{1,2})$|^([xbc])$/.exec(a); if(!m) return false;
+  const m=/^([fp])(\d{1,2})$|^([xbck])$/.exec(a); if(!m) return false;
   const c=m[1]||m[3], s=S.slots[+m[2]];
   if(c==='f') return ['flip','hook','goggles'].includes(S.phase)&&!!s&&!s.up;
   if(c==='p') return S.phase==='peek'&&!!s&&!s.up&&!(S.turn.peeked||[]).includes(+m[2]);
   if(c==='x') return S.phase==='peeking';
   if(c==='b') return S.phase==='flip'&&turnPts()>0;
   if(c==='c') return S.phase==='card';
+  if(c==='k') return S.phase==='hook'&&S.turn.act!=null;
   return false;
 }
 // Replay moves from the shared list one at a time; when catching up after joining, skip the animations.
@@ -1730,7 +1731,7 @@ const MSG_LABELS={turnTitle:'Card title: whose turn',statusFlip:'Card: start of 
   subMore:'Submarine: more to show',subMoreWatch:'Submarine: more to show (watching)',lookTitle:'Submarine: memorize card title',lookBody:'Submarine: memorize card',bustTitle:'Bust card title',
   jellyBody:'Jellyfish card',sharkBody:'Shark card',sharkEmpty:'Shark card (empty hand)',sharkLast:'Shark card (last flip)',sharkLastEmpty:'Shark card (last flip, empty hand)',lastFlip:'Last flip note',
   sumBanked:'Turn summary: banked',sumAction:'Turn summary: action used',sumStung:'Turn summary: jellyfish',sumShark:'Turn summary: shark',sumSharkEmpty:'Turn summary: shark (empty hand)',
-  sumSharkLast:'Turn summary: shark on the last flip',sumWhirl:'Turn summary: whirlpool',sumHook:'Turn summary: hook',sumSub:'Turn summary: submarine',sumPeek:'Turn summary: snorkel mask',
+  sumSharkLast:'Turn summary: shark on the last flip',sumWhirl:'Turn summary: whirlpool',sumHook:'Turn summary: hook',sumHookSkip:'Turn summary: hook not used',hookSkip:'Hook card: skip button',sumSub:'Turn summary: submarine',sumPeek:'Turn summary: snorkel mask',
   sumDolphin:'Turn summary: dolphin',sumDolphinPlus:'Turn summary: dolphin with tokens',endCatch:'Game over note: last catch',endAction:'Game over note: last flip was an action',endWhirl:'Game over note: whirlpool on the last flip',firstPlayer:'New game: who goes first',
   onlyYou:'Private pop-up label',peekCount:'Peek pop-up: count',peekAgain:'Peek pop-up: peek again button',peekDone:'Peek pop-up: end turn button',dolPickTitle:'Dolphin pop-up title',
   dolPickBody:'Dolphin pop-up text',dolPickHelp:'Dolphin pop-up help',dolClear:'Dolphin pop-up: clear link',dolHideOnly:'Dolphin pop-up: hide only the dolphin',dolHideSome:'Dolphin pop-up: hide with tokens',
@@ -2389,7 +2390,9 @@ async function aiAct(){
   if(ph==='peeking') return act('x');
   if(ph==='flip'){ const i=aiChooseFlip(p); if(i<0) return act('b'); await aim(i); return act('f'+i) }
   if(ph==='peek'){ const i=aiTarget(p,'peek'); await aim(i); return act('p'+i) }
-  if(ph==='hook'||ph==='goggles'){ const i=aiTarget(p,ph); await aim(i); return act('f'+i) }
+  if(ph==='hook'){ const B=beliefFor(p), bad=faceDown().some(i=>B[i]==='jelly'||B[i]==='shark');
+    if(!bad&&!(p.kind==='easy'&&Math.random()<.5)) return act('k'); const i=aiTarget(p,ph); await aim(i); return act('f'+i) }
+  if(ph==='goggles'){ const i=aiTarget(p,ph); await aim(i); return act('f'+i) }
   if(ph==='dolphin'){
     // bring back the shark as a trap only it knows about, then prizes it can collect later; easy players grab one at random
     const max=dolMax(), ks=[];
@@ -2429,7 +2432,15 @@ function applyAction(a){
   if(c==='x') return run(endPeek);
   if(c==='b') return run(doBank);
   if(c==='c') return run(doContinue);
+  if(c==='k') return run(hookSkip);
   if(c==='D'){ const m=/^D(\d+)(.*)$/.exec(a); return run(()=>dolphinPlace(+m[1],dolphinPairs(m[2]))) }
+}
+// the hook is optional: left unused, it goes back to its spot face down and the turn ends (the catch stays banked)
+async function hookSkip(){
+  const i=S.turn.act, p=P();
+  await cardToSpot(i); S.turn.act=null; S.turn.rev=S.turn.rev.filter(j=>j!==i);
+  await flipDownAll();
+  endTurn(TT('sumHookSkip',{name:p.name,banked:bankedNote()}));
 }
 async function hookTap(i){
   const s=S.slots[i];
@@ -3074,6 +3085,7 @@ function renderGame(){
     if(S.phase==='dolphin'&&me&&DOL.confirmed){ const items=['dolphin',...DOL.picks.map(k=>S.scrap[k])], next=items[DOL.spots.length];
       sub=next?fmt(TT('dolphinPlace',{token:TYPES[next].name.toLowerCase(),step:items.length>1?` (${DOL.spots.length+1} of ${items.length})`:''})):fmt(TT('dolphinDone')) }
     if(S.phase==='card'&&me) acts=`<button class="btn primary" id="contBtn" ${busy||NET.pending?'disabled':''}>${TX('continue')}</button>`;
+    if(S.phase==='hook'&&me) acts=`<button class="btn ghost" id="hookSkip" ${busy||NET.pending?'disabled':''}>${TX('hookSkip')}</button>`;
   } else {
     const fd=faceDown().length;
     mini=avatar;
@@ -3091,6 +3103,7 @@ function renderGame(){
   const hb=bar.querySelector('#handBtn'); if(hb) hb.onclick=()=>{ sfx('tap'); handOpen=S.cur; render() };
   sc.querySelectorAll('.chip').forEach(ch=>{ const i=+ch.dataset.p; if(canSeeHand(i)){ ch.classList.add('seehand'); ch.onclick=()=>{ sfx('tap'); handOpen=i; render() } } });
   const cb=bar.querySelector('#contBtn'); if(cb) cb.onclick=()=>{sfx('tap');act('c')};
+  const hs=bar.querySelector('#hookSkip'); if(hs) hs.onclick=()=>{sfx('tap');act('k')};
   if(!S.layout||fitPending){fitPending=false;fitBoard()}
   renderBoard();
 
@@ -3358,7 +3371,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610132111;
+const BUILD=2610140227;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
