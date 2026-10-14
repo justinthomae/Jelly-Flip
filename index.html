@@ -149,14 +149,15 @@ p{margin:0}
 .zoomreset[hidden]{display:none}
 /* accessibility mode: zoom buttons, and arrows on each edge once zoomed in */
 .boardwrap .acc-zoom,.boardwrap .acc-pan{display:none}
-.access .acc-zoom{display:flex;flex-direction:column;gap:8px;position:absolute;right:6px;bottom:6px;z-index:8}
+.access .acc-zoom{display:flex;flex-direction:column;gap:8px;position:absolute;right:6px;top:64px;z-index:8}
 .boardwrap .acc-zoom .iconbtn,.boardwrap .acc-pan{width:50px;height:50px;font:700 1.5rem/1 var(--body)}
 .access .boardwrap.zoomed .acc-pan{display:grid;position:absolute;z-index:8}
 .acc-pan.up{top:6px;left:calc(50% - 25px)} .acc-pan.down{bottom:6px;left:calc(50% - 25px)}
 .acc-pan.left{left:6px;top:calc(50% - 25px)} .acc-pan.right{right:6px;top:calc(50% - 25px)}
 .boardwrap .acc-pan.off,.boardwrap .acc-zoom .iconbtn.off{opacity:.35}
 .boardwrap .acc-pan,.boardwrap .acc-zoom .iconbtn{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.access .zoomreset{right:auto;left:6px}
+.access .zoomreset{right:auto;left:6px;top:64px;width:50px;height:50px;font-size:1rem}
+.acc-pan.up-left{top:6px;left:6px} .acc-pan.up-right{top:6px;right:6px} .acc-pan.down-left{bottom:6px;left:6px} .acc-pan.down-right{bottom:6px;right:6px}
 .board{position:relative;margin:0 auto;width:100%;
   aspect-ratio:1 / var(--h);
   background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.22), transparent 70%)}
@@ -3065,7 +3066,7 @@ function renderGame(){
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
       <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div><button class="iconbtn zoomreset" id="zoomReset" hidden aria-label="Zoom back out" title="Zoom back out">1×</button>
         <div class="acc-zoom"><button class="iconbtn" data-zoom="in" aria-label="Zoom in" title="Zoom in">＋</button><button class="iconbtn" data-zoom="out" aria-label="Zoom out" title="Zoom out">−</button></div>
-        ${[['up','↑','Move up'],['down','↓','Move down'],['left','←','Move left'],['right','→','Move right']].map(([d,a,l])=>`<button class="iconbtn acc-pan ${d}" data-pan="${d}" aria-label="${l}" title="${l}">${a}</button>`).join('')}</div>`;
+        ${[['up','↑','Move up'],['down','↓','Move down'],['left','←','Move left'],['right','→','Move right'],['up-left','↖','Move up and left'],['up-right','↗','Move up and right'],['down-left','↙','Move down and left'],['down-right','↘','Move down and right']].map(([d,a,l])=>`<button class="iconbtn acc-pan ${d}" data-pan="${d}" aria-label="${l}" title="${l}">${a}</button>`).join('')}</div>`;
     boardEl=app.querySelector('#board'); wireZoom(boardEl.parentElement);
     boardEl.addEventListener('click',e=>{const b=e.target.closest('.tok');if(b) onSlot(+b.dataset.i)});
     fitPending=true; bindToggles(app);
@@ -3180,7 +3181,9 @@ function clampZoom(){ if(!boardEl) return; const W=boardEl.offsetWidth, H=boardE
 function applyZoom(){ if(!boardEl) return; clampZoom(); const z=ZM.s>1, w=boardEl.parentElement, r=w.querySelector('#zoomReset');
   boardEl.style.transform=z?`translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`:''; w.classList.toggle('zoomed',z); if(r) r.hidden=!z;
   const W=boardEl.offsetWidth, H=boardEl.offsetHeight, q=(sel,off)=>{ const b=w.querySelector(sel); if(b){ b.classList.toggle('off',off); b.setAttribute('aria-disabled',off) } };
-  q('[data-pan="left"]',ZM.x>=-1); q('[data-pan="right"]',ZM.x<=W*(1-ZM.s)+1); q('[data-pan="up"]',ZM.y>=-1); q('[data-pan="down"]',ZM.y<=H*(1-ZM.s)+1);
+  const L=ZM.x>=-1, R=ZM.x<=W*(1-ZM.s)+1, U=ZM.y>=-1, Dn=ZM.y<=H*(1-ZM.s)+1;
+  q('[data-pan="left"]',L); q('[data-pan="right"]',R); q('[data-pan="up"]',U); q('[data-pan="down"]',Dn);
+  q('[data-pan="up-left"]',U&&L); q('[data-pan="up-right"]',U&&R); q('[data-pan="down-left"]',Dn&&L); q('[data-pan="down-right"]',Dn&&R);
   q('[data-zoom="in"]',ZM.s>=2.99); q('[data-zoom="out"]',!z) }
 function wireZoom(w){
   const org=()=>{ const r=w.getBoundingClientRect(); return {x:r.left+boardEl.offsetLeft,y:r.top+boardEl.offsetTop} };
@@ -3207,8 +3210,8 @@ function wireZoom(w){
   // press and hold: the board glides (and zooms) smoothly for as long as the button is held; a quick tap gives a short glide
   const step=(kind,dir,dt,t)=>{ const ramp=Math.min(1,.35+t/350);
     if(kind==='zoom'){ const [cx,cy]=mid(); zoomTo(cx,cy,ZM.s*Math.pow(dir==='in'?1.9:1/1.9,dt*ramp)); return }
-    const v=boardEl.offsetWidth*.9*dt*ramp*ZM.s/2;
-    if(dir==='left') ZM.x+=v; if(dir==='right') ZM.x-=v; if(dir==='up') ZM.y+=v; if(dir==='down') ZM.y-=v; applyZoom() };
+    const diag=dir.includes('-'), v=boardEl.offsetWidth*.9*dt*ramp*ZM.s/2*(diag?.75:1);
+    if(dir.includes('left')) ZM.x+=v; if(dir.includes('right')) ZM.x-=v; if(dir.includes('up')) ZM.y+=v; if(dir.includes('down')) ZM.y-=v; applyZoom() };
   ZM.hold=null;
   ZM.press=(kind,dir)=>{ if(ZM.hold) return; const h=ZM.hold={kind,dir,t0:performance.now(),last:performance.now(),up:false};
     const tick=now=>{ if(ZM.hold!==h||!boardEl) return; const dt=Math.min(.05,(now-h.last)/1000); h.last=now; step(kind,dir,dt,now-h.t0);
@@ -3413,7 +3416,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610140244;
+const BUILD=2610140249;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
