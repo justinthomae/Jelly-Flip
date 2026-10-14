@@ -2292,11 +2292,12 @@ function renderStudio(){
 // Each AI remembers what it has seen face up, by spot. At the start of each turn it "recalls" those memories:
 // its most recent few (sure) are always right; older ones are recalled with a chance that fades with age,
 // and weaker players sometimes put a token in the wrong spot nearby.
-//   Easy: always the very latest token, the rest is hazy.  Medium: the latest 4, then fading.  Hard: the latest 6, then 90% of everything.
+//   Easy: always the very latest token, the rest is hazy.  Medium: the latest 4, then fading.
+//   Hard plays like a sharp human: the latest 5 for sure, then a good memory that fades slowly, with the odd mix-up or careless flip.
 const AI = {
   easy:  {label:'Easy',   sure:1, base:.45, half:6,   confuse:.35, think:[1200,2000], caution:null, slip:.25},
   medium:{label:'Medium', sure:4, base:.8,  half:20,  confuse:.1,  think:[950,1600],  caution:.3,   slip:.05},
-  hard:  {label:'Hard',   sure:6, base:.9,  half:1e9, confuse:0,   think:[750,1250],  caution:.1,   slip:0},
+  hard:  {label:'Hard',   sure:5, base:.8,  half:50,  confuse:.03, think:[750,1250],  caution:.2,   slip:.03},
 };
 const KINDS=[['human','Human'],['easy','AI · Easy'],['medium','AI · Medium'],['hard','AI · Hard'],['remote','Remote player']];
 const BOT_NAMES=['Coral','Barnacle','Kelp','Pebble','Squid','Marlin','Minnow','Nori'];
@@ -3428,7 +3429,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610141540;
+const BUILD=2610142123;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
