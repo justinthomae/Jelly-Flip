@@ -2290,11 +2290,13 @@ function renderStudio(){
 
 // ---------- AI players ----------
 // Each AI remembers what it has seen face up, by spot. At the start of each turn it "recalls" those memories:
-// older memories fade, and weaker players sometimes put a token in the wrong spot nearby.
+// its most recent few (sure) are always right; older ones are recalled with a chance that fades with age,
+// and weaker players sometimes put a token in the wrong spot nearby.
+//   Easy: always the very latest token, the rest is hazy.  Medium: the latest 4, then fading.  Hard: the latest 6, then 90% of everything.
 const AI = {
-  easy:  {label:'Easy',   base:.5,  half:6,   confuse:.35, think:[1200,2000], caution:null, slip:.25},
-  medium:{label:'Medium', base:.85, half:25,  confuse:.12, think:[950,1600],  caution:.3,   slip:.05},
-  hard:  {label:'Hard',   base:1,   half:1e9, confuse:0,   think:[750,1250],  caution:.1,   slip:0},
+  easy:  {label:'Easy',   sure:1, base:.45, half:6,   confuse:.35, think:[1200,2000], caution:null, slip:.25},
+  medium:{label:'Medium', sure:4, base:.8,  half:20,  confuse:.1,  think:[950,1600],  caution:.3,   slip:.05},
+  hard:  {label:'Hard',   sure:6, base:.9,  half:1e9, confuse:0,   think:[750,1250],  caution:.1,   slip:0},
 };
 const KINDS=[['human','Human'],['easy','AI · Easy'],['medium','AI · Medium'],['hard','AI · Hard'],['remote','Remote player']];
 const BOT_NAMES=['Coral','Barnacle','Kelp','Pebble','Squid','Marlin','Minnow','Nori'];
@@ -2312,17 +2314,18 @@ function beliefFor(p){
   const fd=new Set(faceDown());
   if(!beliefCache||beliefCache.turn!==S.turnNo||beliefCache.p!==S.cur){
     const cfg=AI[p.kind], B={};
-    for(const k in p.mem){
-      const i=+k, e=p.mem[k]; if(!fd.has(i)) continue;
-      if(Math.random()>cfg.base*Math.exp(-(S.tick-e.tick)/cfg.half)) continue;
+    const seen=Object.keys(p.mem).map(Number).filter(i=>fd.has(i)).sort((a,b)=>p.mem[b].tick-p.mem[a].tick);
+    seen.forEach((i,rank)=>{ const e=p.mem[i];
+      if(rank<cfg.sure){ B[i]=e.t; return }
+      if(Math.random()>cfg.base*Math.exp(-(S.tick-e.tick)/cfg.half)) return;
       let slot=i;
       if(Math.random()<cfg.confuse){
         const sp=S.layout.spots[i], d=j=>Math.hypot(S.layout.spots[j].x-sp.x,S.layout.spots[j].y-sp.y);
         const near=[...fd].filter(j=>j!==i).sort((a,b)=>d(a)-d(b)).slice(0,3);
         if(near.length) slot=pick(near);
       }
-      B[slot]=e.t;
-    }
+      if(B[slot]==null) B[slot]=e.t;
+    });
     beliefCache={turn:S.turnNo,p:S.cur,B,start:S.tick,target:1+Math.floor(Math.random()*6)};
   }
   // anything seen during this turn is fresh in mind
@@ -3425,7 +3428,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610141538;
+const BUILD=2610141540;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
