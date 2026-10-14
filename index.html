@@ -147,6 +147,15 @@ p{margin:0}
 .board{transform-origin:0 0}
 .zoomreset{position:absolute;top:6px;right:6px;z-index:8;width:40px;height:40px;font:700 .8rem/1 var(--body)}
 .zoomreset[hidden]{display:none}
+/* accessibility mode: zoom buttons, and arrows on each edge once zoomed in */
+.boardwrap .acc-zoom,.boardwrap .acc-pan{display:none}
+.access .acc-zoom{display:flex;flex-direction:column;gap:8px;position:absolute;right:6px;bottom:6px;z-index:8}
+.boardwrap .acc-zoom .iconbtn,.boardwrap .acc-pan{width:50px;height:50px;font:700 1.5rem/1 var(--body)}
+.access .boardwrap.zoomed .acc-pan{display:grid;position:absolute;z-index:8}
+.acc-pan.up{top:6px;left:calc(50% - 25px)} .acc-pan.down{bottom:6px;left:calc(50% - 25px)}
+.acc-pan.left{left:6px;top:calc(50% - 25px)} .acc-pan.right{right:6px;top:calc(50% - 25px)}
+.acc-pan[disabled],.acc-zoom .iconbtn[disabled]{opacity:.35}
+.access .zoomreset{right:auto;left:6px}
 .board{position:relative;margin:0 auto;width:100%;
   aspect-ratio:1 / var(--h);
   background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.22), transparent 70%)}
@@ -1204,7 +1213,7 @@ function sharkSwim(T,onTop){
 // ---------- sound & haptics ----------
 // Every sound is synthesized with Web Audio, so nothing needs to download. Audio starts on the first tap.
 const PREFS_KEY='jellyflip.prefs';
-const PREFS=(()=>{const d={music:true,sound:true,haptics:true};try{return {...d,...JSON.parse(localStorage.getItem(PREFS_KEY)||'{}')}}catch(e){return d}})();
+const PREFS=(()=>{const d={music:true,sound:true,haptics:true,access:false};try{return {...d,...JSON.parse(localStorage.getItem(PREFS_KEY)||'{}')}}catch(e){return d}})();
 function savePrefs(){try{localStorage.setItem(PREFS_KEY,JSON.stringify(PREFS))}catch(e){}}
 let actx=null, master=null, noiseBuf=null;
 function audio(){
@@ -1285,9 +1294,13 @@ const ICONS={
   haptics:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4.5 9v6M19.5 9v6"/>',
   guide:'<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v14H5.5A1.5 1.5 0 0 0 4 18.5z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H20"/><path d="M8 7h8M8 10.5h5"/>',
   share:'<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>',
+  access:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/>',
+  accessOff:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M7.5 10.5h6"/><path d="M3 3l18 18"/>',
   hapticsOff:'<rect x="8" y="4" width="8" height="16" rx="2"/><path d="M3 3l18 18"/>',
 };
-const TOGGLES=[['music','Music','music','musicOff'],['sound','Sound effects','sound','soundOff'],['haptics','Haptics','haptics','hapticsOff']];
+const TOGGLES=[['music','Music','music','musicOff'],['sound','Sound effects','sound','soundOff'],['haptics','Haptics','haptics','hapticsOff'],['access','Accessibility: zoom and move buttons on the board','access','accessOff']];
+// accessibility mode shows big zoom buttons and edge arrows on the board
+function applyAccess(){ document.documentElement.classList.toggle('access',!!PREFS.access) }
 const toggleHTML=()=>TOGGLES.map(([k,label,on,off])=>`<button class="iconbtn" data-pref="${k}" aria-pressed="${PREFS[k]}" aria-label="${label}" title="${label}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[PREFS[k]?on:off]}</svg></button>`).join('');
 function bindToggles(root){
   root.querySelectorAll('[data-pref]').forEach(b=>b.onclick=()=>{
@@ -1296,6 +1309,7 @@ function bindToggles(root){
     if(k==='music') PREFS.music?musicStart():musicStop();
     if(k==='sound'&&PREFS.sound){ audio(); sfx('chime') }
     if(k==='haptics') buzz(20);
+    if(k==='access'){ applyAccess(); if(!PREFS.access) zoomReset() }
     b.setAttribute('aria-pressed',PREFS[k]); b.querySelector('svg').innerHTML=ICONS[PREFS[k]?on:off];
   });
 }
@@ -3048,7 +3062,9 @@ function renderGame(){
       <header class="top"><h1 class="roomname" title="${esc(roomName())}">${esc(roomName())}</h1><div class="tools"><span class="setwrap"><button class="btn small ghost hbtn" id="setBtn" aria-label="Sound and haptics" title="Sound and haptics" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span class="lbl">Sound</span></button><div class="setpop" id="setPop" hidden>${toggleHTML()}</div></span><button class="btn small ghost hbtn" id="rulesBtn" aria-label="Rules" title="Rules"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h9a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4z"/><path d="M9 9h5M9 13h5"/></svg><span class="lbl">Rules</span></button>${S.net?'':'<button class="btn small ghost hbtn" id="homeBtn" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5"/><path d="M6.5 10v10h11V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Home</span></button>'}<button class="btn small ghost hbtn" id="quitBtn" aria-label="Quit" title="Quit"></button></div></header>
       <div class="scores" id="scores"></div>
       <div class="info"><span id="tableCount"></span><span class="pile" id="pile"><span class="stack"><i></i><i></i><i></i></span><span>Scrap <b id="scrapCount"></b></span></span></div>
-      <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div><button class="iconbtn zoomreset" id="zoomReset" hidden aria-label="Zoom back out" title="Zoom back out">1×</button></div>`;
+      <div class="boardwrap"><div class="board" id="board" style="--h:${S.h||1}"></div><button class="iconbtn zoomreset" id="zoomReset" hidden aria-label="Zoom back out" title="Zoom back out">1×</button>
+        <div class="acc-zoom"><button class="iconbtn" data-zoom="in" aria-label="Zoom in" title="Zoom in">＋</button><button class="iconbtn" data-zoom="out" aria-label="Zoom out" title="Zoom out">−</button></div>
+        ${[['up','↑','Move up'],['down','↓','Move down'],['left','←','Move left'],['right','→','Move right']].map(([d,a,l])=>`<button class="iconbtn acc-pan ${d}" data-pan="${d}" aria-label="${l}" title="${l}">${a}</button>`).join('')}</div>`;
     boardEl=app.querySelector('#board'); wireZoom(boardEl.parentElement);
     boardEl.addEventListener('click',e=>{const b=e.target.closest('.tok');if(b) onSlot(+b.dataset.i)});
     fitPending=true; bindToggles(app);
@@ -3161,7 +3177,10 @@ function clampZoom(){ if(!boardEl) return; const W=boardEl.offsetWidth, H=boardE
   ZM.s=Math.min(3,Math.max(1,ZM.s)); if(ZM.s<1.02){ ZM.s=1; ZM.x=0; ZM.y=0 }
   ZM.x=Math.min(0,Math.max(W*(1-ZM.s),ZM.x)); ZM.y=Math.min(0,Math.max(H*(1-ZM.s),ZM.y)) }
 function applyZoom(){ if(!boardEl) return; clampZoom(); const z=ZM.s>1, w=boardEl.parentElement, r=w.querySelector('#zoomReset');
-  boardEl.style.transform=z?`translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`:''; w.classList.toggle('zoomed',z); if(r) r.hidden=!z }
+  boardEl.style.transform=z?`translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`:''; w.classList.toggle('zoomed',z); if(r) r.hidden=!z;
+  const W=boardEl.offsetWidth, H=boardEl.offsetHeight, q=(sel,off)=>{ const b=w.querySelector(sel); if(b) b.disabled=off };
+  q('[data-pan="left"]',ZM.x>=-1); q('[data-pan="right"]',ZM.x<=W*(1-ZM.s)+1); q('[data-pan="up"]',ZM.y>=-1); q('[data-pan="down"]',ZM.y<=H*(1-ZM.s)+1);
+  q('[data-zoom="in"]',ZM.s>=2.99); q('[data-zoom="out"]',!z) }
 function wireZoom(w){
   const org=()=>{ const r=w.getBoundingClientRect(); return {x:r.left+boardEl.offsetLeft,y:r.top+boardEl.offsetTop} };
   const zoomTo=(cx,cy,ns)=>{ const o=org(), px=cx-o.x, py=cy-o.y, k=Math.min(3,Math.max(1,ns))/ZM.s; ZM.x=px-(px-ZM.x)*k; ZM.y=py-(py-ZM.y)*k; ZM.s*=k; applyZoom() };
@@ -3177,14 +3196,21 @@ function wireZoom(w){
     else if(ZM.pts.size===1){ const [p]=[...ZM.pts.values()]; ZM.pan={x:p.x,y:p.y,zx:ZM.x,zy:ZM.y} } };
   w.addEventListener('pointerup',lift); w.addEventListener('pointercancel',lift);
   // a drag or pinch shouldn't also flip the token it ended on
-  w.addEventListener('click',e=>{ if(ZM.eat&&!e.target.closest('#zoomReset')){ ZM.eat=false; e.stopPropagation(); e.preventDefault() } },true);
+  w.addEventListener('click',e=>{ if(ZM.eat&&!e.target.closest('#zoomReset,[data-zoom],[data-pan]')){ ZM.eat=false; e.stopPropagation(); e.preventDefault() } },true);
   w.addEventListener('wheel',e=>{ if(e.ctrlKey){ e.preventDefault(); zoomTo(e.clientX,e.clientY,ZM.s*Math.exp(-e.deltaY*.01)) }
     else if(ZM.s>1){ e.preventDefault(); ZM.x-=e.deltaX; ZM.y-=e.deltaY; applyZoom() } },{passive:false});
   // Safari's own pinch gestures
   ['gesturestart','gesturechange'].forEach(t=>w.addEventListener(t,e=>e.preventDefault()));
   w.querySelector('#zoomReset').onclick=e=>{ e.stopPropagation(); sfx('tap'); zoomReset() };
+  const mid=()=>{ const r=w.getBoundingClientRect(); return [r.left+r.width/2,r.top+r.height/2] };
+  w.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); sfx('tap'); const [cx,cy]=mid(); zoomTo(cx,cy,ZM.s*(b.dataset.zoom==='in'?1.4:1/1.4)) });
+  w.querySelectorAll('[data-pan]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); sfx('tap'); const d=b.dataset.pan, sx=boardEl.offsetWidth*.35, sy=boardEl.offsetHeight*.35;
+    if(d==='left') ZM.x+=sx; if(d==='right') ZM.x-=sx; if(d==='up') ZM.y+=sy; if(d==='down') ZM.y-=sy; applyZoom() });
   applyZoom();
 }
+addEventListener('keydown',e=>{ if(!PREFS.access||!boardEl||!S||S.screen!=='play'||/input|select|textarea/i.test((e.target&&e.target.tagName)||'')) return;
+  const k={'+':'[data-zoom="in"]','=':'[data-zoom="in"]','-':'[data-zoom="out"]',ArrowLeft:'[data-pan="left"]',ArrowRight:'[data-pan="right"]',ArrowUp:'[data-pan="up"]',ArrowDown:'[data-pan="down"]'}[e.key];
+  const b=k&&document.querySelector('.boardwrap '+k); if(b&&!b.disabled&&getComputedStyle(b).display!=='none'){ e.preventDefault(); b.click() } });
 function fitBoard(){
   fittedBarH=bar.hidden?0:bar.offsetHeight;
   const wrap=boardEl.parentElement, top=wrap.getBoundingClientRect().top+scrollY;
@@ -3371,7 +3397,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610140227;
+const BUILD=2610140234;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
@@ -3394,6 +3420,7 @@ function checkUpdate(){
 function applyUpdate(){ const u=new URL(location.href); u.searchParams.set('v',UPD.ready); location.replace(u.href) }
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
 function start(d){
+  try{ applyAccess() }catch(e){}
   const sp=document.getElementById('splash');
   if(d&&d.S){ if(sp) sp.remove() } else if(sp) try{ startSplash() }catch(e){ console.error('splash',e); sp.remove() }
   try{ startTheme() }catch(e){ console.error('theme',e) }
