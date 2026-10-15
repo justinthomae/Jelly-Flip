@@ -524,7 +524,15 @@ html,body{overflow-x:clip}
   .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";--card-h:150px;align-content:center}
   .bar .in.no-token{grid-template-columns:0 minmax(0,1fr)}
   .bar .acts{justify-content:flex-end}
+  /* phones: the card runs edge to edge and down to the bottom of the screen */
+  .bar:not(.cardpreview){padding:0;background:none}
+  .bar:not(.cardpreview) .in{max-width:none;border-radius:22px 22px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding:12px 16px;
+    height:calc(var(--card-h) + 26px + env(safe-area-inset-bottom,0px));padding-bottom:calc(26px + env(safe-area-inset-bottom,0px))}
+  .bar:not(.cardpreview) .foot{position:absolute;left:0;right:0;bottom:calc(6px + env(safe-area-inset-bottom,0px));margin:0;z-index:3;pointer-events:auto}
+  .bar:not(.cardpreview) .narrator.side.left{left:-6px} .bar:not(.cardpreview) .narrator.side.right{right:-6px}
 }
+/* during a game the screen never scrolls, so nothing slides up under the status-bar strip */
+html.playing,html.playing body{overflow:hidden;overscroll-behavior:none}
 .bar .mini.hide{visibility:hidden}
 .bar.bust .in{background:color-mix(in srgb,color-mix(in srgb,var(--bust) 22%,var(--panel)) var(--gcard-a,100%),transparent)}
 .bar .acts{grid-area:acts;display:flex;gap:8px;min-height:38px;align-items:center}
@@ -2931,6 +2939,7 @@ let boardEl=null;
 
 function render(){
   if(themeDirty&&!busy){ themeDirty=false; boardEl=null }
+  { const play=S.screen==='play', was=document.documentElement.classList.contains('playing'); document.documentElement.classList.toggle('playing',play); if(play&&!was) scrollTo(0,0) }
   save();
   if(S.screen==='setup') return renderSetup();
   if(S.screen==='over') return renderOver();
@@ -3441,7 +3450,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610150528;
+const BUILD=2610152146;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
