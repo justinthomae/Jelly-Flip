@@ -495,7 +495,8 @@ html,body{overflow-x:clip}
   background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 30%);z-index:5}
 /* fixed-height card so the board never sits under it */
 .bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
-  display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;min-height:92px;box-sizing:border-box}
+  display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;box-sizing:border-box;
+  height:var(--card-h,108px);overflow:hidden;background:color-mix(in srgb,var(--panel) var(--gcard-a,100%),transparent);-webkit-backdrop-filter:var(--card-blur,none);backdrop-filter:var(--card-blur,none)}
 .bar .in{position:relative}
 .bar .in.narr-right{padding-right:calc(14px + 72px * var(--nsz,1))}
 .bar .in.narr-left{padding-left:calc(14px + 72px * var(--nsz,1))}
@@ -520,12 +521,12 @@ html,body{overflow-x:clip}
 .bar .avatar.think{animation:think 1.2s ease-in-out infinite}
 @keyframes think{50%{transform:scale(.9);opacity:.75}}
 @media (max-width:559px){
-  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";min-height:126px;align-content:center}
+  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";--card-h:150px;align-content:center}
   .bar .in.no-token{grid-template-columns:0 minmax(0,1fr)}
   .bar .acts{justify-content:flex-end}
 }
 .bar .mini.hide{visibility:hidden}
-.bar.bust .in{background:color-mix(in srgb,var(--bust) 22%,var(--panel))}
+.bar.bust .in{background:color-mix(in srgb,color-mix(in srgb,var(--bust) 22%,var(--panel)) var(--gcard-a,100%),transparent)}
 .bar .acts{grid-area:acts;display:flex;gap:8px;min-height:38px;align-items:center}
 .bar .acts .btn{padding:.55em 1.2em}
 
@@ -665,26 +666,26 @@ const MSG_DEFAULTS={
   handBtn:'Hand', saveHome:'Save and go home',
   bankedPrefix:'Banked {points}.', noteBanked:'banked {points}', noteNothing:'banked nothing',
   extraTitle:'Sea Turtle! Go again', extraBody:'{banked}{name} takes another turn.',
-  whirlTitle:'Whirlpool!', whirlBody:'The whirlpool sweeps {name}’s catch back into the reef! Those tokens flip back over, then the whole table swirls into new spots.',
-  dolphinTitle:'Dolphin!', dolphinMine:'{banked}Others, look away! {name}, pick up to {tokens} from the scrap pile to hide with the dolphin.',
-  dolphinEmpty:'{banked}The scrap pile is empty. Hide the dolphin in any glowing spot.', dolphinWatch:'{banked}{name} is secretly hiding the dolphin.',
-  dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap a chosen spot to undo it.', dolphinDone:'All hidden! In they go…',
-  maskTitle:'Snorkel mask', maskMine:'{banked}Others, look away! {name}, peek at {tokens}, one at a time.', maskWatch:'{banked}{name} is secretly peeking at {tokens}.',
+  whirlTitle:'Whirlpool!', whirlBody:'{name}’s catch flips back over, then the whole reef swirls to new spots.',
+  dolphinTitle:'Dolphin!', dolphinMine:'{banked}Look away, others! {name}: pick up to {tokens} from scrap to hide with it.',
+  dolphinEmpty:'{banked}Scrap is empty. Hide the dolphin in a glowing spot.', dolphinWatch:'{banked}{name} is secretly hiding the dolphin.',
+  dolphinPlace:'Tap a glowing spot to hide the {token}{step}. Tap it again to undo.', dolphinDone:'All hidden! In they go…',
+  maskTitle:'Snorkel mask', maskMine:'{banked}Look away, others! {name}, peek at {tokens}.', maskWatch:'{banked}{name} is secretly peeking at {tokens}.',
   peekMore:'Tap {more} to peek at.', peekMoreWatch:'{name} has {peeks} left.',
-  hookTitle:'Cast the hook', hookMine:'{banked}Tap a face-down token to hook it. You’ll see what it is, then keep it or discard it.', hookWatch:'{banked}{name} is choosing a token to hook.',
-  hookedTitle:'Hooked: {token}', hookedBody:'Keep it in your hand, or discard it to the scrap pile?', hookedBackBody:'Put it back where it was, or discard it to the scrap pile?', hookedWatch:'{name} is deciding whether to keep it.',
+  hookTitle:'Cast the hook', hookMine:'{banked}Tap a face-down token to hook it, then keep or discard it.', hookWatch:'{banked}{name} is choosing a token to hook.',
+  hookedTitle:'Hooked: {token}', hookedBody:'Keep it in your hand, or discard it?', hookedBackBody:'Put it back where it was, or discard it?', hookedWatch:'{name} is deciding whether to keep it.',
   subTitle:'Submarine!', subMine:'{banked}Tap {tokens} to show everyone.', subWatch:'{banked}{name} will show everyone {tokens}.',
   subMore:'Tap {more} to show everyone.', subMoreWatch:'{name} is showing everyone {more}.',
   lookTitle:'Everyone, memorize these', lookBody:'They flip back face down when you continue.',
-  bustTitle:'{token}!', jellyBody:'{name} keeps it for −1 and banks nothing this turn.',
-  sharkBody:'{lose} of the {tokens} in {name}’s hand go back on the table, then the shark scares the whole reef into new spots and swims off to the scrap pile.',
-  sharkEmpty:'{name}’s hand is empty, but the shark still scares the whole reef into new spots, then swims off to the scrap pile.',
-  sharkLast:'{lose} of the {tokens} in {name}’s hand go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.', firstPlayer:'{name} was picked at random to go first.', endWhirl:'{name} flipped the whirlpool on the last flip, and it swept this turn’s catch away.',
+  bustTitle:'{token}!', jellyBody:'{name} keeps it for −1 and banks nothing.',
+  sharkBody:'{lose} of {name}’s {tokens} go back on the table, and the reef scatters.',
+  sharkEmpty:'{name}’s hand is empty, but the reef still scatters.',
+  sharkLast:'{lose} of {name}’s {tokens} go back on the table.', sharkLastEmpty:'{name}’s hand is empty.', lastFlip:'That was the last flip: only 3 tokens are left.', firstPlayer:'{name} was picked at random to go first.', endWhirl:'{name} flipped the whirlpool on the last flip, and it swept this turn’s catch away.',
   sumBanked:'{name} banked {points}.', sumAction:'{name} {banked}.', sumStung:'{name} got stung by a jellyfish.',
-  sumShark:'The shark scattered the reef! {name} lost {tokens} to the table, and every token on the table moved to a new spot.', sumSharkEmpty:'The shark scattered the reef! Every token on the table moved to a new spot.',
-  sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} lost this turn’s catch to the whirlpool, and every token swirled to a new spot.',
+  sumShark:'Shark! {name} lost {tokens} to the table, and the reef scattered.', sumSharkEmpty:'Shark! The whole reef scattered to new spots.',
+  sumSharkLast:'The shark got {name} on the last flip.', sumWhirl:'{name} lost the catch to the whirlpool, and the reef swirled.',
   sumHook:'{name} {banked} and hooked a {token} off the table.', sumHookKeep:'{name} {banked} and hooked a {token} into their hand.', sumHookBack:'{name} {banked}, hooked the {token} and put it back.', hookKeep:'Keep it', hookBack:'Put it back', hookDiscard:'Discard', sumSub:'{name} {banked} and sent out a submarine.', sumPeek:'{name} {banked} and secretly peeked at {tokens}.',
-  sumDolphin:'{name} {banked} and hid the dolphin.', sumDolphinPlus:'{name} {banked} and hid the dolphin along with {tokens} from the scrap pile.',
+  sumDolphin:'{name} {banked} and hid the dolphin.', sumDolphinPlus:'{name} {banked} and hid the dolphin with {tokens} from scrap.',
   endCatch:'{name} banked {points} on the last flip.', endAction:'{name} flipped the {token} with only 3 tokens left, so the game ended before it could be used.',
   onlyYou:'Only {name} should see this', peekCount:'Peek {i} of {n}. Remember where it was.', peekAgain:'Hide it and peek again', peekDone:'Hide it and end turn',
   dolPickTitle:'Pick up to {tokens} to hide', dolPickBody:'They go back on the table face down with the dolphin, in spots you choose. Nobody else will know which is which.',
@@ -765,6 +766,7 @@ function applyTheme(){
   // how see-through the sections are, and an optional frosted blur of the background behind them
   if(THEME.cardAlpha!=null) vars.push(`--card-a:${Math.round(THEME.cardAlpha*100)}%`);
   if(THEME.cardBlur) vars.push(`--card-blur:blur(${THEME.cardBlur}px)`);
+  if(THEME.gameCardAlpha!=null) vars.push(`--gcard-a:${Math.round(THEME.gameCardAlpha*100)}%`);
   // fonts: a Google font by name, or a font file the admin uploaded
   const fam={}, google=[];
   for(const role of ['display','body','credit','room']){
@@ -939,10 +941,13 @@ function narratorFor(slot){
 }
 const CARD_SLOTS=['turn','summary','extra','whirl','dolphin','mask','hook','hooked','sub','look','jelly','shark','last'];
 // the look of one bottom card: narrator on a side, token picture, title, message, background
+// every card is the same height: if the words don't fit, shrink them a step at a time until they do
+function fitCard(root){ const inn=root&&root.querySelector('.in'); if(!inn) return; inn.style.removeProperty('--fit');
+  for(let k=1;k>.6&&inn.scrollHeight>inn.clientHeight+1;){ k=Math.round((k-.05)*100)/100; inn.style.setProperty('--fit',k) } }
 function cardHTML(slot,{mini,title,sub,acts,bust}){
   const g=(p,k,d)=>cs(slot,p,k,d), n=narratorFor(slot), side=g('narr','side','right');
   const tf=(p)=>`translate(${g(p,'dx',0)}px,${g(p,'dy',0)}px) rotate(${g(p,'rot',0)}deg)`;
-  const txt=(p,base)=>{ const f=fontCss(g(p,'font','')), c=g(p,'color',''); return `${g(p,'show',true)?'':'display:none;'}${f?`font-family:${f};`:''}font-size:calc(${base} * ${g(p,'size',1)});${c?`color:${c};`:''}transform:${tf(p)};transform-origin:${g(null,'align','left')==='center'?'center':g(null,'align','left')==='right'?'right':'left'} center` };
+  const txt=(p,base)=>{ const f=fontCss(g(p,'font','')), c=g(p,'color',''); return `${g(p,'show',true)?'':'display:none;'}${f?`font-family:${f};`:''}font-size:calc(${base} * ${g(p,'size',1)} * var(--fit,1));${c?`color:${c};`:''}transform:${tf(p)};transform-origin:${g(null,'align','left')==='center'?'center':g(null,'align','left')==='right'?'right':'left'} center` };
   const ns=n?g('narr','size',1)*n.size:0;
   const narr=n?`<img class="narrator side ${side}" src="${n.src}" alt="${esc(n.name)}" style="--nsz:${ns};transform:translate(${g('narr','dx',0)}px,calc(-50% + ${g('narr','dy',0)}px)) rotate(${g('narr','rot',0)}deg)${g('narr','flip',false)?' scaleX(-1)':''}">`:'';
   const C=THEME.cards||{}, own=[C[slot]&&C[slot].bg,C.all&&C.all.bg].find(b=>b&&srcOf(b)), bgSrc=own?srcOf(own):srcOf(THEME.cardBg);
@@ -2102,7 +2107,10 @@ function renderStudio(){
       <div class="st-row"><div class="st-grow"><b>Section see-through</b><p class="muted st-small">How much of the background shows through the home-page sections (players, leaderboard, guide…). 100% is solid.</p>
         <div class="st-acts"><label class="st-color">Solid <input type="range" min="20" max="100" step="2" value="${Math.round((E.cardAlpha!=null?E.cardAlpha:.92)*100)}" data-cardalpha> <span class="st-pct">${Math.round((E.cardAlpha!=null?E.cardAlpha:.92)*100)}%</span></label>
         <label class="st-color">Frosted blur <input type="range" min="0" max="24" step="1" value="${E.cardBlur||0}" data-cardblur> <span class="st-pct">${E.cardBlur||0}px</span></label>
-        ${E.cardAlpha!=null||E.cardBlur?'<button class="linkbtn" data-cardlookreset>reset</button>':''}</div></div></div>`;
+        ${E.cardAlpha!=null||E.cardBlur?'<button class="linkbtn" data-cardlookreset>reset</button>':''}</div></div></div>
+      <div class="st-row"><div class="st-grow"><b>Game card see-through</b><p class="muted st-small">The card at the bottom of the game screen. 100% is solid; lower lets the board and background show through. (The frosted blur above applies here too. Cards with a background picture stay as they are.)</p>
+        <div class="st-acts"><label class="st-color">Solid <input type="range" min="20" max="100" step="2" value="${Math.round((E.gameCardAlpha!=null?E.gameCardAlpha:1)*100)}" data-gcardalpha> <span class="st-pct">${Math.round((E.gameCardAlpha!=null?E.gameCardAlpha:1)*100)}%</span></label>
+        ${E.gameCardAlpha!=null?'<button class="linkbtn" data-gcardreset>reset</button>':''}</div></div></div>`;
   } else if(STUDIO.tab==='fonts'){
     const roles=[['display','Titles and headings'],['room','Game room names'],['body','Everything else'],['credit','Loading-screen credits']];
     body=`<p class="muted">Choose from Google Fonts or upload your own font file (WOFF2, WOFF, TTF or OTF).</p>${roles.map(([r,l])=>{ const cur=(E.fonts&&E.fonts[r])||FONT_DEFAULTS[r], up=srcOf(E.fontFiles&&E.fontFiles[r]);
@@ -2181,7 +2189,8 @@ function renderStudio(){
   // ---- Cards editor ----
   const cslot=()=>STUDIO.cardSlot||'all', cpath=k=>{ const [p,key]=k.split('.'); return 'cards/'+cslot()+'/'+(p?p+'/':'')+key };
   const cval=el=>{ if(el.dataset.kind==='bool') return el.checked; if(el.type==='range') return (+el.value)/(+el.dataset.scale||1); return el.value };
-  const cpreview=()=>{ const pv=document.getElementById('cardPrev'); if(pv) pv.innerHTML=cardPreviewHTML(editTheme()) };
+  const cpreview=()=>{ const pv=document.getElementById('cardPrev'); if(pv){ pv.innerHTML=cardPreviewHTML(editTheme()); fitCard(pv) } };
+  fitCard(document.getElementById('cardPrev'));
   const clocal=(path,val)=>{ const E=editTheme(), parts=path.split('/'); let o=E; for(let i=0;i<parts.length-1;i++){ o[parts[i]]=o[parts[i]]||{}; o=o[parts[i]] } if(val==null) delete o[parts[parts.length-1]]; else o[parts[parts.length-1]]=val };
   b.querySelectorAll('textarea[data-live="1"]').forEach(el=>el.addEventListener('input',()=>{ const E=editTheme(); E.text=E.text||{}; E.text[el.dataset.text]=el.value; cpreview() }));
   on('[data-cardslot]',el=>{ STUDIO.cardSlot=el.value; STUDIO.armCard=false; renderStudio() });
@@ -2257,6 +2266,9 @@ function renderStudio(){
   b.querySelectorAll('[data-cardblur]').forEach(el=>el.addEventListener('input',()=>{ document.documentElement.style.setProperty('--card-blur',+el.value?`blur(${el.value}px)`:'none'); el.parentElement.querySelector('.st-pct').textContent=el.value+'px' }));
   on('[data-cardalpha]',el=>{ document.documentElement.style.removeProperty('--card-a'); saveTheme('cardAlpha',(+el.value)/100) });
   on('[data-cardblur]',el=>{ document.documentElement.style.removeProperty('--card-blur'); saveTheme('cardBlur',+el.value||null) });
+  b.querySelectorAll('[data-gcardalpha]').forEach(el=>el.addEventListener('input',()=>{ document.documentElement.style.setProperty('--gcard-a',el.value+'%'); el.parentElement.querySelector('.st-pct').textContent=el.value+'%' }));
+  on('[data-gcardalpha]',el=>{ document.documentElement.style.removeProperty('--gcard-a'); saveTheme('gameCardAlpha',(+el.value)/100) });
+  on('[data-gcardreset]',()=>saveTheme('gameCardAlpha',null));
   on('[data-cardlookreset]',async()=>{ await saveTheme('cardAlpha',null); saveTheme('cardBlur',null) });
   on('[data-font]',el=>saveTheme('fonts/'+el.dataset.font,el.value));
   on('[data-fontup]',el=>{ const r=el.dataset.fontup; pickFile('.woff2,.woff,.ttf,.otf',async f=>{ await uploadAsset('fontFiles/'+r,f,'font'); saveTheme('fonts/'+r,'__upload') }) });
@@ -3129,7 +3141,7 @@ function renderGame(){
     if(me) acts+=`<button class="btn primary" id="bankBtn" ${pend&&!busy&&!NET.pending&&S.phase==='flip'?'':'disabled'}>${TX('bank')}${pend?bankLabel(pend):''}</button>`;
   }
   const slot=S.card?(S.card.k||'turn'):(S.summary&&!S.turn.rev.length?'summary':'turn');
-  bar.innerHTML=cardHTML(slot,{mini,title,sub,acts})+`<div class="foot">${copyHTML()}</div>`;
+  bar.innerHTML=cardHTML(slot,{mini,title,sub,acts})+`<div class="foot">${copyHTML()}</div>`; fitCard(bar);
   const bb=bar.querySelector('#bankBtn'); if(bb) bb.onclick=()=>act('b');
   const hb=bar.querySelector('#handBtn'); if(hb) hb.onclick=()=>{ sfx('tap'); handOpen=S.cur; render() };
   sc.querySelectorAll('.chip').forEach(ch=>{ const i=+ch.dataset.p; if(canSeeHand(i)){ ch.classList.add('seehand'); ch.onclick=()=>{ sfx('tap'); handOpen=i; render() } } });
@@ -3429,7 +3441,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610142123;
+const BUILD=2610150528;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
