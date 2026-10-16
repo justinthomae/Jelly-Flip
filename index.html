@@ -1027,10 +1027,16 @@ function makeLayout(h){
   return {D, spots:pts.map(p=>({x:p.x,y:p.y,r:Math.round(grand()*50-25)}))};
 }
 
+// the name this device's player uses, remembered between visits: it fills their seat, their online name and the leaderboard
+const MYNAME_KEY='jellyflip.myName';
+const isDefaultName=n=>!n||/^Player \d$/.test(n);
+function myName(){ try{ return localStorage.getItem(MYNAME_KEY)||'' }catch(e){ return '' } }
+function setMyName(n){ n=cleanName(n||''); if(isDefaultName(n)) return; try{ localStorage.setItem(MYNAME_KEY,n.slice(0,20)) }catch(e){} }
 function setupState(prev){
   const st = prev || {count:3, names:[]};
   st.names = Array.from({length:8},(_,i)=>(st.names&&st.names[i])||`Player ${i+1}`);
   st.kinds = Array.from({length:8},(_,i)=>{ const k=st.kinds&&st.kinds[i]; return k&&(k!=='remote'||(prev&&prev.kinds&&prev.kinds.includes('remote')))?k:'human' });
+  { const me=myName(), i=st.kinds.indexOf('human'); if(me&&i>=0&&isDefaultName(st.names[i])) st.names[i]=me }
   st.count = Math.max(2,Math.min(8,st.count||3));
   return {screen:'setup', setup:st};
 }
@@ -1616,7 +1622,7 @@ async function hostResume(saved){
 async function guestJoin(code){
   let room; try{ room=await NET.lobby.join('jf-'+code) }catch(e){ NET.err='Couldn’t join that game. Ask the host to check it’s still open.'; return render() }
   NET.room=room; NET.role='guest'; NET.code=code; NET.g=null; NET.err='';
-  NET.myName=NET.myName||cleanName(S.setup&&S.setup.names[0])||'Friend';
+  NET.myName=NET.myName||myName()||cleanName(S.setup&&S.setup.names[0])||'Friend';
   S={screen:'wait',setup:S.setup};
   bindRoom(); render();
 }
@@ -1715,7 +1721,7 @@ function renderWait(){
       </div>
       <footer class="foot">${copyHTML()}</footer>`;
     bindToggles(app);
-    const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{ NET.myName=cleanName(mn.value);
+    const mn=app.querySelector('#myName'); if(mn) mn.oninput=()=>{ NET.myName=cleanName(mn.value); setMyName(NET.myName);
       clearTimeout(NET.nameT); NET.nameT=setTimeout(()=>{ if(NET.room&&NET.myName) NET.room.presence({name:NET.myName}).catch(()=>{}) },400) };
   }
   const head=app.querySelector('#waitHead'), seats=app.querySelector('#waitSeats'), btns=app.querySelector('#waitBtns');
@@ -2860,6 +2866,7 @@ function wireLbCard(){ document.querySelectorAll('#lbCard [data-lbtab]').forEach
 async function lbSubmit(i,anon){
   const p=S.players[i], st=S.lb[i]; if(!p||st.state!=='ask') return;
   const inp=document.getElementById('lbName'+i), name=anon?'':cleanName((inp&&inp.value)||p.name).slice(0,20);
+  if(name) setMyName(name);
   st.state='sending'; render();
   try{ const {D,db}=await cloudCore(), id=Date.now().toString(36)+Math.random().toString(36).slice(2,8), sc=finalScore(p);
     const boards=LB_TABS.filter(b=>lbMakes(b,sc)), best=lbBest(sc), rank=1+lbList(best).filter(e=>e.score>=sc).length;
@@ -2882,7 +2889,7 @@ function lbOverHTML(){
     if(isAI(p)||!mine(i)||!wonGame(i)||!lbGame()) return '';
     const sc=finalScore(p), st=S.lb[i]||(S.lb[i]={state:lbQualifies(sc)?'ask':'no'});
     if(st.state==='ask'||st.state==='sending') return `<div class="lbnew"><b>🏆 ${TX('lbNew')}</b><p class="muted">${esc(p.name)}: ${fmt(TT('lbPrompt',{score:sc,board:lbBoardWords(lbBest(sc))}))}</p>
-      <div class="coderow"><input id="lbName${i}" maxlength="20" value="${esc(p.name)}" aria-label="Name for the leaderboard"></div>
+      <div class="coderow"><input id="lbName${i}" maxlength="20" value="${esc(isDefaultName(p.name)?(myName()||p.name):p.name)}" aria-label="Name for the leaderboard"></div>
       <div class="btnrow"><button class="btn primary small" data-lbsend="${i}" ${st.state==='sending'?'disabled':''}>${TX('lbSubmit')}</button><button class="btn small" data-lbanon="${i}" ${st.state==='sending'?'disabled':''}>${TX('lbPostAnon')}</button><button class="btn ghost small" data-lbskip="${i}">${TX('lbSkip')}</button></div></div>`;
     if(st.state==='done') return `<div class="lbnew done">🏆 ${fmt(TT('lbDone',{name:st.name,rank:st.rank,board:lbBoardWords(st.board||'week')}))}</div>`;
     if(st.state==='error') return `<div class="lbnew"><p class="err">Couldn’t reach the leaderboard. <button class="linkbtn" data-lbretry="${i}">Try again</button></p></div>`;
@@ -3025,7 +3032,7 @@ function renderSetup(){
   const ilater=app.querySelector('#installLater'); if(ilater) ilater.onclick=()=>{ sfx('tap'); dismissInstall() };
   const ep=app.querySelector('#endPreview'); if(ep) ep.onclick=()=>{ setPreview(''); render() };
   const sync=()=>app.querySelectorAll('.name input').forEach(inp=>st.names[+inp.dataset.i]=inp.value);
-  app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save()}));
+  app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save(); if(+inp.dataset.i===st.kinds.indexOf('human')) setMyName(inp.value)}));
   app.querySelectorAll('.name select').forEach(sel=>sel.onchange=()=>{
     sync(); const i=+sel.dataset.i, was=st.kinds[i]; st.kinds[i]=sel.value;
     if(AI[sel.value]&&/^Player \d$/.test(st.names[i])) st.names[i]=BOT_NAMES[i];
@@ -3475,7 +3482,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610160020;
+const BUILD=2610160024;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
