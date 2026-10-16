@@ -104,7 +104,8 @@ p{margin:0}
 .bar .avatar.has-av{background:color-mix(in srgb,var(--c) 55%,transparent)}
 .whoav{width:84px;height:84px;object-fit:contain;margin:4px auto -4px;display:block;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
 .rowav{width:26px;height:26px;border-radius:50%;object-fit:contain;padding:2px;box-sizing:border-box;flex:none}
-.lbav{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin-right:6px}
+.lbav{display:inline-block;width:28px;height:28px;object-fit:contain;vertical-align:middle;margin-right:8px;flex:none}
+.lbav.none{border-radius:50%;background:color-mix(in srgb,var(--ink,#fff) 12%,transparent);width:22px;height:22px;margin:0 11px 0 3px}
 .avpick{display:grid;place-items:center;z-index:70}
 .avgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:min(100%,440px);margin:0 auto;max-height:min(62vh,520px);overflow:auto;padding:4px;box-sizing:border-box}
 @media (min-width:560px){.avgrid{grid-template-columns:repeat(6,minmax(0,1fr));width:min(100%,520px)}}
@@ -1092,6 +1093,20 @@ const isDefaultName=n=>!n||/^Player \d$/.test(n);
 function myName(){ try{ return localStorage.getItem(MYNAME_KEY)||'' }catch(e){ return '' } }
 function myAvatar(){ try{ return localStorage.getItem('jellyflip.myAvatar')||'' }catch(e){ return '' } }
 function setMyAvatar(k){ try{ k?localStorage.setItem('jellyflip.myAvatar',k):localStorage.removeItem('jellyflip.myAvatar') }catch(e){} }
+// each name typed on this device keeps its own sea creature
+const AVNAME_KEY='jellyflip.avByName';
+const avNameKey=n=>{ n=cleanName(n||'').toLowerCase(); return n&&!isDefaultName(n)&&!/^player \d+$/.test(n)?n:'' };
+function avMap(){ try{ return JSON.parse(localStorage.getItem(AVNAME_KEY)||'{}')||{} }catch(e){ return {} } }
+function avForName(n){ const k=avNameKey(n), a=k&&avMap()[k]; return a&&AVATARS[a]?a:'' }
+function rememberAv(n,a){ const k=avNameKey(n); if(!k) return; const m=avMap(); if(a) m[k]=a; else delete m[k]; try{ localStorage.setItem(AVNAME_KEY,JSON.stringify(m)) }catch(e){} }
+// computer players always get a creature; people get the one remembered with their name
+function fillAvatars(st){
+  for(let i=0;i<8;i++){ if(st.avatars[i]&&!AVATARS[st.avatars[i]]) st.avatars[i]=null;
+    if(!st.avatars[i]&&st.kinds[i]==='human') st.avatars[i]=avForName(st.names[i])||null }
+  for(let i=0;i<8;i++) if(!st.avatars[i]&&AI[st.kinds[i]]){
+    const used=st.avatars.slice(0,Math.max(st.count||0,i+1)), free=Object.keys(AVATARS).filter(k=>!used.includes(k));
+    st.avatars[i]=free[Math.floor(Math.random()*free.length)]||null }
+}
 function setMyName(n){ n=cleanName(n||''); if(isDefaultName(n)) return; try{ localStorage.setItem(MYNAME_KEY,n.slice(0,20)) }catch(e){} }
 function setupState(prev){
   const st = prev || {count:3, names:[]};
@@ -1101,6 +1116,7 @@ function setupState(prev){
   st.avatars = Array.from({length:8},(_,i)=>(st.avatars&&st.avatars[i])||null);
   { const a=myAvatar(), i=st.kinds.indexOf('human'); if(a&&AVATARS[a]&&i>=0&&!st.avatars[i]) st.avatars[i]=a }
   st.count = Math.max(2,Math.min(8,st.count||3));
+  fillAvatars(st);
   return {screen:'setup', setup:st};
 }
 // Every game gets its own ocean-themed name, picked from the game's seed (so online players all see the same one).
@@ -1119,6 +1135,7 @@ function newGame(setup,seed){ HOME.tab='play'; ZM.s=1; ZM.x=0; ZM.y=0;
     players:names.map((name,i)=>({name,color:COLORS[i],bank:[],jellies:0,kind:setup.kinds[i]||'human',mem:{},av:(setup.avatars&&setup.avatars[i])||null})),
     cur:0, slots:[], nextId:0, scrap:[], turn:freshTurn(),
     phase:'handoff', summary:null, card:null, quitArm:false, rulesOpen:false};
+  S.players.forEach(p=>{ if(p.kind==='human'&&p.av) rememberAv(p.name,p.av) });
   const bag=[]; for(const t of ORDER) for(let i=0;i<TYPES[t].n;i++) bag.push(t);
   gshuffle(bag); S.slots=bag.map((t,i)=>({id:i,t,up:false})); S.nextId=bag.length;
   { const used=new Set(S.players.map(p=>p.av).filter(Boolean)), free=Object.keys(AVATARS).filter(k=>!used.has(k));
@@ -1813,8 +1830,8 @@ function renderWait(){
       ? `<button class="btn primary" id="startOnline" ${allIn?'':'disabled'}>${allIn?TX('startGame'):'Waiting for players…'}</button><button class="btn ghost" id="leaveWait">Cancel</button>`
       : `<button class="btn ghost" id="leaveWait">Leave</button>`;
     if(!host&&mine==null&&NET.autoSit){ const open=g.kinds.findIndex((k,i)=>k==='remote'&&!(g.seats[i]&&here.has(g.seats[i])));
-      if(open>=0){ NET.autoSit=false; NET.room.presence({claim:open,name:NET.myName||'Friend',av:myAvatar()||null}).catch(()=>{}) } }
-    seats.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{ sfx('tap'); NET.room.presence({claim:+b.dataset.sit,name:NET.myName||'Friend',av:myAvatar()||null}).catch(()=>{}) });
+      if(open>=0){ NET.autoSit=false; NET.room.presence({claim:open,name:NET.myName||'Friend',av:avForName(NET.myName)||myAvatar()||null}).catch(()=>{}) } }
+    seats.querySelectorAll('[data-sit]').forEach(b=>b.onclick=()=>{ sfx('tap'); NET.room.presence({claim:+b.dataset.sit,name:NET.myName||'Friend',av:avForName(NET.myName)||myAvatar()||null}).catch(()=>{}) });
     const so=btns.querySelector('#startOnline'); if(so) so.onclick=()=>{ sfx('turn'); hostStart() };
     const sr=head.querySelector('#shareRoom'); if(sr) sr.onclick=async()=>{ const u=new URL(location.href); u.search=''; u.hash=''; u.searchParams.set('join',g.code);
       try{ if(navigator.share) await navigator.share({title:T('title'),text:'Join my '+T('title')+' game: code '+g.code.toUpperCase(),url:u.href}); else { await navigator.clipboard.writeText(u.href); sr.textContent='Copied!' } }catch(e){} };
@@ -2930,7 +2947,7 @@ function lbCardHTML(force){
   const empty=tab==='day'?'lbEmptyDay':tab==='week'?'lbEmpty':'lbEmptyAll', note=tab==='day'?'lbResetDay':tab==='week'?'lbReset':'lbResetAll';
   return `<div class="card leaderboard" id="lbCard">${homeNarrHTML('lb')}<span class="label">${TX('lbTitle')}</span>
     <div class="lbtabs" role="tablist">${tabs}</div>
-    ${!LB.loaded[tab]?`<p class="muted">${LB.err[tab]?TX(/permission/i.test(LB.err[tab])?'lbBlocked':'lbOffline'):'Loading…'}</p>`:list.length?`<ol class="lbrows">${list.map((e,i)=>`<li><span class="lbrank">${i+1}</span><span class="lbname">${e.av&&AVATARS[e.av]?`<img class="lbav" src="${avSrc(e.av)}" alt="">`:''}${esc(e.name||T('lbAnon'))}</span><span class="lbdate">${when(e.ts)}</span><b class="lbscore">${e.score}</b></li>`).join('')}</ol>`:`<p class="muted">${TX(empty)}</p>`}
+    ${!LB.loaded[tab]?`<p class="muted">${LB.err[tab]?TX(/permission/i.test(LB.err[tab])?'lbBlocked':'lbOffline'):'Loading…'}</p>`:list.length?`<ol class="lbrows">${list.map((e,i)=>`<li><span class="lbrank">${i+1}</span><span class="lbname">${e.av&&AVATARS[e.av]?`<img class="lbav" src="${avSrc(e.av)}" alt="">`:'<span class="lbav none"></span>'}${esc(e.name||T('lbAnon'))}</span><span class="lbdate">${when(e.ts)}</span><b class="lbscore">${e.score}</b></li>`).join('')}</ol>`:`<p class="muted">${TX(empty)}</p>`}
     <p class="muted st-small">${TX(note)} ${TX('lbRule')}</p></div>`;
 }
 function renderLbCard(){ const el=document.getElementById('lbCard'); if(!el) return; el.outerHTML=lbCardHTML(); wireLbCard() }
@@ -2942,7 +2959,7 @@ async function lbSubmit(i,anon){
   st.state='sending'; render();
   try{ const {D,db}=await cloudCore(), id=Date.now().toString(36)+Math.random().toString(36).slice(2,8), sc=finalScore(p);
     const boards=LB_TABS.filter(b=>lbMakes(b,sc)), best=lbBest(sc), rank=1+lbList(best).filter(e=>e.score>=sc).length;
-    const entry={name:name||null,score:sc,ts:Date.now(),players:S.players.length,room:roomName()||null,av:anon?null:(p.av||null)}, paths={};
+    const entry={name:name||null,score:sc,ts:Date.now(),players:S.players.length,room:roomName()||null,av:anon?null:((p.kind==='human'&&avForName(name))||p.av||null)}, paths={};
     boards.forEach(b=>paths[LB.keys[b]+'/'+id]=entry);
     await D.update(D.ref(db,'jf/leaderboard'),paths);
     st.state='done'; st.name=name||T('lbAnon'); st.score=sc; st.rank=rank; st.board=best;
@@ -3087,7 +3104,7 @@ function openAvatarPicker(i){
   el.innerHTML=`<div class="sheet"><span class="label">${esc(st.names[i])}</span><h2>${TX('avPick')}</h2>
     <div class="avgrid">${Object.keys(AVATARS).map(k=>`<button class="avopt${k===cur?' on':''}" data-k="${k}" title="${esc(AV_LABELS[k])}" aria-label="${esc(AV_LABELS[k])}"><img src="${avSrc(k)}" alt=""></button>`).join('')}</div>
     <div class="btnrow"><button class="btn ghost" data-k="">${TX(st.kinds[i]==='human'?'avNone':'avRandom')}</button><button class="btn" data-close>${TX('close')}</button></div></div>`;
-  const done=k=>{ el.remove(); if(k!==undefined){ st.avatars[i]=k||null; if(i===st.kinds.indexOf('human')) setMyAvatar(k||''); save(); render() } };
+  const done=k=>{ el.remove(); if(k!==undefined){ st.avatars[i]=k||null; if(st.kinds[i]==='human') rememberAv(st.names[i],k||''); if(i===st.kinds.indexOf('human')) setMyAvatar(k||''); save(); render() } };
   el.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ sfx('tap'); done(b.dataset.k) });
   el.querySelector('[data-close]').onclick=()=>done();
   el.onclick=e=>{ if(e.target===el) done() };
@@ -3096,6 +3113,7 @@ function openAvatarPicker(i){
 function renderSetup(){
   bar.hidden=true; ov.hidden=true; boardEl=null;
   const st=S.setup, saved=load(), resume=saved&&saved.screen==='play'?saved:null;
+  if(st.avatars) fillAvatars(st);
   const kinds=KINDS.filter(([v])=>v!=='remote'||NET.lobby||st.kinds.includes('remote'));
   app.innerHTML=`
     ${menuHeaderHTML()}
@@ -3117,11 +3135,16 @@ function renderSetup(){
   const ep=app.querySelector('#endPreview'); if(ep) ep.onclick=()=>{ setPreview(''); render() };
   const sync=()=>app.querySelectorAll('.name input').forEach(inp=>st.names[+inp.dataset.i]=inp.value);
   app.querySelectorAll('[data-av]').forEach(b=>b.onclick=()=>{ sfx('tap'); sync(); openAvatarPicker(+b.dataset.av) });
-  app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync();save(); if(+inp.dataset.i===st.kinds.indexOf('human')) setMyName(inp.value)}));
+  app.querySelectorAll('.name input').forEach(inp=>inp.addEventListener('input',()=>{sync(); const i=+inp.dataset.i;
+    if(i===st.kinds.indexOf('human')) setMyName(inp.value);
+    const a=st.kinds[i]==='human'&&avForName(inp.value);
+    if(a&&a!==st.avatars[i]){ st.avatars[i]=a; if(i===st.kinds.indexOf('human')) setMyAvatar(a); const b=app.querySelector(`[data-av="${i}"]`); if(b){ b.classList.add('has-av'); b.innerHTML=`<img src="${avSrc(a)}" alt="">` } }
+    save()}));
   app.querySelectorAll('.name select').forEach(sel=>sel.onchange=()=>{
     sync(); const i=+sel.dataset.i, was=st.kinds[i]; st.kinds[i]=sel.value;
     if(AI[sel.value]&&/^Player \d$/.test(st.names[i])) st.names[i]=BOT_NAMES[i];
     if(!AI[sel.value]&&AI[was]&&st.names[i]===BOT_NAMES[i]) st.names[i]=`Player ${i+1}`;
+    if(!!AI[sel.value]!==!!AI[was]) st.avatars[i]=null;
     render();
   });
   if(HOME.tab==='play'){
@@ -3567,7 +3590,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610160109;
+const BUILD=2610160203;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
