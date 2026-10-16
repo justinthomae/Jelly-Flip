@@ -496,7 +496,7 @@ html,body{overflow-x:clip}
 /* fixed-height card so the board never sits under it */
 .bar .in{max-width:720px;margin:0 auto;background:var(--panel);border-radius:18px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.45);
   display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;box-sizing:border-box;
-  height:var(--card-h,108px);overflow:hidden;background:color-mix(in srgb,var(--panel) var(--gcard-a,100%),transparent);-webkit-backdrop-filter:var(--card-blur,none);backdrop-filter:var(--card-blur,none)}
+  --card-h:var(--card-hd,108px);height:var(--card-h);overflow:hidden;border-radius:0;background:color-mix(in srgb,var(--panel) var(--gcard-a,100%),transparent);-webkit-backdrop-filter:var(--card-blur,none);backdrop-filter:var(--card-blur,none)}
 .bar .in{position:relative}
 .bar .in.narr-right{padding-right:calc(14px + 72px * var(--nsz,1))}
 .bar .in.narr-left{padding-left:calc(14px + 72px * var(--nsz,1))}
@@ -521,14 +521,14 @@ html,body{overflow-x:clip}
 .bar .avatar.think{animation:think 1.2s ease-in-out infinite}
 @keyframes think{50%{transform:scale(.9);opacity:.75}}
 @media (max-width:559px){
-  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";--card-h:150px;align-content:center}
+  .bar .in{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"face msg" "face acts";--card-h:var(--card-hm,150px);align-content:center}
   .bar .in.no-token{grid-template-columns:0 minmax(0,1fr)}
   .bar .acts{justify-content:flex-end}
   /* phones: the card runs edge to edge and down to the bottom of the screen */
   .bar:not(.cardpreview){padding:0;background:none}
-  .bar:not(.cardpreview) .in{max-width:none;border-radius:22px 22px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding:12px 16px;
-    height:calc(var(--card-h) + 26px + env(safe-area-inset-bottom,0px));padding-bottom:calc(26px + env(safe-area-inset-bottom,0px))}
-  .bar:not(.cardpreview) .foot{position:absolute;left:0;right:0;bottom:calc(6px + env(safe-area-inset-bottom,0px));margin:0;z-index:3;pointer-events:auto}
+  .bar:not(.cardpreview) .in{max-width:none;box-shadow:0 -8px 24px rgba(0,0,0,.35);padding:12px 16px}
+  /* the copyright line sits at the very bottom of the screen, below the card */
+  .bar:not(.cardpreview) .foot{margin:0;padding:6px 16px max(8px,env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.55))}
   .bar:not(.cardpreview) .narrator.side.left{left:-6px} .bar:not(.cardpreview) .narrator.side.right{right:-6px}
 }
 /* during a game the screen never scrolls, so nothing slides up under the status-bar strip */
@@ -775,6 +775,8 @@ function applyTheme(){
   if(THEME.cardAlpha!=null) vars.push(`--card-a:${Math.round(THEME.cardAlpha*100)}%`);
   if(THEME.cardBlur) vars.push(`--card-blur:blur(${THEME.cardBlur}px)`);
   if(THEME.gameCardAlpha!=null) vars.push(`--gcard-a:${Math.round(THEME.gameCardAlpha*100)}%`);
+  if(THEME.cardH&&THEME.cardH.m) vars.push(`--card-hm:${THEME.cardH.m}px`);
+  if(THEME.cardH&&THEME.cardH.d) vars.push(`--card-hd:${THEME.cardH.d}px`);
   // fonts: a Google font by name, or a font file the admin uploaded
   const fam={}, google=[];
   for(const role of ['display','body','credit','room']){
@@ -1994,6 +1996,11 @@ function cardEditorHTML(E){
     <div class="st-row"><div class="st-grow"><b>Message</b><div class="st-acts">${show('body','message')}${fontSel('body')}${range('body','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('body')}${range('body','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('body')}${reset('body','message')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Text alignment</b><div class="st-acts"><select data-cset=".align">${['left','center','right'].map(a=>`<option value="${a}" ${v(null,'align','left')===a?'selected':''}>${a[0].toUpperCase()+a.slice(1)}</option>`).join('')}</select></div></div></div>
     <div class="st-row"><div class="st-grow"><b>Token picture</b><p class="muted st-small">The token (or player badge) at the side of the card.</p><div class="st-acts">${show('token','token picture')}${range('token','size',40,200,5,1,{label:'Size',u:'%'},100)}${range('token','rot',-45,45,1,0,{label:'Rotate',u:'°'})}${nudge('token')}${reset('token','token picture')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Card size and see-through</b> <span class="muted st-small">(every card)</span><p class="muted st-small">Every card is the same height; words shrink a little if they don’t fit.</p><div class="st-acts">
+      <label class="st-color">Phone height <input type="range" min="100" max="300" step="2" value="${(E.cardH&&E.cardH.m)||150}" data-cardh="m"> <span class="st-pct">${(E.cardH&&E.cardH.m)||150}px</span></label>
+      <label class="st-color">Computer height <input type="range" min="80" max="260" step="2" value="${(E.cardH&&E.cardH.d)||108}" data-cardh="d"> <span class="st-pct">${(E.cardH&&E.cardH.d)||108}px</span></label>
+      <label class="st-color">Solid <input type="range" min="20" max="100" step="2" value="${Math.round((E.gameCardAlpha!=null?E.gameCardAlpha:1)*100)}" data-gcardalpha> <span class="st-pct">${Math.round((E.gameCardAlpha!=null?E.gameCardAlpha:1)*100)}%</span></label>
+      ${E.cardH||E.gameCardAlpha!=null?'<button class="linkbtn" data-cardsizereset>reset</button>':''}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Card background</b><p class="muted st-small">${slot==='all'?'A picture for every card. (The Backgrounds tab’s card picture is used if none is set here.)':'A picture just for this card, instead of the default.'}</p><div class="st-acts">${show('bg','background picture')}
       <button class="btn small" data-cbgup>${own.bg&&srcOf(own.bg)?'Replace picture':'Upload picture'}</button>${own.bg&&srcOf(own.bg)?`<button class="btn small ghost" data-cbgdel>Remove picture</button>`:''}
       ${range('bg','dark',0,85,5,.45,{label:'Darken',u:'%'},100)}</div></div></div>
@@ -2277,6 +2284,9 @@ function renderStudio(){
   b.querySelectorAll('[data-gcardalpha]').forEach(el=>el.addEventListener('input',()=>{ document.documentElement.style.setProperty('--gcard-a',el.value+'%'); el.parentElement.querySelector('.st-pct').textContent=el.value+'%' }));
   on('[data-gcardalpha]',el=>{ document.documentElement.style.removeProperty('--gcard-a'); saveTheme('gameCardAlpha',(+el.value)/100) });
   on('[data-gcardreset]',()=>saveTheme('gameCardAlpha',null));
+  b.querySelectorAll('[data-cardh]').forEach(el=>el.addEventListener('input',()=>{ document.documentElement.style.setProperty(el.dataset.cardh==='m'?'--card-hm':'--card-hd',el.value+'px'); el.parentElement.querySelector('.st-pct').textContent=el.value+'px'; fitCard(document.getElementById('cardPrev')) }));
+  on('[data-cardh]',el=>{ document.documentElement.style.removeProperty(el.dataset.cardh==='m'?'--card-hm':'--card-hd'); saveTheme('cardH/'+el.dataset.cardh,+el.value) });
+  on('[data-cardsizereset]',async()=>{ await saveTheme('cardH',null); saveTheme('gameCardAlpha',null) });
   on('[data-cardlookreset]',async()=>{ await saveTheme('cardAlpha',null); saveTheme('cardBlur',null) });
   on('[data-font]',el=>saveTheme('fonts/'+el.dataset.font,el.value));
   on('[data-fontup]',el=>{ const r=el.dataset.fontup; pickFile('.woff2,.woff,.ttf,.otf',async f=>{ await uploadAsset('fontFiles/'+r,f,'font'); saveTheme('fonts/'+r,'__upload') }) });
@@ -3450,7 +3460,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610152146;
+const BUILD=2610160015;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
