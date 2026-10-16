@@ -541,7 +541,17 @@ html.playing,html.playing body{overflow:hidden;overscroll-behavior:none}
 .bar .mini.hide{visibility:hidden}
 .bar.bust .in{background:color-mix(in srgb,color-mix(in srgb,var(--bust) 22%,var(--panel)) var(--gcard-a,100%),transparent)}
 .bar .acts{grid-area:acts;display:flex;gap:8px;min-height:38px;align-items:center}
-.bar .acts .btn{padding:.55em 1.2em}
+.bar .acts .btn{padding:.55em 1.2em;font-size:1em}
+.bar .acts .btn.small{font-size:.88em}
+.bar .acts{font-size:calc(1rem * var(--bs,1))}
+.bar .acts .btn.primary{background:var(--btn-bg,var(--sea));color:var(--btn-ink,var(--sea-ink))}
+.bar .acts .btn.ghost{color:var(--btn-ink2,var(--ink-2));border-color:var(--btn-line,var(--panel-2))}
+/* the Cards editor's button layout: beside the words, or on their own row below them */
+.bar .in.acts-beside{grid-template-columns:56px minmax(0,1fr) auto!important;grid-template-areas:"face msg acts"!important}
+.bar .in.acts-beside.no-token,.bar .in.acts-beside.tight{grid-template-columns:0 minmax(0,1fr) auto!important}
+.bar .in.acts-below{grid-template-columns:56px minmax(0,1fr)!important;grid-template-areas:"face msg" "face acts"!important}
+.bar .in.acts-below.no-token,.bar .in.acts-below.tight{grid-template-columns:0 minmax(0,1fr)!important}
+.bar .in.btns-left .acts{justify-content:flex-start!important} .bar .in.btns-center .acts{justify-content:center!important} .bar .in.btns-right .acts{justify-content:flex-end!important}
 
 /* overlays */
 .overlay{position:fixed;inset:0;z-index:10;background:rgba(14,9,6,.86);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
@@ -976,10 +986,12 @@ function cardHTML(slot,{mini,title,sub,acts,bust}){
   const dark=g('bg','dark',THEME.cardBg&&THEME.cardBg.dark!=null?THEME.cardBg.dark:.45);
   const bg=g('bg','show',true)&&bgSrc?`background:linear-gradient(rgba(10,6,4,${dark}),rgba(10,6,4,${dark})),url('${bgSrc}') center/cover no-repeat,var(--panel);`:g('bg','show',true)?'':'background-image:none;';
   const tok=g('token','show',true), align=g(null,'align','left');
-  const npad=n?g('narr','pad',null):null;
-  return `<div class="in${n?` has-narr narr-${side}`:''}${tok?'':' no-token'}${bg.startsWith('background:')?' has-bg':''} align-${align}" style="${bg}${n?`--nsz:${ns};`:''}${npad!=null?`--npad:${npad}px;`:''}">${narr}
+  const npad=n?g('narr','pad',null):null, B=k=>g('btns',k,null);
+  const bcls=(B('layout')?' acts-'+B('layout'):'')+(B('align')?' btns-'+B('align'):'');
+  const bsty=`${B('size')!=null?`--bs:${B('size')};`:''}${B('bg')?`--btn-bg:${B('bg')};`:''}${B('ink')?`--btn-ink:${B('ink')};--btn-ink2:${B('ink')};--btn-line:${B('ink')};`:''}${B('dx')||B('dy')?`transform:translate(${B('dx')||0}px,${B('dy')||0}px);`:''}`;
+  return `<div class="in${n?` has-narr narr-${side}`:''}${tok?'':' no-token'}${bg.startsWith('background:')?' has-bg':''} align-${align}${bcls}" style="${bg}${n?`--nsz:${ns};`:''}${npad!=null?`--npad:${npad}px;`:''}">${narr}
     <div class="minibox" style="${tok?'':'visibility:hidden;'}transform:${tf('token')} scale(${g('token','size',1)})">${mini}</div>
-    <div class="msg"><strong style="${txt('title','1.35rem')}">${title}</strong><span style="${txt('body','.9rem')}">${sub}</span></div><div class="acts">${acts}</div></div>`;
+    <div class="msg"><strong style="${txt('title','1.35rem')}">${title}</strong><span style="${txt('body','.9rem')}">${sub}</span></div><div class="acts" style="${bsty}">${acts}</div></div>`;
 }
 const narrHTML=(slot,cls='narrator')=>{ const n=narratorFor(slot); return n?`<img class="${cls}" src="${n.src}" alt="${esc(n.name)}" style="--ns:${n.size}">`:'' };
 const face = (t,cls='') => { const art=tokenArt(t), mir=THEME.tokens&&THEME.tokens[t]&&THEME.tokens[t].mirror;
@@ -2015,6 +2027,13 @@ function cardEditorHTML(E){
     ${cardWordsHTML(slot,E)}
     <div class="st-row"><div class="st-grow"><b>Title</b><div class="st-acts">${show('title','title')}${fontSel('title')}${range('title','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('title')}${range('title','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('title')}${reset('title','title')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Message</b><div class="st-acts">${show('body','message')}${fontSel('body')}${range('body','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('body')}${range('body','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('body')}${reset('body','message')}</div></div></div>
+    <div class="st-row"><div class="st-grow"><b>Buttons</b><p class="muted st-small">Continue, Bank, Keep and the rest. “Below the words” gives them their own row so they never overlap the text.</p><div class="st-acts">
+      ${range('btns','size',60,160,5,1,{label:'Size',u:'%'},100)}
+      <label class="st-color">Layout <select data-cset="btns.layout">${[['','Automatic'],['beside','Beside the words'],['below','Below the words']].map(([o,l])=>`<option value="${o}" ${(v('btns','layout','')||'')===o?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="st-color">Align <select data-cset="btns.align">${[['','Automatic'],['left','Left'],['center','Center'],['right','Right']].map(([o,l])=>`<option value="${o}" ${(v('btns','align','')||'')===o?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="st-color">Button color <input type="color" data-cset="btns.bg" value="${v('btns','bg','')||'#6cc4b6'}"></label>${set('btns','bg')||(slot==='all'&&v('btns','bg',''))?`<button class="linkbtn" data-cclear="btns.bg">default</button>`:''}
+      <label class="st-color">Text color <input type="color" data-cset="btns.ink" value="${v('btns','ink','')||'#10302d'}"></label>${set('btns','ink')||(slot==='all'&&v('btns','ink',''))?`<button class="linkbtn" data-cclear="btns.ink">default</button>`:''}
+      ${nudge('btns')}${reset('btns','buttons')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Text alignment</b><div class="st-acts"><select data-cset=".align">${['left','center','right'].map(a=>`<option value="${a}" ${v(null,'align','left')===a?'selected':''}>${a[0].toUpperCase()+a.slice(1)}</option>`).join('')}</select></div></div></div>
     <div class="st-row"><div class="st-grow"><b>Token picture</b><p class="muted st-small">The token (or player badge) at the side of the card.</p><div class="st-acts">${show('token','token picture')}${range('token','size',40,200,5,1,{label:'Size',u:'%'},100)}${range('token','rot',-45,45,1,0,{label:'Rotate',u:'°'})}${nudge('token')}${reset('token','token picture')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Card size and see-through</b> <span class="muted st-small">(every card)</span><p class="muted st-small">Every card is the same height; words shrink a little if they don’t fit.</p><div class="st-acts">
@@ -2232,7 +2251,7 @@ function renderStudio(){
   on('[data-cardslot]',el=>{ STUDIO.cardSlot=el.value; STUDIO.armCard=false; renderStudio() });
   b.querySelectorAll('input[type=range][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.u||(el.dataset.cset.endsWith('rot')?'°':'%')); cpreview() }));
   b.querySelectorAll('input[type=color][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),el.value); cpreview() }));
-  on('[data-cset]',el=>{ let val=cval(el); const k=el.dataset.cset; if(k==='narr.id'&&val==='') val=null; if((k==='title.font'||k==='body.font')&&val==='') val=null; if(k==='narr.id'&&val==='none'&&cslot()==='all') val=null; clocal(cpath(k),val); cpreview(); saveTheme(cpath(k),val) });
+  on('[data-cset]',el=>{ let val=cval(el); const k=el.dataset.cset; if((k==='narr.id'||k.startsWith('btns.'))&&val==='') val=null; if((k==='title.font'||k==='body.font')&&val==='') val=null; if(k==='narr.id'&&val==='none'&&cslot()==='all') val=null; clocal(cpath(k),val); cpreview(); saveTheme(cpath(k),val) });
   on('[data-cclear]',el=>saveTheme(cpath(el.dataset.cclear),null));
   on('[data-cnudge]',el=>{ const p=el.dataset.cnudge, base='cards/'+cslot()+'/'+p;
     if(el.dataset.d==='center'){ saveTheme(base+'/dx',null); return saveTheme(base+'/dy',null) }
@@ -3482,7 +3501,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610160024;
+const BUILD=2610160033;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
