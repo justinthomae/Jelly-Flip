@@ -5,3 +5,7 @@ A push-your-luck memory game for 2 to 8 players: pass-and-play on one device, AI
 Created by Lydia Lichti in partnership with Grudge Match Games.
 
 Copyright © 2026 Grudge Match Games
+
+## Credits
+
+Sea-creature avatars (`assets/av-*.webp`) are from [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft, used under the MIT License.
