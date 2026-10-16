@@ -498,13 +498,18 @@ html,body{overflow-x:clip}
   display:grid;grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"face msg acts";align-items:center;column-gap:12px;row-gap:6px;box-sizing:border-box;
   --card-h:var(--card-hd,108px);height:var(--card-h);overflow:hidden;border-radius:0;background:color-mix(in srgb,var(--panel) var(--gcard-a,100%),transparent);-webkit-backdrop-filter:var(--card-blur,none);backdrop-filter:var(--card-blur,none)}
 .bar .in{position:relative}
-.bar .in.narr-right{padding-right:calc(14px + 72px * var(--nsz,1))}
-.bar .in.narr-left{padding-left:calc(14px + 72px * var(--nsz,1))}
+/* room kept free beside the narrator: measured automatically (--nauto), or set in the Cards editor (--npad) */
+.bar .in.has-narr.narr-right{padding-right:calc(14px + var(--npad,var(--nauto,72px)))}
+.bar .in.has-narr.narr-left{padding-left:calc(14px + var(--npad,var(--nauto,72px)))}
 .bar .narrator.side{position:absolute;top:50%;bottom:auto;width:auto;height:calc(120px * var(--nsz,1));max-width:none;object-fit:contain;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));z-index:2}
 .bar .narrator.side.right{right:calc(-26px * var(--nsz,1));left:auto}
 .bar .narrator.side.left{left:calc(-26px * var(--nsz,1));right:auto}
 .bar .minibox{grid-area:face;display:grid;place-items:center;transform-origin:center}
 .bar .in.no-token{grid-template-columns:0 minmax(0,1fr) auto;column-gap:0}
+.bar .in.tight{grid-template-columns:0 minmax(0,1fr)!important;grid-template-areas:"face msg" "face acts"!important;column-gap:0}
+.bar .in.tight .minibox{visibility:hidden;width:0}
+.bar .in.tight .acts{justify-content:flex-start;flex-wrap:wrap;gap:6px}
+.bar .in.tight .acts .btn{padding:.45em .8em;font-size:.88rem}
 .bar .in.align-center .msg{text-align:center;align-items:center}
 .bar .in.align-right .msg{text-align:right;align-items:flex-end}
 .bar.bust .in.has-bg{box-shadow:inset 0 0 0 3px var(--bust),0 8px 24px rgba(0,0,0,.45)}
@@ -953,6 +958,13 @@ const CARD_SLOTS=['turn','summary','extra','whirl','dolphin','mask','hook','hook
 // the look of one bottom card: narrator on a side, token picture, title, message, background
 // every card is the same height: if the words don't fit, shrink them a step at a time until they do
 function fitCard(root){ const inn=root&&root.querySelector('.in'); if(!inn) return; inn.style.removeProperty('--fit');
+  const img=inn.querySelector('.narrator.side');
+  if(img){ if(!img.complete||!img.naturalWidth){ img.addEventListener('load',()=>fitCard(root),{once:true}) }
+    else { const c=inn.getBoundingClientRect(), r=img.getBoundingClientRect(), k=c.width/(inn.offsetWidth||c.width)||1;
+      const reach=img.classList.contains('left')?r.right-c.left:c.right-r.left; inn.style.setProperty('--nauto',Math.max(0,Math.round(reach/k-14+8))+'px') } }
+  // little room left beside a big narrator: drop the small token picture and tighten the buttons so nothing overlaps
+  const cs2=getComputedStyle(inn), room=inn.clientWidth-parseFloat(cs2.paddingLeft)-parseFloat(cs2.paddingRight);
+  inn.classList.toggle('tight',!!img&&room<260);
   for(let k=1;k>.6&&inn.scrollHeight>inn.clientHeight+1;){ k=Math.round((k-.05)*100)/100; inn.style.setProperty('--fit',k) } }
 function cardHTML(slot,{mini,title,sub,acts,bust}){
   const g=(p,k,d)=>cs(slot,p,k,d), n=narratorFor(slot), side=g('narr','side','right');
@@ -964,7 +976,8 @@ function cardHTML(slot,{mini,title,sub,acts,bust}){
   const dark=g('bg','dark',THEME.cardBg&&THEME.cardBg.dark!=null?THEME.cardBg.dark:.45);
   const bg=g('bg','show',true)&&bgSrc?`background:linear-gradient(rgba(10,6,4,${dark}),rgba(10,6,4,${dark})),url('${bgSrc}') center/cover no-repeat,var(--panel);`:g('bg','show',true)?'':'background-image:none;';
   const tok=g('token','show',true), align=g(null,'align','left');
-  return `<div class="in${n?` has-narr narr-${side}`:''}${tok?'':' no-token'}${bg.startsWith('background:')?' has-bg':''} align-${align}" style="${bg}${n?`--nsz:${ns};`:''}">${narr}
+  const npad=n?g('narr','pad',null):null;
+  return `<div class="in${n?` has-narr narr-${side}`:''}${tok?'':' no-token'}${bg.startsWith('background:')?' has-bg':''} align-${align}" style="${bg}${n?`--nsz:${ns};`:''}${npad!=null?`--npad:${npad}px;`:''}">${narr}
     <div class="minibox" style="${tok?'':'visibility:hidden;'}transform:${tf('token')} scale(${g('token','size',1)})">${mini}</div>
     <div class="msg"><strong style="${txt('title','1.35rem')}">${title}</strong><span style="${txt('body','.9rem')}">${sub}</span></div><div class="acts">${acts}</div></div>`;
 }
@@ -1990,7 +2003,9 @@ function cardEditorHTML(E){
       <label class="st-color">Side <select data-cset="narr.side"><option value="right" ${v('narr','side','right')==='right'?'selected':''}>Right</option><option value="left" ${v('narr','side','right')==='left'?'selected':''}>Left</option></select></label>
       ${range('narr','size',40,250,5,1,{label:'Size',u:'%'},100)}${range('narr','rot',-45,45,1,0,{label:'Rotate',u:'°'})}
       <label class="st-check"><input type="checkbox" data-cset="narr.flip" data-kind="bool" ${v('narr','flip',false)?'checked':''}> Mirror</label>
-      ${nudge('narr')}${reset('narr','narrator')}</div></div></div>
+      ${nudge('narr')}${reset('narr','narrator')}</div>
+      <div class="st-acts"><label class="st-color">Text margin <input type="range" min="0" max="300" step="2" value="${v('narr','pad',null)??''}" data-cset="narr.pad" data-scale="1" data-u="px"> <span class="st-pct">${v('narr','pad',null)!=null?v('narr','pad',null)+'px':'auto'}</span></label>
+        <span class="muted st-small">How far the words stay from the narrator’s side. Auto keeps them clear of the artwork.</span>${v('narr','pad',null)!=null?`<button class="linkbtn" data-cclear="narr.pad">auto</button>`:''}</div></div></div>
     ${cardWordsHTML(slot,E)}
     <div class="st-row"><div class="st-grow"><b>Title</b><div class="st-acts">${show('title','title')}${fontSel('title')}${range('title','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('title')}${range('title','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('title')}${reset('title','title')}</div></div></div>
     <div class="st-row"><div class="st-grow"><b>Message</b><div class="st-acts">${show('body','message')}${fontSel('body')}${range('body','size',50,200,5,1,{label:'Size',u:'%'},100)}${color('body')}${range('body','rot',-30,30,1,0,{label:'Rotate',u:'°'})}${nudge('body')}${reset('body','message')}</div></div></div>
@@ -2209,7 +2224,7 @@ function renderStudio(){
   const clocal=(path,val)=>{ const E=editTheme(), parts=path.split('/'); let o=E; for(let i=0;i<parts.length-1;i++){ o[parts[i]]=o[parts[i]]||{}; o=o[parts[i]] } if(val==null) delete o[parts[parts.length-1]]; else o[parts[parts.length-1]]=val };
   b.querySelectorAll('textarea[data-live="1"]').forEach(el=>el.addEventListener('input',()=>{ const E=editTheme(); E.text=E.text||{}; E.text[el.dataset.text]=el.value; cpreview() }));
   on('[data-cardslot]',el=>{ STUDIO.cardSlot=el.value; STUDIO.armCard=false; renderStudio() });
-  b.querySelectorAll('input[type=range][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.cset.endsWith('rot')?'°':'%'); cpreview() }));
+  b.querySelectorAll('input[type=range][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),cval(el)); const pct=el.parentElement.querySelector('.st-pct'); if(pct) pct.textContent=el.value+(el.dataset.u||(el.dataset.cset.endsWith('rot')?'°':'%')); cpreview() }));
   b.querySelectorAll('input[type=color][data-cset]').forEach(el=>el.addEventListener('input',()=>{ clocal(cpath(el.dataset.cset),el.value); cpreview() }));
   on('[data-cset]',el=>{ let val=cval(el); const k=el.dataset.cset; if(k==='narr.id'&&val==='') val=null; if((k==='title.font'||k==='body.font')&&val==='') val=null; if(k==='narr.id'&&val==='none'&&cslot()==='all') val=null; clocal(cpath(k),val); cpreview(); saveTheme(cpath(k),val) });
   on('[data-cclear]',el=>saveTheme(cpath(el.dataset.cclear),null));
@@ -2219,7 +2234,7 @@ function renderStudio(){
     const dx=cs(cslot(),p,'dx',0)+ax, dy=cs(cslot(),p,'dy',0)+ay; THEME=keep; clocal(base+'/dx',dx); clocal(base+'/dy',dy); cpreview();
     if(ax) saveTheme(base+'/dx',Math.max(-300,Math.min(300,dx))); if(ay) saveTheme(base+'/dy',Math.max(-300,Math.min(300,dy))) });
   on('[data-creset]',async el=>{ const p=el.dataset.creset, base='cards/'+cslot()+'/'+p;
-    if(p==='narr'){ for(const k of ['side','size','rot','dx','dy','flip']) await saveTheme(base+'/'+k,null) } else await saveTheme(base,null) });
+    if(p==='narr'){ for(const k of ['side','size','rot','dx','dy','flip','pad']) await saveTheme(base+'/'+k,null) } else await saveTheme(base,null) });
   on('[data-cresetall]',async()=>{ if(!STUDIO.armCard){ STUDIO.armCard=true; return renderStudio() } STUDIO.armCard=false; const own=(editTheme().cards||{})[cslot()]||{}; if(own.bg) await removeOldAsset('cards/'+cslot()+'/bg'); saveTheme('cards/'+cslot(),null) });
   on('[data-cbgup]',()=>{ const cur=((editTheme().cards||{})[cslot()]||{}).bg||{}; pickFile('image/*',f=>uploadAsset('cards/'+cslot()+'/bg',f,'image',{max:1200,keep:{show:cur.show??null,dark:cur.dark??null}})) });
   on('[data-cbgdel]',async()=>{ const p='cards/'+cslot()+'/bg', cur=((editTheme().cards||{})[cslot()]||{}).bg||{}; await removeOldAsset(p); saveTheme(p,{show:cur.show??null,dark:cur.dark??null}) });
@@ -3460,7 +3475,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610160015;
+const BUILD=2610160020;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
