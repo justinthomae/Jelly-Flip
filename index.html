@@ -689,9 +689,9 @@ const TEXT_DEFAULTS={
   players:'Players', aiNote:'AI players take their own turns. Easy forgets a lot, Medium remembers most things for a while, Hard rarely forgets.',
   startGame:'Start game', openOnline:'Open online game', inBag:'In the bag · 42 tokens', onlineGames:'Online games',
   tabPlay:'Play', tabGuide:'Guide', avPick:'Choose your sea creature', avNone:'No creature (show my number)', avRandom:'Pick one at random', updateReady:'A new version is ready: tap to update', guideBack:'← Back to play', howTo:'How to play', rules:'Rules', backToGame:'Back to the game',
-  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends as soon as only 3 face-down tokens are left (tokens that get turned back over still count). Most points wins; ties go to whoever has fewer jellyfish.',
+  rulesIntro:'Take turns flipping face-down tokens one at a time. Tokens stay in their spots, so remember what you saw. The game ends once only 3 face-down tokens are left after the flip has fully played out (tokens that get turned back over, or put back by a shark or dolphin, still count). Most points wins; ties go to whoever has fewer jellyfish.',
   rulesKeep:'Keep going', rulesStop:'Bank and stop', rulesBust:'Bust: bank nothing',
-  rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends the moment only 3 face-down tokens are left: a last catch is banked, and actions don’t happen.',
+  rulesNote:'Scrapped tokens go to a face-down scrap pile. The dolphin is the only token that stays in play (unless a hook pulls it off). The game ends once only 3 face-down tokens are left: a last catch is banked and most actions don’t happen, but a shark or dolphin still plays out, and if it puts tokens back the game goes on.',
   bank:'Bank', bankPair:'(+{n} school)', continue:'Continue', passTo:'Pass the device to', startTurn:'Start my turn',
   gameOver:'Game over', grudge:'Grudge Match', newPlayers:'New players',
 };
@@ -2676,8 +2676,9 @@ async function doFlip(i){
   sfx(isFish(s.t)?'fish':T.kind==='catch'||T.kind==='bust'||s.t==='dolphin'?s.t:s.t==='extra'?'extra':'chime');
   await wait(500);
   // the game ends once only 3 face-down tokens are left; a jellyfish, shark or whirlpool turns this turn's other tokens back over, so they still count
+  // a shark or dolphin can put tokens back on the table, so it always plays out and the end of the turn decides whether the game is over
   const back=T.kind==='bust'||s.t==='whirl'?S.turn.rev.filter(j=>j!==i).length:0;
-  if(faceDown().length+back<=3) return lastFlip(i);
+  if(faceDown().length+back<=3&&s.t!=='shark'&&s.t!=='dolphin') return lastFlip(i);
   if(T.kind==='catch') return;
   if(T.kind==='bust'){
     S.turn.pending={type:s.t,slot:i};
@@ -3590,7 +3591,7 @@ function startTheme(){
   }).catch(e=>console.warn('theme',e));
   resumeStudioRedirect();
 }
-const BUILD=2610160203;
+const BUILD=2610171829;
 // A newer version on the site: if it's found in the first moments after opening, while the loading screen is untouched,
 // download it first and then switch to it (so the switch is instant). Otherwise never reload under someone:
 // the home screen shows an "Update" link instead.
